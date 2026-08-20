@@ -76,6 +76,9 @@ internal static class MatrixSolver
             pivotRow++;
         }
 
+        // A multidimensional nullspace has no unique balancing ratio.
+        if (pivotCols.Count(c => c == -1) != 1) return null;
+
         // Identify free variable column
         int freeCol = -1;
         for (int c = cols - 1; c >= 0; c--)

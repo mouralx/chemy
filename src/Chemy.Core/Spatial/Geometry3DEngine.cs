@@ -133,6 +133,8 @@ public static class Geometry3DEngine
         // Case 2: Diatomic species (Linear, 180°)
         if (molecule.Atoms.Count == 2)
         {
+            if (molecule.Bonds.Count == 0)
+                throw new NotSupportedException("3D geometry requires an explicit bond connecting a diatomic molecule.");
             var diatomicList = new List<Atom3D>
             {
                 new(molecule.Atoms[0], new Vector3D(-0.6, 0, 0)),
@@ -140,6 +142,9 @@ public static class Geometry3DEngine
             };
             return new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Linear", 180.0, diatomicList, molecule);
         }
+
+        if (molecule.Bonds.Count < molecule.Atoms.Count - 1)
+            throw new NotSupportedException("3D geometry requires molecular connectivity; empirical formulas do not define coordinates.");
 
         // Case 3: Polyatomic species (Determine central atom and coordination sphere)
         var centerAtom = molecule.Atoms.FirstOrDefault(a => a.Element.Symbol != "H") ?? molecule.Atoms[0];

@@ -23,11 +23,14 @@ public record Molecule
     /// <summary>Immutable list of covalent/ionic/aromatic bonds connecting atom indices.</summary>
     public ImmutableList<Bond> Bonds { get; init; }
 
+    /// <summary>Formal charge assigned to the molecular species, independent of atom ordering.</summary>
+    public int FormalCharge { get; init; }
+
     /// <summary>Molar mass calculated from standard IUPAC atomic weights (in g/mol or u).</summary>
     public double MolecularWeight => Atoms.Sum(a => a.Element.StandardAtomicMass);
 
     /// <summary>Net electrostatic charge computed from the sum of atomic net charges.</summary>
-    public int NetCharge => Atoms.Sum(a => a.NetCharge);
+    public int NetCharge => FormalCharge + Atoms.Sum(a => a.NetCharge);
 
     /// <summary>
     /// Constructs a Molecule instance with validated bonding graph topology.
@@ -35,7 +38,7 @@ public record Molecule
     /// <param name="name">Descriptive name.</param>
     /// <param name="atoms">Collection of constituent atoms.</param>
     /// <param name="bonds">Optional collection of chemical bonds between atoms.</param>
-    public Molecule(string name, IEnumerable<Atom> atoms, IEnumerable<Bond>? bonds = null)
+    public Molecule(string name, IEnumerable<Atom> atoms, IEnumerable<Bond>? bonds = null, int formalCharge = 0)
     {
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(atoms);
@@ -43,6 +46,7 @@ public record Molecule
         Name = name;
         Atoms = atoms.ToImmutableList();
         Bonds = (bonds ?? Enumerable.Empty<Bond>()).ToImmutableList();
+        FormalCharge = formalCharge;
 
         ValidateBonds();
     }

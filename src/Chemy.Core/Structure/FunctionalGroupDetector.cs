@@ -9,6 +9,7 @@ public enum FunctionalGroup
     Ketone,
     Ether,
     Amine,
+    Amide,
     Alkene,
     Alkyne,
     Aromatic
@@ -76,7 +77,10 @@ public static class FunctionalGroupDetector
             else if (atom.Element.Symbol == "N")
             {
                 var neighbors = GetNeighbors(molecule, i);
-                if (neighbors.Any(n => n.Atom.Element.Symbol == "C"))
+                bool amide = neighbors.Any(n => n.Atom.Element.Symbol == "C" &&
+                    GetNeighbors(molecule, n.Index).Any(c => c.Bond.Type == BondType.Double && c.Atom.Element.Symbol == "O"));
+                if (amide) detected.Add(FunctionalGroup.Amide);
+                else if (neighbors.Any(n => n.Atom.Element.Symbol == "C"))
                 {
                     detected.Add(FunctionalGroup.Amine);
                 }

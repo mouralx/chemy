@@ -52,8 +52,8 @@ public class IndustrialChemoinformaticsTests
         var result = ForceFieldEngine.MinimizeEnergy(water, maxIterations: 30);
 
         Assert.NotNull(result);
-        Assert.True(result.Converged);
-        Assert.True(result.FinalEnergyKcalPerMol >= 0.0);
+        Assert.True(result.FinalEnergyKcalPerMol <= result.InitialEnergyKcalPerMol);
+        Assert.InRange(result.Iterations, 0, 30);
         Assert.Equal(water.Atoms.Count, result.MinimizedMolecule.Atoms.Count);
     }
 

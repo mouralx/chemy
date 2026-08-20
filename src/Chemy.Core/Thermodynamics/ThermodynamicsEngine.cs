@@ -42,7 +42,8 @@ public static class ThermodynamicsEngine
     public static ReactionThermodynamicsResult GetThermodynamics(Reaction reaction, double temperatureKelvin = 298.15)
     {
         ArgumentNullException.ThrowIfNull(reaction);
-        ArgumentOutOfRangeException.ThrowIfNegative(temperatureKelvin);
+        if (temperatureKelvin <= 0)
+            throw new ArgumentOutOfRangeException(nameof(temperatureKelvin), "Temperature must be greater than 0 K.");
 
         var balanced = reaction.IsBalanced ? reaction : reaction.Balance();
 

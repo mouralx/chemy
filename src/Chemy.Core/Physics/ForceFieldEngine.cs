@@ -58,6 +58,12 @@ public static class ForceFieldEngine
         for (iterations = 0; iterations < maxIterations; iterations++)
         {
             var gradient = CalculateGradients(molecule3D, currentPositions);
+            if (gradient.All(g => Math.Abs(g.X) < 1e-2 && Math.Abs(g.Y) < 1e-2 && Math.Abs(g.Z) < 1e-2))
+            {
+                converged = true;
+                iterations++;
+                break;
+            }
             var trial = currentPositions.Select((p, i) => new Vector3D(
                 p.X - gradient[i].X * stepSize, p.Y - gradient[i].Y * stepSize,
                 p.Z - gradient[i].Z * stepSize)).ToList();
@@ -67,12 +73,12 @@ public static class ForceFieldEngine
                 double change = energy - trialEnergy;
                 currentPositions = trial; energy = trialEnergy;
                 stepSize = Math.Min(0.05, stepSize * 1.1);
-                if (change < 1e-4) { converged = true; iterations++; break; }
+                if (change < 1e-3) { converged = true; iterations++; break; }
             }
             else
             {
                 stepSize *= 0.5;
-                if (stepSize < 1e-8) { converged = true; iterations++; break; }
+                if (stepSize < 1e-8) { iterations++; break; }
             }
         }
 
@@ -120,7 +126,7 @@ public static class ForceFieldEngine
             if (bond.Atom1Index < positions.Count && bond.Atom2Index < positions.Count)
             {
                 double r = Distance(positions[bond.Atom1Index], positions[bond.Atom2Index]);
-                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[bond.Atom1Index].Element, molecule3D.SourceMolecule.Atoms[bond.Atom2Index].Element);
+                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[bond.Atom1Index].Element, molecule3D.SourceMolecule.Atoms[bond.Atom2Index].Element, bond.Type);
                 double delta = r - r0;
                 eBond += 0.5 * DefaultBondSpringConstant * delta * delta;
             }

@@ -4,6 +4,14 @@ namespace Chemy.Core.Tests;
 
 public class FormulaParserTests
 {
+    [Fact]
+    public void Parse_Charge_IsMolecularAndDoesNotModifyLastAtom()
+    {
+        var ion = Molecule.Parse("NaCl-");
+        Assert.Equal(-1, ion.FormalCharge);
+        Assert.Equal(-1, ion.NetCharge);
+        Assert.All(ion.Atoms, atom => Assert.Equal(0, atom.NetCharge));
+    }
     [Theory]
     [InlineData("H2O", 2, 0, 1, 18.015)]
     [InlineData("C6H12O6", 12, 6, 6, 180.156)]

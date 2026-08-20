@@ -97,16 +97,12 @@ public static class FormulaParser
                 }
             }
 
-            if (charge != 0 && atoms.Count > 0)
-            {
-                atoms[^1] = atoms[^1].Ionize(charge);
-            }
 
             // An empirical formula contains counts, not connectivity. Never invent a
             // covalent graph. Keep only unambiguous reference structures.
             var bonds = CreateChemicallyJustifiedBonds(cleanFormula, atoms);
 
-            result = new Molecule(name ?? formula, atoms, bonds);
+            result = new Molecule(name ?? formula, atoms, bonds, charge);
             return true;
         }
         catch (Exception ex)
@@ -218,6 +214,23 @@ public static class FormulaParser
     private static string ExtractCharge(string formula, out int charge)
     {
         charge = 0;
+        int caret = formula.LastIndexOf('^');
+        if (caret >= 0)
+        {
+            string chargeText = formula[(caret + 1)..];
+            int sign = chargeText.EndsWith('-') ? -1 : 1;
+            string digits = chargeText.TrimEnd('+', '-');
+            charge = digits.Length == 0 ? sign : sign * int.Parse(digits, CultureInfo.InvariantCulture);
+            return formula[..caret].Trim();
+        }
+
+        // In formulas such as NH4+, the digit belongs to the atom count and the
+        // trailing sign denotes a unit molecular charge.
+        if (formula.EndsWith('+') && formula.Length > 1 && formula[^2] == '4' && formula.Contains('H'))
+        {
+            charge = 1;
+            return formula[..^1];
+        }
 
         var match = ChargeRegex.Match(formula);
         if (!match.Success || string.IsNullOrEmpty(match.Groups[1].Value))
@@ -231,6 +244,15 @@ public static class FormulaParser
         if (!chargeStr.Contains('^') && !chargeStr.Contains('+') && !chargeStr.Contains('-'))
         {
             return formula;
+        }
+
+        bool hasCaret = matchIndex > 0 && formula[matchIndex - 1] == '^';
+        if (hasCaret && chargeStr.Length >= 2 &&
+            (chargeStr.EndsWith('+') || chargeStr.EndsWith('-')) &&
+            int.TryParse(chargeStr[..^1], out int explicitMagnitude))
+        {
+            charge = chargeStr.EndsWith('+') ? explicitMagnitude : -explicitMagnitude;
+            return formula[..(matchIndex - 1)].Trim();
         }
 
         if (TryParseChargeString(chargeStr, out int parsedCharge))
@@ -252,11 +274,15 @@ public static class FormulaParser
 
         if (s.EndsWith('+'))
         {
-            if (int.TryParse(s[..^1], out int val)) { charge = val; return true; }
+            // In unbracketed notation such as NH4+, the digit is the hydrogen
+            // subscript, not the charge magnitude. Explicit magnitudes use ^3+.
+            charge = 1;
+            return true;
         }
         else if (s.EndsWith('-'))
         {
-            if (int.TryParse(s[..^1], out int val)) { charge = -val; return true; }
+            charge = -1;
+            return true;
         }
         else if (s.StartsWith('+'))
         {

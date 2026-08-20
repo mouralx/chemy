@@ -250,8 +250,29 @@ public static class AdmetEngine
         return count;
     }
 
-    private static int CountHydrogenBondAcceptors(Molecule molecule) =>
-        molecule.Atoms.Count(a => a.Element.Symbol is "O" or "N" or "F");
+    private static int CountHydrogenBondAcceptors(Molecule molecule)
+    {
+        int count = 0;
+        for (int i = 0; i < molecule.Atoms.Count; i++)
+        {
+            var atom = molecule.Atoms[i];
+            if (atom.Element.Symbol == "F") { count++; continue; }
+            if (atom.Element.Symbol == "O")
+            {
+                if (atom.NetCharge <= 0) count++;
+                continue;
+            }
+            if (atom.Element.Symbol == "N" && atom.NetCharge <= 0)
+            {
+                bool amide = molecule.Bonds.Any(b => b.Connects(i) &&
+                    molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(c => c.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) &&
+                        c.Type == BondType.Double && molecule.Atoms[c.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? c.Atom2Index : c.Atom1Index].Element.Symbol == "O"));
+                if (!amide) count++;
+            }
+        }
+        return count;
+    }
 
     private static int CountRotatableBonds(Molecule molecule)
     {

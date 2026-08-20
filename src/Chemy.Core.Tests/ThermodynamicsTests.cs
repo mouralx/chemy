@@ -6,6 +6,11 @@ namespace Chemy.Core.Tests;
 public class ThermodynamicsTests
 {
     [Fact]
+    public void GetThermodynamics_RejectsAbsoluteZero()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => Chemy.Core.Thermodynamics.ThermodynamicsEngine.GetThermodynamics(Reaction.Parse("H2 + O2 -> H2O"), 0));
+    }
+    [Fact]
     public void GetThermodynamics_MethaneCombustion_CalculatesCorrectExothermicProperties()
     {
         // CH4 + 2O2 -> CO2 + 2H2O
