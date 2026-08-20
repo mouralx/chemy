@@ -199,28 +199,28 @@ public static class SkeletalSvgRenderer
 
             if (bond.Type == BondType.Double)
             {
-                double d = 2.6;
-                sb.AppendLine($"  <line x1=\"{x1 + nx * d:F1}\" y1=\"{y1 + ny * d:F1}\" x2=\"{x2 + nx * d:F1}\" y2=\"{y2 + ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.2\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 - nx * d:F1}\" y1=\"{y1 - ny * d:F1}\" x2=\"{x2 - nx * d:F1}\" y2=\"{y2 - ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.2\" stroke-linecap=\"round\" />");
+                double d = 3.2;
+                sb.AppendLine($"  <line x1=\"{x1 + nx * (d / 2.0):F1}\" y1=\"{y1 + ny * (d / 2.0):F1}\" x2=\"{x2 + nx * (d / 2.0):F1}\" y2=\"{y2 + ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{x1 - nx * (d / 2.0):F1}\" y1=\"{y1 - ny * (d / 2.0):F1}\" x2=\"{x2 - nx * (d / 2.0):F1}\" y2=\"{y2 - ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
             }
             else if (bond.Type == BondType.Triple)
             {
-                double d = 3.5;
-                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 + nx * d:F1}\" y1=\"{y1 + ny * d:F1}\" x2=\"{x2 + nx * d:F1}\" y2=\"{y2 + ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"1.8\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 - nx * d:F1}\" y1=\"{y1 - ny * d:F1}\" x2=\"{x2 - nx * d:F1}\" y2=\"{y2 - ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"1.8\" stroke-linecap=\"round\" />");
+                double d = 3.6;
+                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.2\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{x1 + nx * d:F1}\" y1=\"{y1 + ny * d:F1}\" x2=\"{x2 + nx * d:F1}\" y2=\"{y2 + ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{x1 - nx * d:F1}\" y1=\"{y1 - ny * d:F1}\" x2=\"{x2 - nx * d:F1}\" y2=\"{y2 - ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
             }
             else if (bond.Type == BondType.Aromatic)
             {
-                // Aromatic bond: primary line + inner concentric dash
-                double d = 2.4;
-                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 + nx * d:F1}\" y1=\"{y1 + ny * d:F1}\" x2=\"{x2 + nx * d:F1}\" y2=\"{y2 + ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"1.6\" stroke-dasharray=\"4,3\" stroke-linecap=\"round\" />");
+                // Aromatic bond: primary line + inner parallel line
+                double d = 3.4;
+                sb.AppendLine($"  <line x1=\"{x1 + nx * (d / 2.0):F1}\" y1=\"{y1 + ny * (d / 2.0):F1}\" x2=\"{x2 + nx * (d / 2.0):F1}\" y2=\"{y2 + ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{x1 - nx * (d / 2.0):F1}\" y1=\"{y1 - ny * (d / 2.0):F1}\" x2=\"{x2 - nx * (d / 2.0):F1}\" y2=\"{y2 - ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
             }
             else
             {
                 // Single bond
-                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.6\" stroke-linecap=\"round\" />");
             }
         }
 

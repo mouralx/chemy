@@ -116,14 +116,26 @@ public class IndexModel : PageModel
             FallbackComputeServerSide();
         }
 
-        if (string.IsNullOrEmpty(PlanarXyzContent) && (Molecule.TryParse(Formula, Formula, out var m) || Molecule.FromSmiles(Formula, Formula) is { } sm))
+        if (string.IsNullOrEmpty(PlanarXyzContent) || string.IsNullOrEmpty(SkeletalSvgContent))
         {
-            m ??= Molecule.FromSmiles(Formula, Formula);
-            var planar = m.ToPlanar3D();
-            PlanarXyzContent = planar.ToXyz();
-            PlanarPdbContent = planar.ToPdb();
-            PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
-            SkeletalSvgContent = m.ToSkeletalSvg(true);
+            Molecule? m = null;
+            if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
+            {
+                m = sm;
+            }
+            else if (Molecule.TryParse(Formula, Formula, out var fm))
+            {
+                m = fm;
+            }
+
+            if (m != null)
+            {
+                var planar = m.ToPlanar3D();
+                PlanarXyzContent = planar.ToXyz();
+                PlanarPdbContent = planar.ToPdb();
+                PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
+                SkeletalSvgContent = m.ToSkeletalSvg(true);
+            }
         }
     }
 
@@ -133,9 +145,19 @@ public class IndexModel : PageModel
     private void FallbackComputeServerSide()
     {
         IsApiConnected = false;
-        if (Molecule.TryParse(Formula, Formula, out var molecule) || Molecule.FromSmiles(Formula, Formula) is { } smilesMol)
+        Molecule? molecule = null;
+
+        if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
         {
-            molecule ??= Molecule.FromSmiles(Formula, Formula);
+            molecule = sm;
+        }
+        else if (Molecule.TryParse(Formula, Formula, out var fm))
+        {
+            molecule = fm;
+        }
+
+        if (molecule != null)
+        {
             var m3d = molecule.To3D(OverrideShape);
             var planar = molecule.ToPlanar3D();
 

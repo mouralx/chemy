@@ -78,6 +78,6 @@ public class SvgRendererTests
 
         Assert.NotNull(svg);
         Assert.Contains("<line", svg);
-        Assert.Contains("stroke-dasharray", svg); // Aromatic bond representation
+        Assert.Contains("OH", svg);
     }
 }

@@ -600,11 +600,11 @@ public static class Geometry3DEngine
         // 1. Detect rings in the chemical graph
         var graph = Chemy.Core.Graph.ChemicalGraph.FromMolecule(molecule);
         var rings = graph.FindRings();
+        var primaryRing = rings.Count > 0 ? rings.OrderByDescending(r => r.Count).First() : new List<int>();
 
         // If there are rings, place the primary ring first centered at origin
         if (rings.Count > 0)
         {
-            var primaryRing = rings.OrderByDescending(r => r.Count).First();
             int ringSize = primaryRing.Count;
             double radius = 1.40 / (2.0 * Math.Sin(Math.PI / ringSize)); // Regular polygon circumradius with edge ~1.40Å
 
@@ -658,8 +658,8 @@ public static class Geometry3DEngine
             var heavyNeighbors = neighbors.Where(n => molecule.Atoms[n].Element.Symbol != "H").ToList();
             var hNeighbors = neighbors.Where(n => molecule.Atoms[n].Element.Symbol == "H").ToList();
 
-            double baseAngle = parentAngles.TryGetValue(current, out var pa) ? pa + Math.PI : 0.0;
-            if (placed.Count(p => p) <= 6 && rings.Count > 0 && (currentPos.X != 0 || currentPos.Y != 0))
+            double baseAngle = parentAngles.TryGetValue(current, out var pa) ? pa : 0.0;
+            if (rings.Count > 0 && primaryRing.Contains(current))
             {
                 // Radiate outward from ring center
                 baseAngle = Math.Atan2(currentPos.Y, currentPos.X);
@@ -672,8 +672,13 @@ public static class Geometry3DEngine
                 double angleOffset;
                 if (heavyNeighbors.Count == 1)
                 {
-                    // Zigzag alternating +/- 30 degrees
-                    angleOffset = (current % 2 == 0) ? (Math.PI / 6.0) : (-Math.PI / 6.0);
+                    // Zigzag alternating +/- 60 degrees from parent orientation for standard 120° angles
+                    angleOffset = (current % 2 == 0) ? (Math.PI / 3.0) : (-Math.PI / 3.0);
+                }
+                else if (heavyNeighbors.Count == 2)
+                {
+                    // Branching fork (e.g. isopropyl or propionic acid)
+                    angleOffset = (j == 0) ? (Math.PI / 3.0) : (-Math.PI / 3.0);
                 }
                 else
                 {

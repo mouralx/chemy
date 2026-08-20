@@ -723,16 +723,15 @@ public partial class Program
 
         string trimmed = input.Trim();
 
-        // 1. If it parses as SMILES with implicit hydrogens, prefer SMILES for organic notation (e.g. CCO -> C2H6O, Aspirin)
-        if (Molecule.TryParseSmiles(trimmed, name, out var smilesMol) && smilesMol.Atoms.Count > 1)
+        // 1. If it parses as SMILES with bonding topology, prioritize SMILES for organic compounds (e.g. Ibuprofen, Aspirin, Ethanol)
+        if (Molecule.TryParseSmiles(trimmed, name, out var smilesMol) && smilesMol.Bonds.Count > 0)
         {
-            if (Molecule.TryParse(trimmed, name, out var formulaMol))
+            // Only prefer empirical formula parser if it is a pure stoichiometry without SMILES syntax (e.g. C6H12O6, H2O)
+            bool hasSmilesChars = trimmed.Any(ch => char.IsLower(ch) || ch is '(' or ')' or '=' or '#' or ':');
+            if (!hasSmilesChars && Molecule.TryParse(trimmed, name, out var formulaMol) && formulaMol.Atoms.Count > smilesMol.Atoms.Count)
             {
-                if (formulaMol.Atoms.Count(a => a.Element.Symbol == "H") >= smilesMol.Atoms.Count(a => a.Element.Symbol == "H"))
-                {
-                    molecule = formulaMol;
-                    return true;
-                }
+                molecule = formulaMol;
+                return true;
             }
 
             molecule = smilesMol;
@@ -749,8 +748,8 @@ public partial class Program
         var parts = trimmed.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries);
         foreach (var part in parts)
         {
+            if (Molecule.TryParseSmiles(part, name ?? part, out molecule) && molecule.Bonds.Count > 0) return true;
             if (Molecule.TryParse(part, name ?? part, out molecule)) return true;
-            if (Molecule.TryParseSmiles(part, name ?? part, out molecule)) return true;
         }
 
         return false;
