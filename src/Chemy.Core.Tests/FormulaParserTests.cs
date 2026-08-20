@@ -22,6 +22,14 @@ public class FormulaParserTests
     }
 
     [Fact]
+    public void Parse_EmpiricalFormula_DoesNotInventCovalentTopology()
+    {
+        var glucose = Molecule.Parse("C6H12O6");
+        Assert.Empty(glucose.Bonds);
+        Assert.Equal(0, glucose.NetCharge);
+    }
+
+    [Fact]
     public void Parse_NestedBrackets_CalculatesCorrectCounts()
     {
         var caoh2 = Molecule.Parse("Ca(OH)2", "Calcium Hydroxide");

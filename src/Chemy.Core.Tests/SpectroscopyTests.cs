@@ -15,6 +15,7 @@ public class SpectroscopyTests
         Assert.NotNull(prediction);
         Assert.NotEmpty(prediction.H1NmrPeaks);
         Assert.NotEmpty(prediction.C13NmrPeaks);
+        Assert.Equal(9, prediction.C13NmrPeaks.Sum(p => p.HydrogenCount));
         Assert.NotEmpty(prediction.IrBands);
 
         Assert.Contains(prediction.IrBands, b => b.FunctionalGroup.Contains("Carboxylic Acid"));

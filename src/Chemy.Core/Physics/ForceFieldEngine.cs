@@ -51,43 +51,28 @@ public static class ForceFieldEngine
         double initialEnergy = CalculateTotalPotentialEnergy(molecule3D, currentPositions);
 
         double energy = initialEnergy;
-        int iter = 0;
-        double stepSize = 0.02;
+        int iterations = 0;
+        bool converged = false;
+        double stepSize = 0.01;
 
-        for (iter = 0; iter < maxIterations; iter++)
+        for (iterations = 0; iterations < maxIterations; iterations++)
         {
-            var forces = CalculateGradients(molecule3D, currentPositions);
-            var newPositions = new List<Vector3D>();
-
-            for (int i = 0; i < currentPositions.Count; i++)
+            var gradient = CalculateGradients(molecule3D, currentPositions);
+            var trial = currentPositions.Select((p, i) => new Vector3D(
+                p.X - gradient[i].X * stepSize, p.Y - gradient[i].Y * stepSize,
+                p.Z - gradient[i].Z * stepSize)).ToList();
+            double trialEnergy = CalculateTotalPotentialEnergy(molecule3D, trial);
+            if (trialEnergy < energy)
             {
-                var pos = currentPositions[i];
-                var f = forces[i];
-                newPositions.Add(new Vector3D(
-                    pos.X + f.X * stepSize,
-                    pos.Y + f.Y * stepSize,
-                    pos.Z + f.Z * stepSize
-                ));
-            }
-
-            double newEnergy = CalculateTotalPotentialEnergy(molecule3D, newPositions);
-
-            if (Math.Abs(energy - newEnergy) < 1e-4)
-            {
-                energy = newEnergy;
-                currentPositions = newPositions;
-                break;
-            }
-
-            if (newEnergy < energy)
-            {
-                energy = newEnergy;
-                currentPositions = newPositions;
-                stepSize = Math.Min(0.05, stepSize * 1.1); // Adaptive step acceleration
+                double change = energy - trialEnergy;
+                currentPositions = trial; energy = trialEnergy;
+                stepSize = Math.Min(0.05, stepSize * 1.1);
+                if (change < 1e-4) { converged = true; iterations++; break; }
             }
             else
             {
-                stepSize *= 0.5; // Backtrack on overshoot
+                stepSize *= 0.5;
+                if (stepSize < 1e-8) { converged = true; iterations++; break; }
             }
         }
 
@@ -108,8 +93,8 @@ public static class ForceFieldEngine
             molecule3D.ChemicalFormula,
             Math.Round(initialEnergy, 3),
             Math.Round(energy, 3),
-            iter + 1,
-            true,
+            iterations,
+            converged,
             minimizedMol
         );
     }
@@ -198,60 +183,27 @@ public static class ForceFieldEngine
             }
         }
 
-        return Math.Max(0.0, eBond + eAngle + Math.Max(0.0, eVdw));
+        return eBond + eAngle + eVdw;
     }
 
     private static List<Vector3D> CalculateGradients(Molecule3D molecule3D, List<Vector3D> positions)
     {
-        var forces = new List<Vector3D>();
-
+        const double h = 1e-5;
+        var result = new List<Vector3D>(positions.Count);
         for (int i = 0; i < positions.Count; i++)
         {
-            double fx = 0, fy = 0, fz = 0;
-            var p1 = positions[i];
-
-            var bondedToI = molecule3D.SourceMolecule.Bonds
-                .Where(b => b.Connects(i))
-                .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
-                .ToHashSet();
-
-            // Steric repulsion force for 1,4+ non-bonded pairs
-            for (int j = 0; j < positions.Count; j++)
-            {
-                if (j == i || bondedToI.Contains(j)) continue;
-                var p2 = positions[j];
-                double dist = Math.Max(0.8, Distance(p1, p2));
-                if (dist < DefaultVdwRadius * 1.5)
-                {
-                    double repulsion = 0.05 / (dist * dist);
-                    fx += (p1.X - p2.X) * repulsion;
-                    fy += (p1.Y - p2.Y) * repulsion;
-                    fz += (p1.Z - p2.Z) * repulsion;
-                }
-            }
-
-            // Harmonic bond restoring force
-            var connectedBonds = molecule3D.SourceMolecule.Bonds.Where(b => b.Connects(i));
-            foreach (var b in connectedBonds)
-            {
-                int otherIdx = b.Atom1Index == i ? b.Atom2Index : b.Atom1Index;
-                var p2 = positions[otherIdx];
-                double r = Distance(p1, p2);
-                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[i].Element, molecule3D.SourceMolecule.Atoms[otherIdx].Element, b.Type);
-
-                if (r > 0.01)
-                {
-                    double springForce = -DefaultBondSpringConstant * 0.001 * (r - r0);
-                    fx += ((p1.X - p2.X) / r) * springForce;
-                    fy += ((p1.Y - p2.Y) / r) * springForce;
-                    fz += ((p1.Z - p2.Z) / r) * springForce;
-                }
-            }
-
-            forces.Add(new Vector3D(fx, fy, fz));
+            var x = positions.ToList(); x[i] = new Vector3D(x[i].X + h, x[i].Y, x[i].Z);
+            var y = positions.ToList(); y[i] = new Vector3D(y[i].X, y[i].Y + h, y[i].Z);
+            var z = positions.ToList(); z[i] = new Vector3D(z[i].X, z[i].Y, z[i].Z + h);
+            var xm = positions.ToList(); xm[i] = new Vector3D(xm[i].X - h, xm[i].Y, xm[i].Z);
+            var ym = positions.ToList(); ym[i] = new Vector3D(ym[i].X, ym[i].Y - h, ym[i].Z);
+            var zm = positions.ToList(); zm[i] = new Vector3D(zm[i].X, zm[i].Y, zm[i].Z - h);
+            result.Add(new Vector3D(
+                (CalculateTotalPotentialEnergy(molecule3D, x)-CalculateTotalPotentialEnergy(molecule3D, xm))/(2*h),
+                (CalculateTotalPotentialEnergy(molecule3D, y)-CalculateTotalPotentialEnergy(molecule3D, ym))/(2*h),
+                (CalculateTotalPotentialEnergy(molecule3D, z)-CalculateTotalPotentialEnergy(molecule3D, zm))/(2*h)));
         }
-
-        return forces;
+        return result;
     }
 
     private static double GetIdealBondLength(Element e1, Element e2, BondType bondType = BondType.Single)

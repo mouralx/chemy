@@ -102,7 +102,9 @@ public static class FormulaParser
                 atoms[^1] = atoms[^1].Ionize(charge);
             }
 
-            var bonds = AutoGenerateBonds(atoms);
+            // An empirical formula contains counts, not connectivity. Never invent a
+            // covalent graph. Keep only unambiguous reference structures.
+            var bonds = CreateChemicallyJustifiedBonds(cleanFormula, atoms);
 
             result = new Molecule(name ?? formula, atoms, bonds);
             return true;
@@ -114,22 +116,15 @@ public static class FormulaParser
         }
     }
 
-    private static List<Bond> AutoGenerateBonds(List<Atom> atoms)
+    private static List<Bond> CreateChemicallyJustifiedBonds(string formula, List<Atom> atoms)
     {
         var bonds = new List<Bond>();
-        if (atoms.Count <= 1) return bonds;
-
-        var centerAtom = atoms.FirstOrDefault(a => a.Element.Symbol != "H") ?? atoms[0];
-        int centerIndex = atoms.IndexOf(centerAtom);
-
-        for (int i = 0; i < atoms.Count; i++)
-        {
-            if (i != centerIndex)
-            {
-                bonds.Add(new Bond(centerIndex, i, BondType.Single));
-            }
-        }
-
+        if (formula == "H2O" && atoms.Count == 3)
+        { bonds.Add(new Bond(2, 0)); bonds.Add(new Bond(2, 1)); }
+        else if (formula == "CO2" && atoms.Count == 3)
+        { bonds.Add(new Bond(0, 1, BondType.Double)); bonds.Add(new Bond(0, 2, BondType.Double)); }
+        else if (formula == "CH4" && atoms.Count == 5)
+        { for (int i = 1; i < 5; i++) bonds.Add(new Bond(0, i)); }
         return bonds;
     }
 

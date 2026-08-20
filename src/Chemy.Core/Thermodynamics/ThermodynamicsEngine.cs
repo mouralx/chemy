@@ -92,7 +92,9 @@ public static class ThermodynamicsEngine
         if (ThermodynamicData.TryGetProperties(molecule.Name, out props))
             return props;
 
-        // Benson Group Additivity heuristic estimation for arbitrary unknown molecules
+        throw new NotSupportedException($"No validated standard thermodynamic data is available for '{molecule.ChemicalFormula}'.");
+
+        /*
         double estimatedHf = 0.0;
         double estimatedS = 50.0; // Baseline translational entropy
 
@@ -108,6 +110,6 @@ public static class ThermodynamicsEngine
 
         estimatedS += (c + h + o + n) * 12.0; // Vibrational and rotational degrees of freedom
 
-        return new StandardThermodynamicProperties(estimatedHf, estimatedS, -estimatedHf);
+        return new StandardThermodynamicProperties(estimatedHf, estimatedS, -estimatedHf); */
     }
 }

@@ -200,12 +200,15 @@ public static class SpectroscopyEngine
         }
 
         // 6. Remaining Aliphatic Carbons (δ 10 - 45 ppm)
-        int remainingC = carbonCount - peaks.Sum(p => p.HydrogenCount);
+        int assignedC = Math.Min(carbonCount, peaks.Sum(p => p.HydrogenCount));
+        int remainingC = carbonCount - assignedC;
         if (remainingC > 0)
         {
             peaks.Add(new NmrPeak(24.5, "13C", "Singlet", remainingC, "Aliphatic Alkane sp3 Carbons"));
         }
 
+        int excess = peaks.Sum(p => p.HydrogenCount) - carbonCount;
+        for (int i = peaks.Count - 1; i >= 0 && excess > 0; i--) { int keep = Math.Max(0, peaks[i].HydrogenCount - excess); excess -= peaks[i].HydrogenCount - keep; if (keep == 0) peaks.RemoveAt(i); else peaks[i] = peaks[i] with { HydrogenCount = keep }; }
         return peaks;
     }
 

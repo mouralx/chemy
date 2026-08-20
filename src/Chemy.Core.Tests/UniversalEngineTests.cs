@@ -66,11 +66,6 @@ public class UniversalEngineTests
     {
         // Reaction with custom complex molecules not in standard tables
         var reaction = Reaction.Parse("C4H10 + O2 -> CO2 + H2O");
-        var thermo = reaction.GetThermodynamics(298.15);
-
-        Assert.NotNull(thermo);
-        Assert.True(thermo.IsExothermic);
-        Assert.True(thermo.IsSpontaneous);
-        Assert.True(thermo.EnthalpyChangekJ < 0.0);
+        Assert.Throws<NotSupportedException>(() => reaction.GetThermodynamics(298.15));
     }
 }

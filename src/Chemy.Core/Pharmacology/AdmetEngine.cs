@@ -86,7 +86,7 @@ public static class AdmetEngine
         }
         else
         {
-            hergRisk = "Low Risk (Normal cardiac safety window)";
+            hergRisk = "Unsupported: hERG risk requires a validated structure-based or experimental model";
         }
 
         // Phase-I CYP450 metabolism prediction
@@ -111,13 +111,11 @@ public static class AdmetEngine
         }
         else
         {
-            cypSite = "CYP450 Omega-1 Aliphatic Hydroxylation";
+            cypSite = "Unsupported: CYP site prediction requires a validated structure-based or experimental model";
         }
 
         // Blood-Brain Barrier (BBB) permeability
-        string bbb = (tpsa < 90.0 && logP is >= 1.0 and <= 3.5 && mw < 400.0)
-            ? "High BBB Permeability (CNS Active)"
-            : "Low BBB Permeability (Peripherally Restricted)";
+        string bbb = "Unsupported: BBB permeability cannot be inferred reliably from formula-level descriptors";
 
         return new AdmetProfile(
             molecule.ChemicalFormula,
