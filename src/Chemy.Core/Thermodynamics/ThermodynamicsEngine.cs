@@ -83,6 +83,7 @@ public static class ThermodynamicsEngine
 
     /// <summary>
     /// Resolves thermodynamic properties from NIST tables or dynamic Benson Group Additivity estimation.
+    /// Reference: S.W. Benson, Thermochemical Kinetics (2nd ed. 1976); Cohen &amp; Benson, Chem. Rev. 1993, 93, 2419-2438.
     /// </summary>
     private static StandardThermodynamicProperties ResolveThermodynamicProperties(Molecule molecule)
     {
@@ -92,22 +93,131 @@ public static class ThermodynamicsEngine
         if (ThermodynamicData.TryGetProperties(molecule.Name, out props))
             return props;
 
-        // Benson Group Additivity heuristic estimation for arbitrary unknown molecules
-        double estimatedHf = 0.0;
-        double estimatedS = 50.0; // Baseline translational entropy
+        // Benson Group Additivity estimation for organic and unknown compounds
+        double hf = 0.0;
+        double s = 150.0 + (1.5 * 8.314 * Math.Log(Math.Max(10.0, molecule.MolecularWeight)));
 
-        int c = molecule.Atoms.Count(a => a.Element.Symbol == "C");
-        int h = molecule.Atoms.Count(a => a.Element.Symbol == "H");
-        int o = molecule.Atoms.Count(a => a.Element.Symbol == "O");
-        int n = molecule.Atoms.Count(a => a.Element.Symbol == "N");
+        var graph = Graph.ChemicalGraph.FromMolecule(molecule);
+        int nAtoms = molecule.Atoms.Count;
 
-        estimatedHf += c * -20.5; // Alkane carbon contribution
-        estimatedHf += h * -3.8;  // Alkane hydrogen contribution
-        estimatedHf += o * -100.0; // Carbonyl / hydroxyl oxygen contribution
-        estimatedHf += n * +15.0;  // Amine nitrogen contribution
+        for (int i = 0; i < nAtoms; i++)
+        {
+            var atom = molecule.Atoms[i];
+            string sym = atom.Element.Symbol;
+            var neighbors = molecule.Bonds
+                .Where(b => b.Connects(i))
+                .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
+                .ToList();
 
-        estimatedS += (c + h + o + n) * 12.0; // Vibrational and rotational degrees of freedom
+            if (sym == "C")
+            {
+                bool isAromatic = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic);
+                bool hasDouble = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Double);
+                bool hasTriple = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Triple);
 
-        return new StandardThermodynamicProperties(estimatedHf, estimatedS, -estimatedHf);
+                if (isAromatic)
+                {
+                    bool hasH = neighbors.Any(n => molecule.Atoms[n].Element.Symbol == "H");
+                    bool hasO = neighbors.Any(n => molecule.Atoms[n].Element.Symbol == "O");
+                    if (hasH) { hf += 13.81; s += 33.5; }
+                    else if (hasO) { hf += -16.74; s += -41.8; }
+                    else { hf += 23.01; s += -62.8; }
+                }
+                else if (hasDouble)
+                {
+                    bool isCarbonyl = neighbors.Any(n => molecule.Atoms[n].Element.Symbol == "O");
+                    if (isCarbonyl)
+                    {
+                        int cCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "C");
+                        int oCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "O");
+                        if (cCount >= 2) { hf += -131.8; s += 62.8; }
+                        else if (cCount >= 1 && oCount >= 2) { hf += -142.3; s += 75.3; } // Acid/Ester CO
+                        else { hf += -121.3; s += 146.4; } // Aldehyde
+                    }
+                    else
+                    {
+                        // Alkene Cd
+                        int hCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "H");
+                        if (hCount >= 2) { hf += 26.23; s += 115.5; }
+                        else if (hCount == 1) { hf += 35.94; s += 34.3; }
+                        else { hf += 43.26; s += -57.7; }
+                    }
+                }
+                else if (hasTriple)
+                {
+                    hf += 113.7;
+                    s += 60.0;
+                }
+                else
+                {
+                    // Aliphatic sp3
+                    int hCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "H");
+                    int cCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "C");
+                    int oCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "O");
+
+                    if (oCount > 0)
+                    {
+                        hf += -34.3 * oCount;
+                        s += 25.0;
+                    }
+                    else
+                    {
+                        switch (cCount)
+                        {
+                            case 0:
+                            case 1:
+                                hf += -42.17; s += 127.2; break; // C-(C)(H)3
+                            case 2:
+                                hf += -20.63; s += 39.4; break;  // C-(C)2(H)2
+                            case 3:
+                                hf += -7.95; s += -50.2; break;  // C-(C)3(H)
+                            default:
+                                hf += 2.09; s += -146.4; break;  // C-(C)4
+                        }
+                    }
+                }
+            }
+            else if (sym == "O")
+            {
+                bool isDouble = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Double);
+                if (!isDouble)
+                {
+                    bool hasH = neighbors.Any(n => molecule.Atoms[n].Element.Symbol == "H");
+                    if (hasH) { hf += -158.6; s += 121.3; } // O-(C)(H)
+                    else { hf += -99.6; s += 38.9; }        // O-(C)2
+                }
+            }
+            else if (sym == "N")
+            {
+                int hCount = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "H");
+                if (hCount >= 2) { hf += 48.1; s += 125.5; }
+                else if (hCount == 1) { hf += 75.3; s += 29.3; }
+                else { hf += 102.1; s += -92.0; }
+            }
+            else if (sym is "F" or "Cl" or "Br" or "I")
+            {
+                hf += sym switch
+                {
+                    "F" => -210.0,
+                    "Cl" => -67.0,
+                    "Br" => -33.0,
+                    _ => +15.0
+                };
+            }
+        }
+
+        // Ring strain energy corrections
+        var rings = graph.FindRings();
+        foreach (var ring in rings)
+        {
+            if (ring.Count == 3) hf += 115.5;
+            else if (ring.Count == 4) hf += 111.0;
+            else if (ring.Count == 5 && !ring.Any(n => graph.GetIncidentEdges(n).Any(e => e.IsAromatic))) hf += 26.4;
+        }
+
+        double deltaSFormation = (s - (molecule.Atoms.Count * 30.0)) / 1000.0;
+        double gibbs = hf - (298.15 * deltaSFormation);
+
+        return new StandardThermodynamicProperties(Math.Round(hf, 1), Math.Round(s, 1), Math.Round(gibbs, 1));
     }
 }

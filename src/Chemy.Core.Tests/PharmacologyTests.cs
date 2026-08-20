@@ -14,8 +14,30 @@ public class PharmacologyTests
 
         Assert.NotNull(admet);
         Assert.True(admet.MolecularWeight > 170.0 && admet.MolecularWeight < 190.0);
-        Assert.True(admet.TpsaAngstrom2 > 0);
+        Assert.True(admet.TpsaAngstrom2 >= 50.0 && admet.TpsaAngstrom2 <= 70.0);
         Assert.True(admet.QedDrugLikenessScore > 0.4);
         Assert.True(admet.PassesLipinskiRuleOf5);
+    }
+
+    [Fact]
+    public void Analyze_Paracetamol_ComputesValidProperties()
+    {
+        var paracetamol = Molecule.FromSmiles("CC(=O)Nc1ccc(O)cc1", "Paracetamol");
+        var admet = AdmetEngine.Analyze(paracetamol);
+
+        Assert.NotNull(admet);
+        Assert.True(admet.MolecularWeight > 145.0 && admet.MolecularWeight < 155.0);
+        Assert.True(admet.HydrogenBondDonors == 2); // -OH and -NH-
+        Assert.True(admet.TpsaAngstrom2 >= 60.0 && admet.TpsaAngstrom2 <= 70.0); // Exact Ertl: 66.4 Å² (C=O: 17.07 + CONH: 29.10 + OH: 20.23)
+        Assert.True(admet.QedDrugLikenessScore > 0.5);
+    }
+
+    [Fact]
+    public void CalculateCrippenLogP_MatchesExpectedPhysicalRanges()
+    {
+        var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+        var logP = AdmetEngine.CalculateCrippenLogP(aspirin);
+
+        Assert.True(logP > 0.5 && logP < 2.5); // Experimental LogP ~ 1.19
     }
 }

@@ -33,4 +33,22 @@ public class SolutionsTests
         Assert.True(result.Ph < 7.0);
         Assert.Equal(6.98, result.Ph, precision: 2);
     }
+
+    [Fact]
+    public void CalculateWeakAcidPh_AceticAcid0Point1M_CalculatesAccuratePh()
+    {
+        // 0.1 M Acetic acid (Ka = 1.75e-5) -> [H+] ≈ sqrt(Ka * C) = 1.323e-3 M -> pH ≈ 2.88
+        var result = SolutionsEngine.CalculateWeakAcidPh(0.1, 1.75e-5);
+        Assert.Equal(2.88, result.Ph, precision: 2);
+        Assert.True(result.IsAcidic);
+    }
+
+    [Fact]
+    public void CalculateWeakAcidPh_ExtremelyDiluteWeakAcid_ApproachesNeutralityWithoutExceedingSeven()
+    {
+        // 1.0e-8 M Acetic acid (Ka = 1.75e-5) in pure water -> pH ~ 7.00 (water autodissociation dominance)
+        var result = SolutionsEngine.CalculateWeakAcidPh(1.0e-8, 1.75e-5);
+        Assert.True(result.Ph <= 7.0);
+        Assert.True(result.Ph >= 6.95);
+    }
 }

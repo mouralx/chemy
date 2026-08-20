@@ -68,8 +68,9 @@ public static class SolutionsEngine
     }
 
     /// <summary>
-    /// Calculates pH for a weak acid via exact quadratic equilibrium solver: [H+]^2 + Ka*[H+] - Ka*C = 0.
-    /// Formula: [H+] = (-Ka + sqrt(Ka^2 + 4*Ka*C)) / 2.
+    /// Calculates pH for a weak acid via exact cubic polynomial equilibrium solver:
+    /// [H+]³ + Ka*[H+]² - (Kw + Ka*C)*[H+] - Ka*Kw = 0.
+    /// Solves the full equilibrium considering both acid dissociation and water autoionization across all dilutions.
     /// </summary>
     /// <param name="concentrationMolar">Analytical acid concentration in Molar (M).</param>
     /// <param name="ka">Acid dissociation constant Ka.</param>
@@ -80,12 +81,28 @@ public static class SolutionsEngine
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ka);
 
         const double Kw = 1.0e-14;
-        double hConc = (-ka + Math.Sqrt((ka * ka) + (4.0 * ka * concentrationMolar))) / 2.0;
-        if (hConc < 1.0e-7)
+
+        // Solve cubic: f(x) = x³ + Ka*x² - (Kw + Ka*C)*x - Ka*Kw = 0
+        // Initial estimate from Ostwald dilution or water autoionization
+        double x = Math.Max(1e-7, (-ka + Math.Sqrt((ka * ka) + (4.0 * ka * concentrationMolar))) / 2.0);
+
+        // Halley's high-order root-finding method for cubic equilibrium
+        for (int iter = 0; iter < 20; iter++)
         {
-            hConc = (concentrationMolar + Math.Sqrt((concentrationMolar * concentrationMolar) + (4.0 * Kw))) / 2.0;
+            double f = (x * x * x) + (ka * x * x) - ((Kw + ka * concentrationMolar) * x) - (ka * Kw);
+            double df = (3.0 * x * x) + (2.0 * ka * x) - (Kw + ka * concentrationMolar);
+            double d2f = (6.0 * x) + (2.0 * ka);
+
+            double step = (2.0 * f * df) / ((2.0 * df * df) - (f * d2f));
+            x -= step;
+
+            if (Math.Abs(step) < 1e-15 * x || Math.Abs(f) < 1e-25)
+            {
+                break;
+            }
         }
 
+        double hConc = Math.Max(1e-14, x);
         double ph = -Math.Log10(hConc);
         double poh = 14.0 - ph;
         double ohConc = Kw / hConc;

@@ -13,6 +13,7 @@ public class ReactionTests
     [InlineData("C6H12O6 + O2 -> CO2 + H2O", "C6H12O6 + 6O2 -> 6CO2 + 6H2O")]
     [InlineData("CH4 + O2 -> CO2 + H2O", "CH4 + 2O2 -> CO2 + 2H2O")]
     [InlineData("CuSO4 + NaOH -> Cu(OH)2 + Na2SO4", "CuSO4 + 2NaOH -> Cu(OH)2 + Na2SO4")]
+    [InlineData("Al + HCl -> AlCl3 + H2", "2Al + 6HCl -> 2AlCl3 + 3H2")]
     public void Balance_UnbalancedReaction_BalancesCorrectly(string unbalanced, string expectedBalanced)
     {
         var reaction = Reaction.Parse(unbalanced);

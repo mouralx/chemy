@@ -98,4 +98,66 @@ public static class ReactionNetworkEngine
 
         return new ReactionNetworkSimulationResult("Consecutive Cascade (A -> B -> C)", k1, k2, totalTime, points);
     }
+
+    /// <summary>
+    /// Numerically integrates an arbitrary N-species reaction network ODE system: dC/dt = f(C, t) via RK4.
+    /// </summary>
+    /// <param name="initialConcentrations">Array of initial concentrations for all N chemical species.</param>
+    /// <param name="rateLaw">Delegate calculating the time derivatives dC/dt given current state C.</param>
+    /// <param name="totalTime">Total simulation duration in seconds.</param>
+    /// <param name="steps">Number of discrete time steps.</param>
+    /// <returns>Matrix of trajectories [steps + 1, N species].</returns>
+    public static (double[] Time, double[][] Trajectories) SimulateGeneralNetwork(
+        double[] initialConcentrations,
+        Func<double[], double[]> rateLaw,
+        double totalTime = 10.0,
+        int steps = 100)
+    {
+        ArgumentNullException.ThrowIfNull(initialConcentrations);
+        ArgumentNullException.ThrowIfNull(rateLaw);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(totalTime);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(steps);
+
+        int n = initialConcentrations.Length;
+        double dt = totalTime / steps;
+
+        double[] time = new double[steps + 1];
+        double[][] trajectories = new double[steps + 1][];
+
+        double[] c = (double[])initialConcentrations.Clone();
+        time[0] = 0.0;
+        trajectories[0] = (double[])c.Clone();
+
+        for (int step = 0; step < steps; step++)
+        {
+            // k1 = f(c)
+            double[] k1 = rateLaw(c);
+
+            // k2 = f(c + 0.5*dt*k1)
+            double[] c_k1 = new double[n];
+            for (int i = 0; i < n; i++) c_k1[i] = Math.Max(0.0, c[i] + 0.5 * dt * k1[i]);
+            double[] k2 = rateLaw(c_k1);
+
+            // k3 = f(c + 0.5*dt*k2)
+            double[] c_k2 = new double[n];
+            for (int i = 0; i < n; i++) c_k2[i] = Math.Max(0.0, c[i] + 0.5 * dt * k2[i]);
+            double[] k3 = rateLaw(c_k2);
+
+            // k4 = f(c + dt*k3)
+            double[] c_k3 = new double[n];
+            for (int i = 0; i < n; i++) c_k3[i] = Math.Max(0.0, c[i] + dt * k3[i]);
+            double[] k4 = rateLaw(c_k3);
+
+            // c_{new} = c + (dt/6) * (k1 + 2*k2 + 2*k3 + k4)
+            for (int i = 0; i < n; i++)
+            {
+                c[i] = Math.Max(0.0, c[i] + (dt / 6.0) * (k1[i] + (2.0 * k2[i]) + (2.0 * k3[i]) + k4[i]));
+            }
+
+            time[step + 1] = Math.Round((step + 1) * dt, 4);
+            trajectories[step + 1] = (double[])c.Clone();
+        }
+
+        return (time, trajectories);
+    }
 }

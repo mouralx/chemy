@@ -141,7 +141,14 @@ public static class Geometry3DEngine
             return new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Linear", 180.0, diatomicList, molecule);
         }
 
-        // Case 3: Polyatomic species (Determine central atom and coordination sphere)
+        // Case 3: Single-center small polyatomic species vs Multi-center organic molecule
+        int heavyAtomCount = molecule.Atoms.Count(a => a.Element.Symbol != "H");
+
+        if (heavyAtomCount > 1 && string.IsNullOrWhiteSpace(overrideShape))
+        {
+            return GenerateMultiCenter3D(molecule);
+        }
+
         var centerAtom = molecule.Atoms.FirstOrDefault(a => a.Element.Symbol != "H") ?? molecule.Atoms[0];
         int centerIndex = molecule.Atoms.IndexOf(centerAtom);
 
@@ -247,7 +254,118 @@ public static class Geometry3DEngine
             atom3DArray[origIdx] = new Atom3D(outerAtomIndices[i].atom, pos);
         }
 
-        return new Molecule3D(molecule.Name, molecule.ChemicalFormula, shape, angle, atom3DArray, molecule);
+        var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, shape, angle, atom3DArray, molecule);
+        return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 80).MinimizedMolecule;
+    }
+
+    /// <summary>
+    /// Embeds 3D coordinates for arbitrary branched, cyclic, or polycyclic organic molecules via topological graph propagation.
+    /// </summary>
+    private static Molecule3D GenerateMultiCenter3D(Molecule molecule)
+    {
+        int nAtoms = molecule.Atoms.Count;
+        var coords = new Vector3D?[nAtoms];
+
+        // 1. Choose root atom (highest connectivity heavy atom)
+        int rootIndex = 0;
+        int maxDegree = -1;
+        for (int i = 0; i < nAtoms; i++)
+        {
+            if (molecule.Atoms[i].Element.Symbol != "H")
+            {
+                int deg = molecule.Bonds.Count(b => b.Connects(i));
+                if (deg > maxDegree)
+                {
+                    maxDegree = deg;
+                    rootIndex = i;
+                }
+            }
+        }
+
+        coords[rootIndex] = new Vector3D(0, 0, 0);
+
+        var queue = new Queue<int>();
+        queue.Enqueue(rootIndex);
+        var visited = new HashSet<int> { rootIndex };
+
+        while (queue.Count > 0)
+        {
+            int current = queue.Dequeue();
+            var currentPos = coords[current]!;
+
+            var unplacedNeighbors = molecule.Bonds
+                .Where(b => b.Connects(current))
+                .Select(b => b.Atom1Index == current ? b.Atom2Index : b.Atom1Index)
+                .Where(nbr => !visited.Contains(nbr))
+                .ToList();
+
+            var placedNeighbors = molecule.Bonds
+                .Where(b => b.Connects(current))
+                .Select(b => b.Atom1Index == current ? b.Atom2Index : b.Atom1Index)
+                .Where(nbr => visited.Contains(nbr) && coords[nbr] != null)
+                .ToList();
+
+            Vector3D refDir = new Vector3D(1, 0, 0);
+            if (placedNeighbors.Count > 0)
+            {
+                var parentPos = coords[placedNeighbors[0]]!;
+                refDir = Normalize(new Vector3D(currentPos.X - parentPos.X, currentPos.Y - parentPos.Y, currentPos.Z - parentPos.Z));
+            }
+
+            var ortho1 = GetOrthogonalVector(refDir);
+            var ortho2 = Normalize(Cross(refDir, ortho1));
+
+            int k = unplacedNeighbors.Count;
+            for (int i = 0; i < k; i++)
+            {
+                int neighborIdx = unplacedNeighbors[i];
+                double bondLen = 1.45;
+
+                // Angle around reference direction
+                double rotAngle = (i * 2.0 * Math.PI / Math.Max(1, k)) + (current * 0.5);
+                double coneAngle = (109.5 * Math.PI / 180.0) / 2.0;
+
+                double dx = Math.Cos(coneAngle) * refDir.X + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.X + Math.Sin(rotAngle) * ortho2.X);
+                double dy = Math.Cos(coneAngle) * refDir.Y + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.Y + Math.Sin(rotAngle) * ortho2.Y);
+                double dz = Math.Cos(coneAngle) * refDir.Z + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.Z + Math.Sin(rotAngle) * ortho2.Z);
+
+                coords[neighborIdx] = new Vector3D(
+                    currentPos.X + (dx * bondLen),
+                    currentPos.Y + (dy * bondLen),
+                    currentPos.Z + (dz * bondLen)
+                );
+
+                visited.Add(neighborIdx);
+                queue.Enqueue(neighborIdx);
+            }
+        }
+
+        var atom3DList = new List<Atom3D>();
+        for (int i = 0; i < nAtoms; i++)
+        {
+            var pos = coords[i] ?? new Vector3D(i * 1.2, 0, 0);
+            atom3DList.Add(new Atom3D(molecule.Atoms[i], pos));
+        }
+
+        var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Conformer", 109.5, atom3DList, molecule);
+
+        // Relax coordinates with Universal Force Field minimization
+        return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 150).MinimizedMolecule;
+    }
+
+    private static Vector3D GetOrthogonalVector(Vector3D v)
+    {
+        var other = Math.Abs(v.X) < 0.8 ? new Vector3D(1, 0, 0) : new Vector3D(0, 1, 0);
+        return Normalize(Cross(v, other));
+    }
+
+    private static Vector3D Cross(Vector3D a, Vector3D b) =>
+        new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+
+    private static Vector3D Normalize(Vector3D v)
+    {
+        double len = Math.Sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z);
+        return len < 1e-6 ? new Vector3D(0, 1, 0) : new Vector3D(v.X / len, v.Y / len, v.Z / len);
     }
 
     /// <summary>

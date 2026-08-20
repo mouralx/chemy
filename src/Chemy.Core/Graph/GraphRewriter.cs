@@ -13,7 +13,14 @@ public static class GraphRewriter
     {
         ArgumentNullException.ThrowIfNull(graph);
 
-        var atoms = graph.Nodes.Select(n => new Atom(n.Element, 0)).ToList();
+        var atoms = graph.Nodes.Select(n =>
+        {
+            int defaultNeutrons = Math.Max(0, (int)Math.Round(n.Element.StandardAtomicMass) - n.Element.AtomicNumber);
+            var a = new Atom(n.Element, defaultNeutrons);
+            if (n.FormalCharge != 0) a = a.Ionize(n.FormalCharge);
+            return a;
+        }).ToList();
+
         var bonds = graph.Edges.Select(e => new Bond(e.SourceId, e.TargetId, e.BondType)).ToList();
 
         return new Molecule(name, atoms, bonds);
@@ -36,14 +43,20 @@ public static class GraphRewriter
         int carbonylO = firstMatch[1];
         int hydroxylO = firstMatch[2];
 
+        // Also identify any explicit hydrogen attached to the hydroxyl oxygen
+        var hydroxylH = graph.GetIncidentEdges(hydroxylO)
+            .Where(e => graph.Nodes[e.Other(hydroxylO)].Element.Symbol == "H")
+            .Select(e => e.Other(hydroxylO))
+            .ToHashSet();
+
         // Find attachment point (node connecting to the carboxyl carbon that is not the oxygen atoms)
         var attachmentEdge = graph.GetIncidentEdges(carbonId)
             .FirstOrDefault(e => e.Other(carbonId) != carbonylO && e.Other(carbonId) != hydroxylO);
 
         int attachmentNodeId = attachmentEdge?.Other(carbonId) ?? -1;
 
-        // Build new node list omitting the old carboxyl C, O, O
-        var nodesToOmit = new HashSet<int> { carbonId, carbonylO, hydroxylO };
+        // Build new node list omitting the old carboxyl C, O, O (and acid proton)
+        var nodesToOmit = new HashSet<int>(hydroxylH) { carbonId, carbonylO, hydroxylO };
         var newNodes = new List<GraphNode>();
         var oldToNewIndex = new Dictionary<int, int>();
 
@@ -66,7 +79,7 @@ public static class GraphRewriter
             }
         }
 
-        // Add 1H-tetrazole 5-membered ring: C(0) - N(1) - N(2) - N(3) - N(4) - C(0)
+        // Add 1H-tetrazole 5-membered ring: C(0) - N(1) - N(2) - N(3) - N(4) - C(0) with N4-H proton
         int tetrazoleC = newNodes.Count;
         newNodes.Add(new GraphNode(tetrazoleC, Elements.Carbon));
         int tetrazoleN1 = newNodes.Count;
@@ -77,6 +90,8 @@ public static class GraphRewriter
         newNodes.Add(new GraphNode(tetrazoleN3, Elements.Nitrogen));
         int tetrazoleN4 = newNodes.Count;
         newNodes.Add(new GraphNode(tetrazoleN4, Elements.Nitrogen));
+        int tetrazoleH = newNodes.Count;
+        newNodes.Add(new GraphNode(tetrazoleH, Elements.Hydrogen));
 
         // Connect tetrazole ring bonds
         newEdges.Add(new GraphEdge(tetrazoleC, tetrazoleN1, BondType.Aromatic, true));
@@ -84,6 +99,7 @@ public static class GraphRewriter
         newEdges.Add(new GraphEdge(tetrazoleN2, tetrazoleN3, BondType.Aromatic, true));
         newEdges.Add(new GraphEdge(tetrazoleN3, tetrazoleN4, BondType.Aromatic, true));
         newEdges.Add(new GraphEdge(tetrazoleN4, tetrazoleC, BondType.Aromatic, true));
+        newEdges.Add(new GraphEdge(tetrazoleN4, tetrazoleH, BondType.Single, false));
 
         // Connect attachment node to the tetrazole ring carbon
         if (attachmentNodeId >= 0 && oldToNewIndex.TryGetValue(attachmentNodeId, out int remappedAttachment))
@@ -96,7 +112,7 @@ public static class GraphRewriter
     }
 
     /// <summary>
-    /// Attaches a fluorine atom (para-fluorination / metabolic shield) to an aromatic ring or scaffold node.
+    /// Substitutes a hydrogen atom with fluorine (para-fluorination / metabolic shield) preserving carbon valence.
     /// </summary>
     public static Molecule AppendFluorineShield(Molecule source)
     {
@@ -105,6 +121,41 @@ public static class GraphRewriter
         var atoms = source.Atoms.ToList();
         var bonds = source.Bonds.ToList();
 
+        // 1. Locate an aromatic C-H bond if available
+        int hydrogenToReplace = -1;
+        for (int i = 0; i < atoms.Count; i++)
+        {
+            if (atoms[i].Element.Symbol == "H")
+            {
+                var connectedBonds = bonds.Where(b => b.Connects(i)).ToList();
+                if (connectedBonds.Count == 1)
+                {
+                    int partnerIdx = connectedBonds[0].Atom1Index == i ? connectedBonds[0].Atom2Index : connectedBonds[0].Atom1Index;
+                    if (atoms[partnerIdx].Element.Symbol == "C")
+                    {
+                        bool isAromatic = bonds.Any(b => b.Connects(partnerIdx) && b.Type == BondType.Aromatic);
+                        if (isAromatic)
+                        {
+                            hydrogenToReplace = i;
+                            break;
+                        }
+                        if (hydrogenToReplace < 0)
+                        {
+                            hydrogenToReplace = i;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hydrogenToReplace >= 0)
+        {
+            // Replace existing Hydrogen with Fluorine (preserves valence and octet rule)
+            atoms[hydrogenToReplace] = new Atom(Elements.Fluorine, 10);
+            return new Molecule($"{source.Name} (Fluorinated Lead)", atoms, bonds);
+        }
+
+        // Fallback if no explicit hydrogen is present (e.g. implicit H SMILES without H atoms)
         int targetIndex = atoms.FindIndex(a => a.Element.Symbol == "C");
         if (targetIndex < 0) targetIndex = 0;
 

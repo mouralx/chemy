@@ -127,6 +127,7 @@ public static class ForceFieldEngine
     {
         double eBond = 0.0;
         double eAngle = 0.0;
+        double eTorsion = 0.0;
         double eVdw = 0.0;
 
         // 1. Covalent Bond Stretching Term
@@ -135,7 +136,7 @@ public static class ForceFieldEngine
             if (bond.Atom1Index < positions.Count && bond.Atom2Index < positions.Count)
             {
                 double r = Distance(positions[bond.Atom1Index], positions[bond.Atom2Index]);
-                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[bond.Atom1Index].Element, molecule3D.SourceMolecule.Atoms[bond.Atom2Index].Element);
+                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[bond.Atom1Index].Element, molecule3D.SourceMolecule.Atoms[bond.Atom2Index].Element, bond.Type);
                 double delta = r - r0;
                 eBond += 0.5 * DefaultBondSpringConstant * delta * delta;
             }
@@ -164,7 +165,39 @@ public static class ForceFieldEngine
             }
         }
 
-        // 3. Non-bonded Steric van der Waals Term (12-6 Lennard-Jones)
+        // 3. Dihedral Torsional Strain Term (Iterate connected quartets i-j-k-l)
+        foreach (var centralBond in molecule3D.SourceMolecule.Bonds)
+        {
+            int j = centralBond.Atom1Index;
+            int k = centralBond.Atom2Index;
+
+            var jNeighbors = molecule3D.SourceMolecule.Bonds
+                .Where(b => b.Connects(j))
+                .Select(b => b.Atom1Index == j ? b.Atom2Index : b.Atom1Index)
+                .Where(n => n != k)
+                .ToList();
+
+            var kNeighbors = molecule3D.SourceMolecule.Bonds
+                .Where(b => b.Connects(k))
+                .Select(b => b.Atom1Index == k ? b.Atom2Index : b.Atom1Index)
+                .Where(n => n != j)
+                .ToList();
+
+            foreach (var i in jNeighbors)
+            {
+                foreach (var l in kNeighbors)
+                {
+                    if (i != l && i < positions.Count && j < positions.Count && k < positions.Count && l < positions.Count)
+                    {
+                        double phiRad = CalculateDihedralAngleRad(positions[i], positions[j], positions[k], positions[l]);
+                        // Standard 3-fold torsional barrier: E_torsion = 0.5 * V3 * (1 + cos(3*phi))
+                        eTorsion += 0.5 * DefaultTorsionBarrier * (1.0 + Math.Cos(3.0 * phiRad));
+                    }
+                }
+            }
+        }
+
+        // 4. Non-bonded Steric van der Waals Term (12-6 Lennard-Jones)
         // Standard molecular mechanics rule: 1,2 (bonded) and 1,3 (geminal/angle-connected) pairs are excluded
         for (int i = 0; i < positions.Count; i++)
         {
@@ -198,60 +231,161 @@ public static class ForceFieldEngine
             }
         }
 
-        return Math.Max(0.0, eBond + eAngle + Math.Max(0.0, eVdw));
+        return Math.Max(0.0, eBond + eAngle + eTorsion + Math.Max(0.0, eVdw));
     }
 
     private static List<Vector3D> CalculateGradients(Molecule3D molecule3D, List<Vector3D> positions)
     {
         var forces = new List<Vector3D>();
+        int nAtoms = positions.Count;
 
-        for (int i = 0; i < positions.Count; i++)
+        double[] fx = new double[nAtoms];
+        double[] fy = new double[nAtoms];
+        double[] fz = new double[nAtoms];
+
+        // 1. Harmonic bond restoring forces
+        foreach (var b in molecule3D.SourceMolecule.Bonds)
         {
-            double fx = 0, fy = 0, fz = 0;
-            var p1 = positions[i];
+            int i = b.Atom1Index;
+            int j = b.Atom2Index;
+            if (i >= nAtoms || j >= nAtoms) continue;
 
+            var p1 = positions[i];
+            var p2 = positions[j];
+            double r = Distance(p1, p2);
+            double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[i].Element, molecule3D.SourceMolecule.Atoms[j].Element, b.Type);
+
+            if (r > 0.01)
+            {
+                double springForce = -DefaultBondSpringConstant * 0.001 * (r - r0);
+                double dx = ((p1.X - p2.X) / r) * springForce;
+                double dy = ((p1.Y - p2.Y) / r) * springForce;
+                double dz = ((p1.Z - p2.Z) / r) * springForce;
+
+                fx[i] += dx; fy[i] += dy; fz[i] += dz;
+                fx[j] -= dx; fy[j] -= dy; fz[j] -= dz;
+            }
+        }
+
+        // 2. Valence angle bending forces
+        for (int c = 0; c < nAtoms; c++)
+        {
+            var neighbors = molecule3D.SourceMolecule.Bonds
+                .Where(b => b.Connects(c))
+                .Select(b => b.Atom1Index == c ? b.Atom2Index : b.Atom1Index)
+                .ToList();
+
+            for (int j = 0; j < neighbors.Count; j++)
+            {
+                for (int k = j + 1; k < neighbors.Count; k++)
+                {
+                    int n1 = neighbors[j];
+                    int n2 = neighbors[k];
+
+                    var pCenter = positions[c];
+                    var p1 = positions[n1];
+                    var p2 = positions[n2];
+
+                    var v1 = new Vector3D(p1.X - pCenter.X, p1.Y - pCenter.Y, p1.Z - pCenter.Z);
+                    var v2 = new Vector3D(p2.X - pCenter.X, p2.Y - pCenter.Y, p2.Z - pCenter.Z);
+
+                    double r1 = Math.Sqrt(v1.X * v1.X + v1.Y * v1.Y + v1.Z * v1.Z);
+                    double r2 = Math.Sqrt(v2.X * v2.X + v2.Y * v2.Y + v2.Z * v2.Z);
+
+                    if (r1 > 0.1 && r2 > 0.1)
+                    {
+                        double dot = (v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z) / (r1 * r2);
+                        dot = Math.Clamp(dot, -0.9999, 0.9999);
+                        double currentTheta = Math.Acos(dot);
+                        double idealTheta = (molecule3D.IdealBondAngleDegrees > 0 ? molecule3D.IdealBondAngleDegrees : 109.5) * (Math.PI / 180.0);
+                        double angleForce = -DefaultAngleSpringConstant * 0.0005 * (currentTheta - idealTheta);
+
+                        // Tangential restoring vectors
+                        double f1x = angleForce * (v2.X / (r1 * r2) - dot * v1.X / (r1 * r1));
+                        double f1y = angleForce * (v2.Y / (r1 * r2) - dot * v1.Y / (r1 * r1));
+                        double f1z = angleForce * (v2.Z / (r1 * r2) - dot * v1.Z / (r1 * r1));
+
+                        double f2x = angleForce * (v1.X / (r1 * r2) - dot * v2.X / (r2 * r2));
+                        double f2y = angleForce * (v1.Y / (r1 * r2) - dot * v2.Y / (r2 * r2));
+                        double f2z = angleForce * (v1.Z / (r1 * r2) - dot * v2.Z / (r2 * r2));
+
+                        fx[n1] += f1x; fy[n1] += f1y; fz[n1] += f1z;
+                        fx[n2] += f2x; fy[n2] += f2y; fz[n2] += f2z;
+                        fx[c] -= (f1x + f2x); fy[c] -= (f1y + f2y); fz[c] -= (f1z + f2z);
+                    }
+                }
+            }
+        }
+
+        // 3. van der Waals 12-6 Lennard Jones forces (1,4+ non-bonded)
+        for (int i = 0; i < nAtoms; i++)
+        {
             var bondedToI = molecule3D.SourceMolecule.Bonds
                 .Where(b => b.Connects(i))
                 .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
                 .ToHashSet();
 
-            // Steric repulsion force for 1,4+ non-bonded pairs
-            for (int j = 0; j < positions.Count; j++)
+            for (int j = i + 1; j < nAtoms; j++)
             {
-                if (j == i || bondedToI.Contains(j)) continue;
+                if (bondedToI.Contains(j)) continue;
+
+                var p1 = positions[i];
                 var p2 = positions[j];
                 double dist = Math.Max(0.8, Distance(p1, p2));
-                if (dist < DefaultVdwRadius * 1.5)
+
+                if (dist < DefaultVdwRadius * 1.8)
                 {
-                    double repulsion = 0.05 / (dist * dist);
-                    fx += (p1.X - p2.X) * repulsion;
-                    fy += (p1.Y - p2.Y) * repulsion;
-                    fz += (p1.Z - p2.Z) * repulsion;
+                    double ratio = DefaultVdwRadius / dist;
+                    double term6 = Math.Pow(ratio, 6);
+                    double term12 = term6 * term6;
+                    // Analytical gradient of Lennard-Jones: dE/dr = 12*eps/r * (term6 - term12)
+                    double vdwForce = DefaultVdwEpsilon * 12.0 * (term12 - term6) / (dist * dist);
+                    vdwForce = Math.Clamp(vdwForce, -0.2, 0.2);
+
+                    double fvX = ((p1.X - p2.X) / dist) * vdwForce;
+                    double fvY = ((p1.Y - p2.Y) / dist) * vdwForce;
+                    double fvZ = ((p1.Z - p2.Z) / dist) * vdwForce;
+
+                    fx[i] += fvX; fy[i] += fvY; fz[i] += fvZ;
+                    fx[j] -= fvX; fy[j] -= fvY; fz[j] -= fvZ;
                 }
             }
+        }
 
-            // Harmonic bond restoring force
-            var connectedBonds = molecule3D.SourceMolecule.Bonds.Where(b => b.Connects(i));
-            foreach (var b in connectedBonds)
-            {
-                int otherIdx = b.Atom1Index == i ? b.Atom2Index : b.Atom1Index;
-                var p2 = positions[otherIdx];
-                double r = Distance(p1, p2);
-                double r0 = GetIdealBondLength(molecule3D.SourceMolecule.Atoms[i].Element, molecule3D.SourceMolecule.Atoms[otherIdx].Element, b.Type);
-
-                if (r > 0.01)
-                {
-                    double springForce = -DefaultBondSpringConstant * 0.001 * (r - r0);
-                    fx += ((p1.X - p2.X) / r) * springForce;
-                    fy += ((p1.Y - p2.Y) / r) * springForce;
-                    fz += ((p1.Z - p2.Z) / r) * springForce;
-                }
-            }
-
-            forces.Add(new Vector3D(fx, fy, fz));
+        for (int i = 0; i < nAtoms; i++)
+        {
+            forces.Add(new Vector3D(fx[i], fy[i], fz[i]));
         }
 
         return forces;
+    }
+
+    private static double CalculateDihedralAngleRad(Vector3D p1, Vector3D p2, Vector3D p3, Vector3D p4)
+    {
+        var b1 = new Vector3D(p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z);
+        var b2 = new Vector3D(p3.X - p2.X, p3.Y - p2.Y, p3.Z - p2.Z);
+        var b3 = new Vector3D(p4.X - p3.X, p4.Y - p3.Y, p4.Z - p3.Z);
+
+        var n1 = Cross(b1, b2);
+        var n2 = Cross(b2, b3);
+
+        var m1 = Cross(n1, Normalize(b2));
+        double x = Dot(n1, n2);
+        double y = Dot(m1, n2);
+
+        return Math.Atan2(y, x);
+    }
+
+    private static Vector3D Cross(Vector3D a, Vector3D b) =>
+        new(a.Y * b.Z - a.Z * b.Y, a.Z * b.X - a.X * b.Z, a.X * b.Y - a.Y * b.X);
+
+    private static double Dot(Vector3D a, Vector3D b) =>
+        a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+
+    private static Vector3D Normalize(Vector3D v)
+    {
+        double len = Math.Sqrt(v.X * v.X + v.Y * v.Y + v.Z * v.Z);
+        return len < 1e-6 ? new Vector3D(0, 0, 0) : new Vector3D(v.X / len, v.Y / len, v.Z / len);
     }
 
     private static double GetIdealBondLength(Element e1, Element e2, BondType bondType = BondType.Single)

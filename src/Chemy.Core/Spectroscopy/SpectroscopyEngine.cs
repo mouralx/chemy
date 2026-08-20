@@ -6,9 +6,13 @@ namespace Chemy.Core.Spectroscopy;
 /// <param name="ChemicalShiftPpm">Chemical shift δ in parts per million (ppm).</param>
 /// <param name="Element">Resonance nucleus isotope (e.g. 1H, 13C).</param>
 /// <param name="Multiplet">Peak splitting multiplet (Singlet, Doublet, Triplet, Quartets, Multiplet).</param>
-/// <param name="HydrogenCount">Integration proton or carbon count corresponding to this peak.</param>
+/// <param name="IntegrationCount">Integration proton or carbon count corresponding to this peak.</param>
 /// <param name="Annotation">Chemical assignment and functional group description.</param>
-public record NmrPeak(double ChemicalShiftPpm, string Element, string Multiplet, int HydrogenCount, string Annotation);
+public record NmrPeak(double ChemicalShiftPpm, string Element, string Multiplet, int IntegrationCount, string Annotation)
+{
+    /// <summary>Backwards-compatible alias for integration proton/carbon count.</summary>
+    public int HydrogenCount => IntegrationCount;
+}
 
 /// <summary>
 /// Represents a characteristic Infrared (IR) vibrational absorption spectrum band.
@@ -194,13 +198,19 @@ public static class SpectroscopyEngine
         }
 
         // 5. Heteroatom-attached Carbons (C-O, C-N, δ 45 - 80 ppm)
-        if (fgs.Contains("Alcohol") || fgs.Contains("Ether") || fgs.Contains("Ester"))
+        if (fgs.Contains("Alcohol") || fgs.Contains("Ether") || fgs.Contains("Ester") || fgs.Contains("Amine"))
         {
-            peaks.Add(new NmrPeak(62.0, "13C", "Singlet", 1, "C-O Oxygen-attached sp3 Carbon"));
+            peaks.Add(new NmrPeak(62.0, "13C", "Singlet", 1, "C-O / C-N Heteroatom-attached sp3 Carbon"));
         }
 
-        // 6. Remaining Aliphatic Carbons (δ 10 - 45 ppm)
-        int remainingC = carbonCount - peaks.Sum(p => p.HydrogenCount);
+        // 6. Nitrile Carbons (C≡N, δ 115 - 125 ppm)
+        if (fgs.Contains("Nitrile"))
+        {
+            peaks.Add(new NmrPeak(118.0, "13C", "Singlet", 1, "C≡N Nitrile Carbon"));
+        }
+
+        // 7. Remaining Aliphatic Carbons (δ 10 - 45 ppm)
+        int remainingC = carbonCount - peaks.Sum(p => p.IntegrationCount);
         if (remainingC > 0)
         {
             peaks.Add(new NmrPeak(24.5, "13C", "Singlet", remainingC, "Aliphatic Alkane sp3 Carbons"));
@@ -292,6 +302,17 @@ public static class SpectroscopyEngine
         if (fgs.Contains("Alkyne"))
         {
             bands.Add(new IrBand(2150.0, "Alkyne", "Medium / Sharp", "C≡C Triple Bond Stretch"));
+        }
+
+        if (fgs.Contains("Nitrile"))
+        {
+            bands.Add(new IrBand(2250.0, "Nitrile", "Medium / Sharp", "C≡N Nitrile Stretch"));
+        }
+
+        if (fgs.Contains("Nitro"))
+        {
+            bands.Add(new IrBand(1530.0, "Nitro Group", "Strong", "N-O Asymmetric Stretch"));
+            bands.Add(new IrBand(1350.0, "Nitro Group", "Strong", "N-O Symmetric Stretch"));
         }
 
         return bands;

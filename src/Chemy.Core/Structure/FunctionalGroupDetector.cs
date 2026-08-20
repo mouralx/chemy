@@ -9,6 +9,9 @@ public enum FunctionalGroup
     Ketone,
     Ether,
     Amine,
+    Amide,
+    Nitrile,
+    Nitro,
     Alkene,
     Alkyne,
     Aromatic
@@ -34,6 +37,8 @@ public static class FunctionalGroupDetector
                 if (doubleO != null)
                 {
                     var singleO = bondedToC.FirstOrDefault(n => n.Atom.Element.Symbol == "O" && n.Bond.Type == BondType.Single);
+                    var singleN = bondedToC.FirstOrDefault(n => n.Atom.Element.Symbol == "N");
+
                     if (singleO != null)
                     {
                         var oNeighbors = GetNeighbors(molecule, singleO.Index);
@@ -43,6 +48,10 @@ public static class FunctionalGroupDetector
                         if (hasHOnO) detected.Add(FunctionalGroup.CarboxylicAcid);
                         else if (hasCOnO) detected.Add(FunctionalGroup.Ester);
                     }
+                    else if (singleN != null)
+                    {
+                        detected.Add(FunctionalGroup.Amide);
+                    }
                     else
                     {
                         bool hasHOnC = bondedToC.Any(n => n.Atom.Element.Symbol == "H");
@@ -51,6 +60,13 @@ public static class FunctionalGroupDetector
                         if (hasHOnC) detected.Add(FunctionalGroup.Aldehyde);
                         else if (carbonNeighbors.Count >= 2) detected.Add(FunctionalGroup.Ketone);
                     }
+                }
+
+                // Check for Nitrile (C≡N)
+                var tripleN = bondedToC.FirstOrDefault(n => n.Atom.Element.Symbol == "N" && n.Bond.Type == BondType.Triple);
+                if (tripleN != null)
+                {
+                    detected.Add(FunctionalGroup.Nitrile);
                 }
             }
             else if (atom.Element.Symbol == "O")
@@ -76,7 +92,23 @@ public static class FunctionalGroupDetector
             else if (atom.Element.Symbol == "N")
             {
                 var neighbors = GetNeighbors(molecule, i);
-                if (neighbors.Any(n => n.Atom.Element.Symbol == "C"))
+                bool isAmide = neighbors.Any(n => n.Atom.Element.Symbol == "C" && GetNeighbors(molecule, n.Index).Any(cn => cn.Atom.Element.Symbol == "O" && cn.Bond.Type == BondType.Double));
+                bool isNitrile = neighbors.Any(n => n.Bond.Type == BondType.Triple);
+                int oxygenCount = neighbors.Count(n => n.Atom.Element.Symbol == "O");
+
+                if (oxygenCount >= 2)
+                {
+                    detected.Add(FunctionalGroup.Nitro);
+                }
+                else if (isNitrile)
+                {
+                    detected.Add(FunctionalGroup.Nitrile);
+                }
+                else if (isAmide)
+                {
+                    detected.Add(FunctionalGroup.Amide);
+                }
+                else if (neighbors.Any(n => n.Atom.Element.Symbol == "C"))
                 {
                     detected.Add(FunctionalGroup.Amine);
                 }

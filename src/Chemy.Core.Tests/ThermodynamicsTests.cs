@@ -1,4 +1,5 @@
 using Chemy.Core;
+using Chemy.Core.Thermodynamics;
 using Xunit;
 
 namespace Chemy.Core.Tests;
@@ -30,5 +31,21 @@ public class ThermodynamicsTests
         Assert.True(thermo.IsExothermic);
         Assert.True(thermo.IsSpontaneous);
         Assert.InRange(thermo.EnthalpyChangekJ, -1650.0, -1640.0);
+    }
+
+    [Fact]
+    public void GetThermodynamics_BensonAdditivity_EstimatesOrganicEnthalpy()
+    {
+        // Test arbitrary organic compound via Benson group additivity combustion: 2C4H10 + 13O2 -> 8CO2 + 10H2O
+        var isobutane = Molecule.FromSmiles("CC(C)C", "Isobutane");
+        var reaction = new Reaction(
+            [new ReactionComponent(isobutane, 2), new ReactionComponent(Molecule.Parse("O2", "Oxygen"), 13)],
+            [new ReactionComponent(Molecule.Parse("CO2", "CarbonDioxide"), 8), new ReactionComponent(Molecule.Parse("H2O", "Water"), 10)]
+        );
+
+        var thermo = ThermodynamicsEngine.GetThermodynamics(reaction);
+        Assert.NotNull(thermo);
+        Assert.True(thermo.IsExothermic);
+        Assert.True(thermo.IsSpontaneous);
     }
 }

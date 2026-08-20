@@ -41,6 +41,10 @@ public record Reaction
                 }
             }
 
+            int reactantCharge = Reactants.Sum(r => r.Coefficient * r.Molecule.NetCharge);
+            int productCharge = Products.Sum(p => p.Coefficient * p.Molecule.NetCharge);
+            if (reactantCharge != productCharge) return false;
+
             return true;
         }
     }
@@ -66,7 +70,7 @@ public record Reaction
 
     /// <summary>
     /// Balances the chemical equation using exact rational Gaussian elimination nullspace algebra.
-    /// Computes the minimal integer stoichiometric coefficients satisfying M * x = 0.
+    /// Computes the minimal integer stoichiometric coefficients satisfying M * x = 0 with mass and charge conservation.
     /// </summary>
     /// <returns>New balanced Reaction instance.</returns>
     public Reaction Balance()
@@ -79,18 +83,30 @@ public record Reaction
             .Distinct()
             .ToList();
 
-        int rows = allElements.Count;
+        bool hasCharges = allComponents.Any(c => c.Molecule.NetCharge != 0);
+        int rows = allElements.Count + (hasCharges ? 1 : 0);
         int cols = allComponents.Count;
         int[,] matrix = new int[rows, cols];
 
         // Formulate stoichiometric conservation matrix M
-        for (int r = 0; r < rows; r++)
+        for (int r = 0; r < allElements.Count; r++)
         {
             var elem = allElements[r];
             for (int c = 0; c < cols; c++)
             {
                 int atomCount = allComponents[c].Molecule.Atoms.Count(a => a.Element == elem);
                 matrix[r, c] = c < Reactants.Count ? atomCount : -atomCount;
+            }
+        }
+
+        // Add net charge conservation row for ionic redox reactions
+        if (hasCharges)
+        {
+            int chargeRow = allElements.Count;
+            for (int c = 0; c < cols; c++)
+            {
+                int charge = allComponents[c].Molecule.NetCharge;
+                matrix[chargeRow, c] = c < Reactants.Count ? charge : -charge;
             }
         }
 
