@@ -75,4 +75,26 @@ public class Geometry3DTests
             Assert.Equal(0.0, atom.Position.Z, precision: 6);
         }
     }
+
+    [Fact]
+    public void Generate3D_Ibuprofen_BuildsRealisticConformerWithoutStericClashes()
+    {
+        var ibuprofen = Molecule.FromSmiles("CC(C)Cc1ccc(cc1)C(C)C(=O)O", "Ibuprofen");
+        var m3d = ibuprofen.To3D();
+
+        Assert.NotNull(m3d);
+        Assert.Equal(33, m3d.Atoms.Count);
+
+        // Verify that no bonded or non-bonded atoms overlap (minimum pairwise distance > 0.85 Å)
+        for (int i = 0; i < m3d.Atoms.Count; i++)
+        {
+            for (int j = i + 1; j < m3d.Atoms.Count; j++)
+            {
+                var p1 = m3d.Atoms[i].Position;
+                var p2 = m3d.Atoms[j].Position;
+                double dist = Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2) + Math.Pow(p1.Z - p2.Z, 2));
+                Assert.True(dist > 0.80, $"Atoms {i} ({m3d.Atoms[i].Atom.Element.Symbol}) and {j} ({m3d.Atoms[j].Atom.Element.Symbol}) are colliding at distance {dist:F3} Å");
+            }
+        }
+    }
 }

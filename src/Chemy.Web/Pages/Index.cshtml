@@ -754,10 +754,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const pdb = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
             const xyz = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
 
-            if (xyz && xyz.trim().length > 5) {
-                viewer.addModel(xyz, 'xyz');
-            } else if (pdb && pdb.trim().length > 10) {
+            if (pdb && pdb.trim().length > 10) {
                 viewer.addModel(pdb, 'pdb');
+            } else if (xyz && xyz.trim().length > 5) {
+                viewer.addModel(xyz, 'xyz');
             } else {
                 viewer.addModel("3\nWater\nO 0 0 0\nH 0 0.75 0.6\nH 0 -0.75 0.6", 'xyz');
             }

@@ -259,39 +259,78 @@ public static class Geometry3DEngine
     }
 
     /// <summary>
-    /// Embeds 3D coordinates for arbitrary branched, cyclic, or polycyclic organic molecules via topological graph propagation.
+    /// Embeds realistic, energy-minimized 3D coordinates for arbitrary branched, cyclic, or polycyclic organic molecules
+    /// using ring-scaffold template embedding, valence-directed tetrahedral branching, and Universal Force Field (UFF) relaxation.
     /// </summary>
     private static Molecule3D GenerateMultiCenter3D(Molecule molecule)
     {
         int nAtoms = molecule.Atoms.Count;
         var coords = new Vector3D?[nAtoms];
+        var visited = new HashSet<int>();
+        var queue = new Queue<int>();
+        var parentDirections = new Dictionary<int, Vector3D>();
 
-        // 1. Choose root atom (highest connectivity heavy atom)
-        int rootIndex = 0;
-        int maxDegree = -1;
-        for (int i = 0; i < nAtoms; i++)
+        // 1. Detect cyclic scaffolds in the molecular graph
+        var graph = Chemy.Core.Graph.ChemicalGraph.FromMolecule(molecule);
+        var rings = graph.FindRings();
+
+        if (rings.Count > 0)
         {
-            if (molecule.Atoms[i].Element.Symbol != "H")
+            // Embed the primary ring scaffold centered at (0, 0, 0) in the XY plane
+            var primaryRing = rings.OrderByDescending(r => r.Count).First();
+            int ringSize = primaryRing.Count;
+            double bondLength = ringSize == 6 ? 1.395 : 1.40; // Aromatic C-C vs conjugated ring bond length
+            double radius = bondLength / (2.0 * Math.Sin(Math.PI / ringSize));
+
+            for (int k = 0; k < ringSize; k++)
             {
-                int deg = molecule.Bonds.Count(b => b.Connects(i));
-                if (deg > maxDegree)
-                {
-                    maxDegree = deg;
-                    rootIndex = i;
-                }
+                int atomIdx = primaryRing[k];
+                // Start along X axis and rotate counter-clockwise
+                double theta = 2.0 * Math.PI * k / ringSize;
+                var ringPos = new Vector3D(
+                    Math.Round(radius * Math.Cos(theta), 4),
+                    Math.Round(radius * Math.Sin(theta), 4),
+                    0.0
+                );
+                coords[atomIdx] = ringPos;
+                visited.Add(atomIdx);
+
+                // Radial outward vector for substituent attachment
+                var radialDir = Normalize(ringPos);
+                parentDirections[atomIdx] = radialDir;
+                queue.Enqueue(atomIdx);
             }
         }
+        else
+        {
+            // Acyclic: Find root heavy atom with maximum connectivity
+            int rootIndex = 0;
+            int maxDegree = -1;
+            for (int i = 0; i < nAtoms; i++)
+            {
+                if (molecule.Atoms[i].Element.Symbol != "H")
+                {
+                    int deg = molecule.Bonds.Count(b => b.Connects(i));
+                    if (deg > maxDegree)
+                    {
+                        maxDegree = deg;
+                        rootIndex = i;
+                    }
+                }
+            }
 
-        coords[rootIndex] = new Vector3D(0, 0, 0);
+            coords[rootIndex] = new Vector3D(0, 0, 0);
+            visited.Add(rootIndex);
+            parentDirections[rootIndex] = new Vector3D(1, 0, 0);
+            queue.Enqueue(rootIndex);
+        }
 
-        var queue = new Queue<int>();
-        queue.Enqueue(rootIndex);
-        var visited = new HashSet<int> { rootIndex };
-
+        // 2. Propagate substituents, aliphatic branches, and functional groups via valence geometry
         while (queue.Count > 0)
         {
             int current = queue.Dequeue();
             var currentPos = coords[current]!;
+            var refDir = parentDirections.TryGetValue(current, out var pd) ? pd : new Vector3D(1, 0, 0);
 
             var unplacedNeighbors = molecule.Bonds
                 .Where(b => b.Connects(current))
@@ -299,57 +338,132 @@ public static class Geometry3DEngine
                 .Where(nbr => !visited.Contains(nbr))
                 .ToList();
 
-            var placedNeighbors = molecule.Bonds
-                .Where(b => b.Connects(current))
-                .Select(b => b.Atom1Index == current ? b.Atom2Index : b.Atom1Index)
-                .Where(nbr => visited.Contains(nbr) && coords[nbr] != null)
-                .ToList();
-
-            Vector3D refDir = new Vector3D(1, 0, 0);
-            if (placedNeighbors.Count > 0)
-            {
-                var parentPos = coords[placedNeighbors[0]]!;
-                refDir = Normalize(new Vector3D(currentPos.X - parentPos.X, currentPos.Y - parentPos.Y, currentPos.Z - parentPos.Z));
-            }
+            var heavyNeighbors = unplacedNeighbors.Where(n => molecule.Atoms[n].Element.Symbol != "H").ToList();
+            var hNeighbors = unplacedNeighbors.Where(n => molecule.Atoms[n].Element.Symbol == "H").ToList();
 
             var ortho1 = GetOrthogonalVector(refDir);
             var ortho2 = Normalize(Cross(refDir, ortho1));
 
-            int k = unplacedNeighbors.Count;
-            for (int i = 0; i < k; i++)
+            // Place heavy substituent neighbors with tetrahedral (109.5°) / trigonal (120°) geometry
+            int numHeavy = heavyNeighbors.Count;
+            for (int j = 0; j < numHeavy; j++)
             {
-                int neighborIdx = unplacedNeighbors[i];
-                double bondLen = 1.45;
+                int neighbor = heavyNeighbors[j];
+                double bondLen = 1.51; // Standard C-C / C-O single bond length
 
-                // Angle around reference direction
-                double rotAngle = (i * 2.0 * Math.PI / Math.Max(1, k)) + (current * 0.5);
-                double coneAngle = (109.5 * Math.PI / 180.0) / 2.0;
+                Vector3D outDir;
+                if (numHeavy == 1)
+                {
+                    // Linear chain continuation: tetrahedral bend (109.5°) alternating torsion
+                    double bendAngle = (180.0 - 109.5) * Math.PI / 180.0;
+                    double torsion = (current % 2 == 0) ? 0.0 : Math.PI;
+                    outDir = Normalize(new Vector3D(
+                        Math.Cos(bendAngle) * refDir.X + Math.Sin(bendAngle) * (Math.Cos(torsion) * ortho1.X + Math.Sin(torsion) * ortho2.X),
+                        Math.Cos(bendAngle) * refDir.Y + Math.Sin(bendAngle) * (Math.Cos(torsion) * ortho1.Y + Math.Sin(torsion) * ortho2.Y),
+                        Math.Cos(bendAngle) * refDir.Z + Math.Sin(bendAngle) * (Math.Cos(torsion) * ortho1.Z + Math.Sin(torsion) * ortho2.Z)
+                    ));
+                }
+                else if (numHeavy == 2)
+                {
+                    // Tetrahedral branching (e.g. isopropyl fork or propionic acid branch)
+                    double bendAngle = (180.0 - 109.5) * Math.PI / 180.0;
+                    double phi = (j == 0) ? (Math.PI / 3.0) : (-Math.PI / 3.0);
+                    outDir = Normalize(new Vector3D(
+                        Math.Cos(bendAngle) * refDir.X + Math.Sin(bendAngle) * (Math.Cos(phi) * ortho1.X + Math.Sin(phi) * ortho2.X),
+                        Math.Cos(bendAngle) * refDir.Y + Math.Sin(bendAngle) * (Math.Cos(phi) * ortho1.Y + Math.Sin(phi) * ortho2.Y),
+                        Math.Cos(bendAngle) * refDir.Z + Math.Sin(bendAngle) * (Math.Cos(phi) * ortho1.Z + Math.Sin(phi) * ortho2.Z)
+                    ));
+                }
+                else
+                {
+                    // Quaternary tripod
+                    double coneAngle = 70.5 * Math.PI / 180.0;
+                    double rot = j * 2.0 * Math.PI / numHeavy;
+                    outDir = Normalize(new Vector3D(
+                        Math.Cos(coneAngle) * refDir.X + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.X + Math.Sin(rot) * ortho2.X),
+                        Math.Cos(coneAngle) * refDir.Y + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.Y + Math.Sin(rot) * ortho2.Y),
+                        Math.Cos(coneAngle) * refDir.Z + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.Z + Math.Sin(rot) * ortho2.Z)
+                    ));
+                }
 
-                double dx = Math.Cos(coneAngle) * refDir.X + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.X + Math.Sin(rotAngle) * ortho2.X);
-                double dy = Math.Cos(coneAngle) * refDir.Y + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.Y + Math.Sin(rotAngle) * ortho2.Y);
-                double dz = Math.Cos(coneAngle) * refDir.Z + Math.Sin(coneAngle) * (Math.Cos(rotAngle) * ortho1.Z + Math.Sin(rotAngle) * ortho2.Z);
-
-                coords[neighborIdx] = new Vector3D(
-                    currentPos.X + (dx * bondLen),
-                    currentPos.Y + (dy * bondLen),
-                    currentPos.Z + (dz * bondLen)
+                coords[neighbor] = new Vector3D(
+                    Math.Round(currentPos.X + outDir.X * bondLen, 4),
+                    Math.Round(currentPos.Y + outDir.Y * bondLen, 4),
+                    Math.Round(currentPos.Z + outDir.Z * bondLen, 4)
                 );
 
-                visited.Add(neighborIdx);
-                queue.Enqueue(neighborIdx);
+                visited.Add(neighbor);
+                parentDirections[neighbor] = outDir;
+                queue.Enqueue(neighbor);
+            }
+
+            // Place hydrogen atoms symmetrically around the heavy atom
+            int numH = hNeighbors.Count;
+            for (int h = 0; h < numH; h++)
+            {
+                int hIdx = hNeighbors[h];
+                double hDist = 1.09;
+                Vector3D hDir;
+
+                if (numHeavy == 0)
+                {
+                    // Terminal methyl / methane tripod
+                    double coneAngle = 70.5 * Math.PI / 180.0;
+                    double rot = h * 2.0 * Math.PI / Math.Max(1, numH);
+                    hDir = Normalize(new Vector3D(
+                        Math.Cos(coneAngle) * refDir.X + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.X + Math.Sin(rot) * ortho2.X),
+                        Math.Cos(coneAngle) * refDir.Y + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.Y + Math.Sin(rot) * ortho2.Y),
+                        Math.Cos(coneAngle) * refDir.Z + Math.Sin(coneAngle) * (Math.Cos(rot) * ortho1.Z + Math.Sin(rot) * ortho2.Z)
+                    ));
+                }
+                else if (numHeavy == 1)
+                {
+                    // Methylene (-CH2-) or methine: straddle perpendicular to the bond plane
+                    double bendAngle = (180.0 - 109.5) * Math.PI / 180.0;
+                    double hRot = (h == 0) ? (Math.PI * 2.0 / 3.0) : (-Math.PI * 2.0 / 3.0);
+                    hDir = Normalize(new Vector3D(
+                        Math.Cos(bendAngle) * refDir.X + Math.Sin(bendAngle) * (Math.Cos(hRot) * ortho1.X + Math.Sin(hRot) * ortho2.X),
+                        Math.Cos(bendAngle) * refDir.Y + Math.Sin(bendAngle) * (Math.Cos(hRot) * ortho1.Y + Math.Sin(hRot) * ortho2.Y),
+                        Math.Cos(bendAngle) * refDir.Z + Math.Sin(bendAngle) * (Math.Cos(hRot) * ortho1.Z + Math.Sin(hRot) * ortho2.Z)
+                    ));
+                }
+                else
+                {
+                    // Methine (-CH<) single hydrogen opposite to branches
+                    hDir = Normalize(new Vector3D(
+                        -refDir.X * 0.5 + ortho2.X * 0.866,
+                        -refDir.Y * 0.5 + ortho2.Y * 0.866,
+                        -refDir.Z * 0.5 + ortho2.Z * 0.866
+                    ));
+                }
+
+                coords[hIdx] = new Vector3D(
+                    Math.Round(currentPos.X + hDir.X * hDist, 4),
+                    Math.Round(currentPos.Y + hDir.Y * hDist, 4),
+                    Math.Round(currentPos.Z + hDir.Z * hDist, 4)
+                );
+                visited.Add(hIdx);
             }
         }
 
-        var atom3DList = new List<Atom3D>();
+        // Place any remaining unplaced atoms
         for (int i = 0; i < nAtoms; i++)
         {
-            var pos = coords[i] ?? new Vector3D(i * 1.2, 0, 0);
-            atom3DList.Add(new Atom3D(molecule.Atoms[i], pos));
+            if (coords[i] == null)
+            {
+                coords[i] = new Vector3D(i * 1.2, 0, 0);
+            }
+        }
+
+        var atom3DList = new List<Atom3D>(nAtoms);
+        for (int i = 0; i < nAtoms; i++)
+        {
+            atom3DList.Add(new Atom3D(molecule.Atoms[i], coords[i]!));
         }
 
         var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Conformer", 109.5, atom3DList, molecule);
 
-        // Relax coordinates with Universal Force Field minimization
+        // Relax coordinates with Universal Force Field minimization (150 iterations)
         return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 150).MinimizedMolecule;
     }
 
