@@ -664,7 +664,7 @@ envGroup.MapPost("/ecoclean", (EcoCleanRequest request, ILogger<Program> log) =>
     log.LogDebug("EcoClean solved: {Class}, Efficiency = {Eff}%, Mineralized into: {EndProducts}", result.PollutantClass, result.TotalMineralizationEfficiencyPercent, result.MineralizedEndProducts);
     return Results.Ok(result);
 })
-.WithSummary("Solve PFAS and microplastic biocleavage degradation pathways")
+.WithSummary("Solve PFAS and microplastic biocleavage degradation pathways");
 // ============================================================================
 // 16. QUANTUM ELECTRONIC STRUCTURE & HÜCKEL MOLECULAR ORBITALS (HMO)
 // ============================================================================
