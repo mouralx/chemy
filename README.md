@@ -3,7 +3,7 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-88%20Passed%20(100%25)-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-94%20Passed%20(100%25)-brightgreen?logo=xunit)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
 ![Scientific Credibility](https://img.shields.io/badge/Scientific%20Credibility-100%25%20Verified-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
@@ -209,7 +209,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 88/88 unit tests in `Chemy.Core.Tests`.
+- **100% Passing Tests**: 94/94 unit tests in `Chemy.Core.Tests`.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Zero Allocations**: High-frequency element and bond structs allocated on the stack.
 
@@ -218,7 +218,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 88, Skipped: 0, Total: 88, Duration: 102 ms
+Passed! - Failed: 0, Passed: 94, Skipped: 0, Total: 94, Duration: 103 ms
 ```
 
 ---

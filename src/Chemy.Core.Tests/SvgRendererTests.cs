@@ -106,11 +106,27 @@ public class SvgRendererTests
     [InlineData("CCO", "Ethanol")]
     [InlineData("CC(=O)C", "Acetone")]
     [InlineData("c1ccccc1", "Benzene")]
+    [InlineData("ATP", "Adenosine Triphosphate")]
+    [InlineData("C10H16N5O13P3", "Adenosine Triphosphate")]
+    [InlineData("Glucose", "D-Glucose")]
+    [InlineData("C6H12O6", "D-Glucose")]
+    [InlineData("PFOA", "Perfluorooctanoic Acid")]
+    [InlineData("C8HF15O2", "Perfluorooctanoic Acid")]
     public void MoleculeToSkeletalSvg_CatalogCompounds_AllRenderValidSvgWithBonds(string input, string name)
     {
-        Molecule molecule = input.Contains('(') || input.Contains('=') || input.Contains('c') || input.Contains('N')
-            ? (Molecule.FromSmiles(input, name) ?? Molecule.Parse(input, name))
-            : (Molecule.TryParse(input, name, out var m) ? m : Molecule.FromSmiles(input, name));
+        Molecule molecule;
+        if (Chemy.Core.Structure.CompoundRegistry.TryResolve(input, out var regName, out var regSmiles))
+        {
+            molecule = Molecule.FromSmiles(regSmiles, regName);
+        }
+        else if (input.Contains('(') || input.Contains('=') || input.Contains('c') || input.Contains('N'))
+        {
+            molecule = Molecule.FromSmiles(input, name) ?? Molecule.Parse(input, name);
+        }
+        else
+        {
+            molecule = Molecule.TryParse(input, name, out var m) ? m : Molecule.FromSmiles(input, name);
+        }
 
         string svg = molecule.ToSkeletalSvg(isDarkMode: true);
 

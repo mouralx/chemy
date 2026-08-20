@@ -723,6 +723,16 @@ public partial class Program
 
         string trimmed = input.Trim();
 
+        // 0. Check Curated Compound Registry for canonical names / empirical formulas (e.g. ATP, Glucose, PFOA, PFOS, C10H16N5O13P3, C6H12O6)
+        if (Chemy.Core.Structure.CompoundRegistry.TryResolve(trimmed, out var regName, out var regSmiles))
+        {
+            if (Molecule.TryParseSmiles(regSmiles, name ?? regName, out var regMol) && regMol.Bonds.Count > 0)
+            {
+                molecule = regMol;
+                return true;
+            }
+        }
+
         // 1. If it parses as SMILES with bonding topology, prioritize SMILES for organic compounds (e.g. Ibuprofen, Aspirin, Ethanol)
         if (Molecule.TryParseSmiles(trimmed, name, out var smilesMol) && smilesMol.Bonds.Count > 0)
         {
@@ -748,6 +758,7 @@ public partial class Program
         var parts = trimmed.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries);
         foreach (var part in parts)
         {
+            if (Chemy.Core.Structure.CompoundRegistry.TryResolve(part, out var pName, out var pSmiles) && Molecule.TryParseSmiles(pSmiles, name ?? pName, out molecule)) return true;
             if (Molecule.TryParseSmiles(part, name ?? part, out molecule) && molecule.Bonds.Count > 0) return true;
             if (Molecule.TryParse(part, name ?? part, out molecule)) return true;
         }

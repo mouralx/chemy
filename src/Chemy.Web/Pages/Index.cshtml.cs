@@ -119,7 +119,11 @@ public class IndexModel : PageModel
         if (string.IsNullOrEmpty(PlanarXyzContent) || string.IsNullOrEmpty(SkeletalSvgContent))
         {
             Molecule? m = null;
-            if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
+            if (Chemy.Core.Structure.CompoundRegistry.TryResolve(Formula, out var regName, out var regSmiles) && Molecule.TryParseSmiles(regSmiles, regName, out var rm))
+            {
+                m = rm;
+            }
+            else if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
             {
                 m = sm;
             }
@@ -147,7 +151,11 @@ public class IndexModel : PageModel
         IsApiConnected = false;
         Molecule? molecule = null;
 
-        if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
+        if (Chemy.Core.Structure.CompoundRegistry.TryResolve(Formula, out var regName, out var regSmiles) && Molecule.TryParseSmiles(regSmiles, regName, out var rm))
+        {
+            molecule = rm;
+        }
+        else if (Molecule.TryParseSmiles(Formula, Formula, out var sm) && sm.Bonds.Count > 0)
         {
             molecule = sm;
         }
