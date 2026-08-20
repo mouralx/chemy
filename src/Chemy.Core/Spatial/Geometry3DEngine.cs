@@ -143,8 +143,9 @@ public static class Geometry3DEngine
 
         // Case 3: Single-center small polyatomic species vs Multi-center organic molecule
         int heavyAtomCount = molecule.Atoms.Count(a => a.Element.Symbol != "H");
+        bool isAuto = string.IsNullOrWhiteSpace(overrideShape) || overrideShape.Equals("Auto", StringComparison.OrdinalIgnoreCase);
 
-        if (heavyAtomCount > 1 && string.IsNullOrWhiteSpace(overrideShape))
+        if (heavyAtomCount > 1 && isAuto)
         {
             return GenerateMultiCenter3D(molecule);
         }

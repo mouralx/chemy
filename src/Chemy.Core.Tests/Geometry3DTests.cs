@@ -97,4 +97,27 @@ public class Geometry3DTests
             }
         }
     }
+
+    [Fact]
+    public void Generate3D_CaffeineWithAutoShape_BuildsFusedRingMultiCenterConformer()
+    {
+        var caffeine = Molecule.FromSmiles("CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "Caffeine");
+        var m3d = caffeine.To3D("Auto");
+
+        Assert.NotNull(m3d);
+        Assert.Equal(24, m3d.Atoms.Count);
+        Assert.Equal("Conformer", m3d.VseprShape);
+        Assert.NotEqual("Octahedral", m3d.VseprShape);
+
+        for (int i = 0; i < m3d.Atoms.Count; i++)
+        {
+            for (int j = i + 1; j < m3d.Atoms.Count; j++)
+            {
+                var p1 = m3d.Atoms[i].Position;
+                var p2 = m3d.Atoms[j].Position;
+                double dist = Math.Sqrt(Math.Pow(p1.X - p2.X, 2) + Math.Pow(p1.Y - p2.Y, 2) + Math.Pow(p1.Z - p2.Z, 2));
+                Assert.True(dist > 0.80, $"Atoms {i} and {j} colliding at {dist:F3} Å");
+            }
+        }
+    }
 }
