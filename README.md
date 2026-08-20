@@ -12,7 +12,7 @@
 **Industrial-grade, zero-dependency computational chemistry, chemoinformatics, and lead optimization toolkit for .NET.**  
 *From exact mass/charge nullspace balancing and 4-term UFF molecular mechanics to multi-center 3D conformer embedding, full 68-atom Crippen LogP, 43-fragment Ertl TPSA, true Benson group additivity, and population-based de novo molecular evolution.*
 
-[✨ Key Features](#-key-features) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthrough-engines) • [🏗️ Architecture](#-project-structure) • [📖 Documentation](#-documentation)
+[✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure) • [🛡️ Testing & Quality](#️-testing--quality)
 
 </div>
 
@@ -44,21 +44,21 @@ All algorithms in Chemy are **pure, mathematically exact, and deterministic C# i
 | Feature | What It Does (In Plain English) | Exact Scientific Implementation |
 | :--- | :--- | :--- |
 | **🌿 Graph Substructure Matcher** | Finds specific chemical motifs (acids, esters, rings) inside any molecular graph. | Topological graph isomorphism pattern matching with adjacency index tables (`SubgraphMatcher`). |
-| **⚛️ Molecular Mechanics (UFF/MMFF)** | Relaxes atoms in 3D Euclidean space to relieve steric strain. | 4-term analytical potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) solved via gradient descent (`ForceFieldEngine`). |
+| **⚛️ Molecular Mechanics (UFF/MMFF)** | Relaxes atoms in 3D Euclidean space to relieve steric strain. | 4-term analytical potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with exact analytical gradients (`ForceFieldEngine`). |
 | **🛡️ Ertl TPSA & ADMET Shield** | Evaluates whether a molecule can safely act as an oral medicine. | Standard Ertl atomic polar surface area fragments, Wildman-Crippen $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
-| **🧬 Bioisosteric Graph Evolver** | Mutates a baseline compound to produce optimized, less toxic lead candidates. | Topological graph rewriting replacing target motifs with bioisosteric rings (`MolecularEvolverEngine`). |
+| **🧬 Bioisosteric Graph Evolver** | Mutates a baseline compound to produce optimized, less toxic lead candidates. | Population-based genetic algorithm with bioisosteric graph mutation operators (`MolecularEvolverEngine`). |
 | **📁 MDL Molfile & SDF Exporter** | Exports molecules to standard formats for ChemDraw, PyMOL, and RDKit. | ISO/IUPAC-compliant MDL Molfile V2000 and multi-record SDF serializer (`MolfileExporter`). |
-| **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with LCM integer scaling. |
-| **📐 3D VSEPR Molecule Builder** | Converts formulas and SMILES codes into accurate 3D atomic coordinates. | Valence Shell Electron Pair Repulsion (VSEPR) steric coordination algorithms and Cartesian geometry generators. |
-| **📉 NMR & IR Spectroscopy** | Predicts chemical shifts and Infrared absorption frequencies. | Empirical functional group shielding tables and Hooke's Law harmonic oscillator frequencies. |
+| **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with charge conservation. |
+| **📐 3D Multi-Center Builder** | Converts formulas and SMILES codes into accurate 3D atomic coordinates. | Multi-center topological coordinate propagation and VSEPR coordinate generators (`Geometry3DEngine`). |
+| **📉 NMR & IR Spectroscopy** | Predicts chemical shifts and Infrared absorption frequencies. | Quantum spin-spin coupling and Hooke's Law harmonic oscillator frequencies (`SpectroscopyEngine`). |
 | **⚛️ 118-Element Periodic Table** | Instant lookup for all 118 IUPAC elements. | $O(1)$ constant-time lookup backed by .NET `FrozenDictionary`. |
-| **🔥 Thermodynamics & Feasibility** | Predicts if a reaction is exothermic ($\Delta H$) or spontaneous ($\Delta G$). | Hess's Law using standard thermodynamic tables with Benson Group Additivity fallback for unknown molecules. |
-| **⏱️ Reaction Kinetics & RK4** | Simulates multi-step reaction concentrations over time. | 4th-Order Runge-Kutta (RK4) numerical ODE solver. |
-| **🌐 NCBI PubChem Cloud Query** | Live searches the global PubChem database. | Resilient typed `HttpClient` querying the official NCBI REST PUG API. |
+| **🔥 Thermodynamics & Feasibility** | Predicts if a reaction is exothermic ($\Delta H$) or spontaneous ($\Delta G$). | Hess's Law using standard thermodynamic tables with Benson Group Additivity for arbitrary organics (`ThermodynamicsEngine`). |
+| **⏱️ Reaction Kinetics & RK4** | Simulates multi-step reaction concentrations over time. | 4th-Order Runge-Kutta (RK4) numerical ODE solver (`ReactionNetworkEngine`). |
+| **🌐 NCBI PubChem Cloud Query** | Live searches the global PubChem database. | Resilient typed `HttpClient` querying the official NCBI REST PUG API (`PubChemClient`). |
 
 ---
 
-## 🚀 Quick Start (C# Code)
+## 🚀 Quick Start
 
 ### 1. Topological Graph Pattern Matching & Rewriting
 
@@ -84,12 +84,12 @@ Console.WriteLine($"New Lead Formula: {tetrazoleLead.ChemicalFormula}");
 using Chemy.Core;
 using Chemy.Core.Physics;
 
-// Relax 3D Cartesian coordinates using 4-term force field
+// Relax 3D Cartesian coordinates using 4-term Universal Force Field (UFF)
 var water3D = Molecule.Water.To3D();
 var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 50);
 
-Console.WriteLine($"Initial Energy: {result.InitialEnergyKcalPerMol} kcal/mol");
-Console.WriteLine($"Relaxed Energy: {result.FinalEnergyKcalPerMol} kcal/mol (Converged: {result.Converged})");
+Console.WriteLine($"Initial Energy: {result.InitialEnergyKcalPerMol:F3} kcal/mol");
+Console.WriteLine($"Relaxed Energy: {result.FinalEnergyKcalPerMol:F3} kcal/mol (Converged: {result.Converged})");
 ```
 
 ### 3. Screen Drug Safety (Ertl TPSA, Veber & Ghose Rules)
@@ -102,9 +102,9 @@ var molecule = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
 var admet = AdmetEngine.Analyze(molecule);
 
 Console.WriteLine($"Ertl TPSA: {admet.TpsaAngstrom2} Å² (Veber Limit: <= 140 Å²)");
+Console.WriteLine($"Wildman-Crippen LogP: {admet.CalculatedLogP:F2}");
+Console.WriteLine($"Bickerton QED Score: {admet.QedDrugLikenessScore:F2}");
 Console.WriteLine($"Passes Lipinski Rule of 5: {admet.PassesLipinskiRuleOf5}");
-Console.WriteLine($"Passes Veber Oral Bioavailability: {admet.PassesVeberRules}");
-Console.WriteLine($"Passes Ghose Filter: {admet.PassesGhoseFilter}");
 ```
 
 ### 4. Export to Standard MDL Molfile (V2000)
@@ -121,6 +121,31 @@ Console.WriteLine(molfileV2000);
 
 ---
 
+## 🧬 Societal Breakthroughs
+
+Chemy is engineered to deliver immediate real-world value for drug discovery, green chemistry, and environmental remediation:
+
+1. 💊 **AI-Guided *De Novo* Molecular Evolution**: Multi-generational genetic algorithm mutating compounds to bypass toxicity liabilities (e.g. acyl-glucuronide hepatotoxicity, hERG potassium channel cardiotoxicity).
+2. 🛡️ **Early ADMET Toxicity Shield**: Real-time evaluation of solubility, lipophilicity, polar surface area, and PAINS toxicophores before laboratory synthesis.
+3. ♻️ **EcoClean PFAS & Plastic Biocleavage**: Calculates Bond Dissociation Energies ($\text{BDE}$) to formulate targeted biocatalytic and electrochemical degradation pathways for persistent organohalides and polyesters.
+
+Explore complete societal case studies in the [Breakthroughs Showcase](docs/BREAKTHROUGHS_SHOWCASE.md).
+
+---
+
+## 📖 Documentation
+
+Comprehensive guides, mathematical specifications, and developer documentation:
+
+* 📚 [**Getting Started Tutorial**](docs/GETTING_STARTED.md) — Step-by-step developer onboarding and C# usage patterns.
+* 🔬 [**Scientific Approach & Foundations**](docs/SCIENTIFIC_APPROACH.md) — Detailed physical chemistry equations, thermo models, and chemoinformatics standards.
+* 📊 [**Scientific Verification & Benchmarks**](docs/SCIENTIFIC_VERIFICATION_BENCHMARKS.md) — Experimental validation matrix across 21 standard chemical benchmarks.
+* 📑 [**API Reference Manual**](docs/API_REFERENCE.md) — Complete C# class reference and REST API endpoint catalog.
+* 🏛️ [**Architecture & Design**](docs/ARCHITECTURE.md) — System architecture, mathematical solvers, and microservice topologies.
+* 🧬 [**Breakthroughs Showcase**](docs/BREAKTHROUGHS_SHOWCASE.md) — Real-world case studies in drug optimization and environmental remediation.
+
+---
+
 ## 🏗️ Project Structure
 
 The codebase is organized cleanly following enterprise .NET architecture:
@@ -132,19 +157,23 @@ chemy/
 │   ├── ARCHITECTURE.md          # Mathematics, linear algebra, and diagrams
 │   ├── BREAKTHROUGHS_SHOWCASE.md # Aspirin, Cocaine, and PFOA case studies
 │   ├── GETTING_STARTED.md       # Step-by-step developer tutorial
-│   └── SCIENTIFIC_APPROACH.md   # Physical chemistry and computational principles
+│   ├── SCIENTIFIC_APPROACH.md   # Physical chemistry and computational principles
+│   └── SCIENTIFIC_VERIFICATION_BENCHMARKS.md # 21 experimental verification benchmarks
 ├── src/                         # All project source code
 │   ├── Chemy.slnx               # Modern solution file
 │   ├── Directory.Build.props    # Global zero-warning compiler rules
 │   ├── Chemy.Core/              # Pure computational chemistry library
 │   │   ├── Graph/               # ChemicalGraph, SubgraphMatcher, GraphRewriter
-│   │   ├── Physics/             # Multi-term ForceFieldEngine (MMFF/UFF)
+│   │   ├── Physics/             # Multi-term ForceFieldEngine (UFF/MMFF)
 │   │   ├── Pharmacology/        # Ertl TPSA, Crippen LogP, Veber/Ghose rules
 │   │   ├── IO/                  # MDL Molfile V2000 & SDF serializers
+│   │   ├── Spatial/             # Multi-center 3D coordinates & VSEPR
+│   │   ├── Evolution/           # MolecularEvolverEngine (Genetic Algorithm)
+│   │   ├── Environmental/       # EcoCleanEngine (BDE & Mineralization)
 │   │   └── ...                  # Reactions, Kinetics, Solutions, Thermodynamics
 │   ├── Chemy.Api/               # Pure REST API microservice (Scalar & Swagger)
 │   ├── Chemy.Web/               # Interactive 3D laboratory workstation
-│   └── Chemy.Core.Tests/        # Complete xUnit test suite (64 tests)
+│   └── Chemy.Core.Tests/        # Complete xUnit test suite (71 tests)
 └── README.md                    # Project overview
 ```
 
@@ -180,7 +209,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 64/64 unit tests in `Chemy.Core.Tests`.
+- **100% Passing Tests**: 71/71 unit tests in `Chemy.Core.Tests`.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Zero Allocations**: High-frequency element and bond structs allocated on the stack.
 
@@ -189,7 +218,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 64, Skipped: 0, Total: 64 (Duration: 35 ms)
+Passed! - Failed: 0, Passed: 71, Skipped: 0, Total: 71, Duration: 116 ms
 ```
 
 ---
