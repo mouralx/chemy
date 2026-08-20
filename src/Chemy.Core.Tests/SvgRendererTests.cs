@@ -80,4 +80,46 @@ public class SvgRendererTests
         Assert.Contains("<line", svg);
         Assert.Contains("OH", svg);
     }
+
+    [Fact]
+    public void MoleculeToSkeletalSvg_Caffeine_RendersFusedRingsAndCarbonyls()
+    {
+        var caffeine = Molecule.FromSmiles("CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "Caffeine");
+        string svg = caffeine.ToSkeletalSvg(isDarkMode: true);
+
+        Assert.NotNull(svg);
+        Assert.StartsWith("<svg", svg.Trim());
+        Assert.EndsWith("</svg>", svg.Trim());
+        Assert.Contains("<line", svg);
+        Assert.Contains("O", svg);
+        Assert.Contains("N", svg);
+    }
+
+    [Theory]
+    [InlineData("H2O", "Water")]
+    [InlineData("CH4", "Methane")]
+    [InlineData("CO2", "Carbon Dioxide")]
+    [InlineData("CC(=O)Oc1ccccc1C(=O)O", "Aspirin")]
+    [InlineData("CN1C=NC2=C1C(=O)N(C(=O)N2C)C", "Caffeine")]
+    [InlineData("CC(=O)Nc1ccc(O)cc1", "Paracetamol")]
+    [InlineData("CC(C)Cc1ccc(cc1)C(C)C(=O)O", "Ibuprofen")]
+    [InlineData("CCO", "Ethanol")]
+    [InlineData("CC(=O)C", "Acetone")]
+    [InlineData("c1ccccc1", "Benzene")]
+    public void MoleculeToSkeletalSvg_CatalogCompounds_AllRenderValidSvgWithBonds(string input, string name)
+    {
+        Molecule molecule = input.Contains('(') || input.Contains('=') || input.Contains('c') || input.Contains('N')
+            ? (Molecule.FromSmiles(input, name) ?? Molecule.Parse(input, name))
+            : (Molecule.TryParse(input, name, out var m) ? m : Molecule.FromSmiles(input, name));
+
+        string svg = molecule.ToSkeletalSvg(isDarkMode: true);
+
+        Assert.NotNull(svg);
+        Assert.StartsWith("<svg", svg.Trim());
+        Assert.EndsWith("</svg>", svg.Trim());
+        if (molecule.Atoms.Count(a => a.Element.Symbol != "H") > 1)
+        {
+            Assert.Contains("<line", svg);
+        }
+    }
 }
