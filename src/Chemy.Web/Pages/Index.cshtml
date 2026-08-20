@@ -120,9 +120,9 @@
                 <span>Swagger</span> ↗
             </a>
             <div class="flex items-center gap-2 border border-slate-800 px-2.5 py-1 rounded bg-slate-900/80">
-                <span class="w-2 h-2 rounded-full @(Model.IsApiConnected ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-rose-500")"></span>
-                <span class="font-medium text-slate-300">
-                    @(Model.IsApiConnected ? "API ONLINE (15/15)" : "DISCONNECTED")
+                <span id="apiStatusIndicator" class="w-2 h-2 rounded-full @(Model.IsApiConnected ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-rose-500")"></span>
+                <span id="apiStatusBadge" class="font-medium text-slate-300">
+                    @(Model.IsApiConnected ? "API ONLINE (21/21)" : "DISCONNECTED")
                 </span>
             </div>
         </div>
@@ -156,8 +156,8 @@
                         <div class="flex items-center gap-2">
                             <span class="text-sky-400 font-bold font-mono">Chemy Studio</span>
                             <span class="text-slate-600">//</span>
-                            <span class="font-bold text-slate-200">@Model.MoleculeName</span>
-                            <span class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
+                            <span id="currentMoleculeName" class="font-bold text-slate-200">@Model.MoleculeName</span>
+                            <span id="currentFormulaBadge" class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
                         </div>
                         <div class="flex items-center gap-1.5 font-mono text-[11px]">
                             <!-- Workstation View Mode Toggle: 3D Conformation vs 2D Skeletal ChemDraw -->
@@ -208,7 +208,7 @@
 
                     <!-- Input Bar Bottom Overlay -->
                     <div class="bg-slate-900/95 border-t border-slate-800 p-2 flex items-center gap-2 z-10 shrink-0">
-                        <form method="get" class="flex-1 flex gap-2">
+                        <form method="get" onsubmit="event.preventDefault(); loadMoleculeLive(this.Formula.value, this.OverrideShape.value);" class="flex-1 flex gap-2">
                             <input type="text" name="Formula" value="@Model.Formula" placeholder="Enter chemical formula (e.g. C6H12O6, H2O) or SMILES (e.g. CC(C)Cc1ccc(cc1)C(C)C(=O)O)..." 
                                    class="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500" />
                             <select name="OverrideShape" class="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-sky-500">
@@ -243,23 +243,23 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
                         <div class="lab-card-subtle p-2">
                             <span class="text-slate-400 block text-[10px]">Hill Formula</span>
-                            <span class="text-white font-bold text-xs">@Model.ChemicalFormula</span>
+                            <span id="metaHillFormula" class="text-white font-bold text-xs">@Model.ChemicalFormula</span>
                         </div>
                         <div class="lab-card-subtle p-2">
                             <span class="text-slate-400 block text-[10px]">Molar Mass</span>
-                            <span class="text-sky-400 font-bold text-xs">@Model.MolecularWeight.ToString("F3") <span class="text-[10px] text-slate-400">g/mol</span></span>
+                            <span id="metaMolarMass" class="text-sky-400 font-bold text-xs">@Model.MolecularWeight.ToString("F3") <span class="text-[10px] text-slate-400">g/mol</span></span>
                         </div>
                         <div class="lab-card-subtle p-2">
                             <span class="text-slate-400 block text-[10px]">VSEPR Geometry</span>
-                            <span class="text-emerald-400 font-bold text-xs">@Model.VseprShape</span>
+                            <span id="metaVseprShape" class="text-emerald-400 font-bold text-xs">@Model.VseprShape</span>
                         </div>
                         <div class="lab-card-subtle p-2">
                             <span class="text-slate-400 block text-[10px]">Ideal Valence Angle</span>
-                            <span class="text-amber-400 font-bold text-xs">@Model.IdealBondAngleDegrees.ToString("F1")°</span>
+                            <span id="metaBondAngle" class="text-amber-400 font-bold text-xs">@Model.IdealBondAngleDegrees.ToString("F1")°</span>
                         </div>
                     </div>
 
-                    <div class="flex flex-wrap gap-2 text-[10px] font-mono pt-1">
+                    <div id="metaFunctionalGroups" class="flex flex-wrap gap-2 text-[10px] font-mono pt-1">
                         <span class="text-slate-400 self-center">Functional Groups:</span>
                         @if (Model.FunctionalGroups.Count > 0)
                         {
@@ -357,8 +357,14 @@
                                 <input type="number" id="phKaInput" value="1.8e-5" step="1e-6" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Ka (optional)" />
                                 <button onclick="runPh()" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white font-mono text-xs">Solve pH</button>
                             </div>
+                            <div class="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-800/80">
+                                <input type="number" id="phBufHaInput" value="0.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="[HA] Acid (M)" />
+                                <input type="number" id="phBufAInput" value="0.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="[A⁻] Base (M)" />
+                                <input type="number" id="phBufPkaInput" value="4.76" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="pKa" />
+                                <button onclick="runBuffer()" class="px-2 py-1 rounded bg-teal-600 hover:bg-teal-500 font-semibold text-white font-mono text-[11px]">Buffer</button>
+                            </div>
                             <div id="phOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Calculates pH, pOH, [H⁺], [OH⁻], and Henderson-Hasselbalch buffer equilibria.
+                                Calculates exact aqueous pH, [H⁺], [OH⁻], and Henderson-Hasselbalch buffer capacity.
                             </div>
                         </div>
 
@@ -374,15 +380,21 @@
                             </div>
                         </div>
 
-                        <!-- TAB 5: KINETICS RK4 -->
+                        <!-- TAB 5: KINETICS & ARRHENIUS -->
                         <div id="pane-kinetics" class="space-y-2 hidden">
                             <div class="grid grid-cols-3 gap-2">
                                 <input type="number" id="kinK1Input" value="0.5" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k1 (s⁻¹)" />
                                 <input type="number" id="kinK2Input" value="0.2" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k2 (s⁻¹)" />
                                 <button onclick="runKinetics()" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 font-semibold text-white font-mono text-xs">Simulate RK4</button>
                             </div>
+                            <div class="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-800/80">
+                                <input type="number" id="kinArrAInput" value="1.0e13" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="A (s⁻¹)" />
+                                <input type="number" id="kinArrEaInput" value="75.0" step="0.5" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="Ea (kJ/mol)" />
+                                <input type="number" id="kinArrTInput" value="298.15" step="1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="T (K)" />
+                                <button onclick="runArrhenius()" class="px-2 py-1 rounded bg-purple-600 hover:bg-purple-500 font-semibold text-white font-mono text-[11px]">Arrhenius</button>
+                            </div>
                             <div id="kineticsOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                4th-Order Runge-Kutta numerical differential equation integrator for consecutive reaction cascades (A -> B -> C).
+                                4th-Order Runge-Kutta integrator (A -> B -> C) &amp; Arrhenius activation barrier kinetics.
                             </div>
                         </div>
 
@@ -740,6 +752,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
 
             const savedView = localStorage.getItem('chemy_workstation_view') || '3d';
             setWorkstationView(savedView);
+            checkApiHealth();
+            setInterval(checkApiHealth, 8000);
         });
 
         window.addEventListener('resize', () => {
@@ -753,45 +767,22 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
         function init3DViewer() {
             const host = document.getElementById('viewer3d');
             if (!host) return;
-
-            const config = { backgroundColor: '#070a14', antialias: true };
-            viewer = $3Dmol.createViewer(host, config);
-
+            viewer = $3Dmol.createViewer(host, { backgroundColor: '#070a14', antialias: true });
             reload3DModel();
         }
 
-        let currentWorkstationView = '3d'; // '3d' or '2d'
-
         function setWorkstationView(view) {
-            currentWorkstationView = view;
             localStorage.setItem('chemy_workstation_view', view);
-            const btn3D = document.getElementById('viewTab3D');
-            const btn2D = document.getElementById('viewTab2D');
             const v3d = document.getElementById('viewer3d');
             const v2d = document.getElementById('viewer2d');
-            const c3d = document.getElementById('controls3D');
-            const c2d = document.getElementById('controls2D');
-
             if (view === '3d') {
-                btn3D.className = 'px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1';
-                btn2D.className = 'px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1';
                 v3d.classList.remove('hidden');
                 v2d.classList.add('hidden');
-                c3d.classList.remove('hidden');
-                c3d.classList.add('flex');
-                c2d.classList.add('hidden');
-                c2d.classList.remove('flex');
-                setTimeout(() => autoFitViewer(), 50);
             } else {
-                btn2D.className = 'px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1';
-                btn3D.className = 'px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1';
                 v3d.classList.add('hidden');
                 v2d.classList.remove('hidden');
-                c3d.classList.add('hidden');
-                c3d.classList.remove('flex');
-                c2d.classList.remove('hidden');
-                c2d.classList.add('flex');
             }
+            setTimeout(autoFitViewer, 50);
         }
 
         function downloadSkeletalSvg() {
@@ -802,7 +793,9 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = `@(Model.ChemicalFormula)_skeletal.svg`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
         }
 
         function setSpatialMode(mode) {
@@ -817,8 +810,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                 btnFlat.className = 'px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition';
                 btn3D.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
             }
-
             reload3DModel();
+            if (mode === 'flat') {
+                snapFrontView();
+            }
         }
 
         function reload3DModel() {
@@ -826,101 +821,201 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             viewer.clear();
 
             const isFlat = (currentSpatialMode === 'flat');
-            const pdb = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
-            const xyz = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
+            const pdbData = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
+            const xyzData = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
 
-            if (pdb && pdb.trim().length > 10) {
-                viewer.addModel(pdb, 'pdb');
-            } else if (xyz && xyz.trim().length > 5) {
-                viewer.addModel(xyz, 'xyz');
-            } else {
-                viewer.addModel("3\nWater\nO 0 0 0\nH 0 0.75 0.6\nH 0 -0.75 0.6", 'xyz');
+            if (pdbData && pdbData.trim().length > 0) {
+                viewer.addModel(pdbData, "pdb");
+            } else if (xyzData && xyzData.trim().length > 0) {
+                viewer.addModel(xyzData, "xyz");
             }
 
-            changeRenderStyle();
-            if (isFlat) {
-                snapFrontView();
-            } else {
-                autoFitViewer();
-            }
+            applyRenderStyle();
+            autoFitViewer();
         }
 
-        function snapFrontView() {
+        function applyRenderStyle() {
             if (!viewer) return;
-            viewer.setRotation([0, 0, 0]);
-            viewer.zoomTo();
+            const style = document.getElementById('renderStyleSelect').value;
+
+            switch (style) {
+                case 'stick':
+                    viewer.setStyle({}, { stick: { radius: 0.16 } });
+                    break;
+                case 'sphere':
+                    viewer.setStyle({}, { sphere: { scale: 0.3 } });
+                    break;
+                case 'wireframe':
+                    viewer.setStyle({}, { line: { linewidth: 2 } });
+                    break;
+                case 'ballAndStick':
+                default:
+                    viewer.setStyle({}, { stick: { radius: 0.14 }, sphere: { scale: 0.26 } });
+                    break;
+            }
+
+            viewer.setColorByElement({}, {
+                'H': '#ffffff',
+                'C': '#94a3b8',
+                'O': '#f87171',
+                'N': '#38bdf8',
+                'S': '#facc15',
+                'P': '#fb923c',
+                'Cl': '#4ade80',
+                'F': '#22d3ee',
+                'Br': '#b91c1c',
+                'I': '#7e22ce'
+            });
+
             viewer.render();
         }
 
         function changeRenderStyle() {
-            if (!viewer) return;
-            const style = document.getElementById('renderStyleSelect').value;
-            viewer.setStyle({}, {});
-
-            if (style === 'stick') {
-                viewer.setStyle({}, { stick: { radius: 0.18, colorscheme: 'Jmol' } });
-            } else if (style === 'sphere') {
-                viewer.setStyle({}, { sphere: { scale: 0.75, colorscheme: 'Jmol' } });
-            } else if (style === 'wireframe') {
-                viewer.setStyle({}, { line: { linewidth: 2, colorscheme: 'Jmol' } });
-            } else {
-                // Ball & Stick
-                viewer.setStyle({}, { stick: { radius: 0.14, colorscheme: 'Jmol' }, sphere: { scale: 0.28, colorscheme: 'Jmol' } });
-            }
-            viewer.render();
-        }
-
-        function toggleSpin() {
-            if (!viewer) return;
-            isSpinning = !isSpinning;
-            viewer.spin(isSpinning ? "y" : false, 1.0);
-            document.getElementById('spinBtn').classList.toggle('bg-sky-600', isSpinning);
+            applyRenderStyle();
         }
 
         function autoFitViewer() {
             if (!viewer) return;
-            viewer.resize();
             viewer.zoomTo();
             viewer.render();
         }
 
-        // --------------------------------------------------------------------
-        // Main View Switcher (Workstation / Docs / CodeRef / Disclaimer)
-        // --------------------------------------------------------------------
+        function snapFrontView() {
+            if (!viewer) return;
+            viewer.setCameraDirection([0, 0, 1]);
+            viewer.zoomTo();
+            viewer.render();
+        }
+
+        function toggleSpin() {
+            isSpinning = !isSpinning;
+            const btn = document.getElementById('spinBtn');
+            if (isSpinning) {
+                btn.classList.add('bg-sky-600', 'text-white');
+                btn.classList.remove('bg-slate-800', 'text-slate-300');
+                startSpinLoop();
+            } else {
+                btn.classList.remove('bg-sky-600', 'text-white');
+                btn.classList.add('bg-slate-800', 'text-slate-300');
+                cancelAnimationFrame(spinReqId);
+            }
+        }
+
+        function startSpinLoop() {
+            if (!isSpinning || !viewer) return;
+            viewer.rotate(0.6, "y");
+            viewer.render();
+            spinReqId = requestAnimationFrame(startSpinLoop);
+        }
+
+        async function checkApiHealth() {
+            const indicator = document.getElementById('apiStatusIndicator');
+            const badge = document.getElementById('apiStatusBadge');
+            try {
+                const res = await fetch('/healthz');
+                if (res.ok) {
+                    if (indicator) indicator.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
+                    if (badge) badge.innerText = "API ONLINE (21/21)";
+                } else {
+                    if (indicator) indicator.className = "w-2 h-2 rounded-full bg-amber-400";
+                    if (badge) badge.innerText = "DEGRADED (CORE FALLBACK)";
+                }
+            } catch {
+                if (indicator) indicator.className = "w-2 h-2 rounded-full bg-rose-500";
+                if (badge) badge.innerText = "OFFLINE (CORE FALLBACK)";
+            }
+        }
+
+        async function loadMoleculeLive(formula, shape = 'Auto') {
+            try {
+                const [res3d, resPlanar] = await Promise.all([
+                    fetch('/api/v1/geometry/3d', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ formula: formula, overrideShape: shape })
+                    }),
+                    fetch('/api/v1/geometry/planar-3d', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ formula: formula })
+                    })
+                ]);
+
+                if (res3d.ok) {
+                    const data3d = await res3d.json();
+                    const dataPlanar = resPlanar.ok ? await resPlanar.json() : null;
+
+                    document.getElementById('rawPdbData').value = data3d.pdbFormat || '';
+                    document.getElementById('rawXyzData').value = data3d.xyzFormat || '';
+                    document.getElementById('rawMolData').value = data3d.molFormat || '';
+
+                    if (dataPlanar) {
+                        document.getElementById('rawPlanarPdbData').value = dataPlanar.pdbFormat || '';
+                        document.getElementById('rawPlanarXyzData').value = dataPlanar.xyzFormat || '';
+                        document.getElementById('rawPlanarMolData').value = dataPlanar.molFormat || '';
+                        if (dataPlanar.skeletalSvg) {
+                            document.getElementById('skeletalSvgContainer').innerHTML = dataPlanar.skeletalSvg;
+                        }
+                    } else if (data3d.skeletalSvg) {
+                        document.getElementById('skeletalSvgContainer').innerHTML = data3d.skeletalSvg;
+                    }
+
+                    const name = data3d.moleculeName || formula;
+                    const chemFormula = data3d.chemicalFormula || formula;
+                    document.getElementById('currentMoleculeName').innerText = name;
+                    document.getElementById('currentFormulaBadge').innerText = chemFormula;
+                    document.getElementById('metaHillFormula').innerText = chemFormula;
+                    document.getElementById('metaMolarMass').innerHTML = `${(data3d.molecularWeight || 0).toFixed(3)} <span class="text-[10px] text-slate-400">g/mol</span>`;
+                    document.getElementById('metaVseprShape').innerText = data3d.vseprShape || 'Auto';
+                    document.getElementById('metaBondAngle').innerText = `${(data3d.idealBondAngleDegrees || 0).toFixed(1)}°`;
+
+                    const formulaInput = document.querySelector('input[name="Formula"]');
+                    if (formulaInput) formulaInput.value = formula;
+                    const specInput = document.getElementById('specFormulaInput');
+                    if (specInput) specInput.value = chemFormula;
+                    const evolverInput = document.getElementById('evolverInput');
+                    if (evolverInput) evolverInput.value = formula;
+                    const admetInput = document.getElementById('admetInput');
+                    if (admetInput) admetInput.value = formula;
+
+                    reload3DModel();
+                    history.pushState(null, '', `/?Formula=${encodeURIComponent(formula)}`);
+                    return;
+                }
+            } catch (err) {
+                console.warn('Live API call failed, falling back to full navigation:', err);
+            }
+            window.location.href = `/?Formula=${encodeURIComponent(formula)}`;
+        }
+
         function switchMainView(viewName) {
             ['workstation', 'docs', 'coderef', 'disclaimer'].forEach(v => {
                 document.getElementById(`view-${v}`).classList.add('hidden');
                 const navBtn = document.getElementById(`mainnav-${v}`);
                 if (navBtn) navBtn.classList.remove('nav-btn-active');
             });
-
             document.getElementById(`view-${viewName}`).classList.remove('hidden');
             const activeNav = document.getElementById(`mainnav-${viewName}`);
             if (activeNav) activeNav.classList.add('nav-btn-active');
-
             if (viewName === 'workstation') {
-                setTimeout(() => autoFitViewer(), 50);
+                setTimeout(autoFitViewer, 50);
             }
         }
 
-        // --------------------------------------------------------------------
-        // Catalog Renderer & Category Filtering
-        // --------------------------------------------------------------------
         function renderCatalog() {
             const grid = document.getElementById('catalogGrid');
             const search = (document.getElementById('catalogSearchInput').value || '').toLowerCase();
             grid.innerHTML = '';
-
             const filtered = catalogData.filter(c => {
                 const matchCat = (activeCategory === 'all' || c.category === activeCategory);
                 const matchSearch = c.name.toLowerCase().includes(search) || c.formula.toLowerCase().includes(search) || c.tags.toLowerCase().includes(search);
                 return matchCat && matchSearch;
             });
-
             filtered.forEach(c => {
-                const btn = document.createElement('a');
-                btn.href = `/?Formula=${encodeURIComponent(c.formula)}`;
-                btn.className = "bg-[#0b101d] hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 p-1.5 rounded transition text-left block group";
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = () => loadMoleculeLive(c.formula);
+                btn.className = "bg-[#0b101d] hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 p-1.5 rounded transition text-left block group w-full";
                 btn.innerHTML = `
                     <div class="font-bold text-slate-200 group-hover:text-sky-300 truncate text-[11px]">${c.name}</div>
                     <div class="text-[10px] font-mono text-slate-500 truncate">${c.formula}</div>
@@ -929,9 +1024,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             });
         }
 
-        function filterCatalog() {
-            renderCatalog();
-        }
+        function filterCatalog() { renderCatalog(); }
 
         function setCatalogCategory(cat) {
             activeCategory = cat;
@@ -944,13 +1037,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             renderCatalog();
         }
 
-        // --------------------------------------------------------------------
-        // Tool Tabs Switcher (Balancer, Thermo, pH, etc.)
-        // --------------------------------------------------------------------
         function switchToolTab(tabName) {
-            activeTool = tabName;
             const tabs = ['balancer', 'thermo', 'ph', 'nernst', 'kinetics', 'spec', 'forcefield', 'pubchem', 'evolver', 'admet', 'ecoclean'];
-            
             tabs.forEach(t => {
                 const pane = document.getElementById(`pane-${t}`);
                 const btn = document.getElementById(`ttab-${t}`);
@@ -960,7 +1048,6 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                     btn.classList.add('bg-slate-800', 'text-slate-300');
                 }
             });
-
             const targetPane = document.getElementById(`pane-${tabName}`);
             const targetBtn = document.getElementById(`ttab-${tabName}`);
             if (targetPane) targetPane.classList.remove('hidden');
@@ -970,16 +1057,13 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             }
         }
 
-        // --------------------------------------------------------------------
-        // API Execution Handlers (15 Microservice REST Endpoints)
-        // --------------------------------------------------------------------
         async function runBalancer() {
             const eq = document.getElementById('balancerEquationInput').value;
             const out = document.getElementById('balancerOutput');
             out.innerHTML = '<span class="text-sky-400">Computing exact rational nullspace...</span>';
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/reactions/balance', {
+                const res = await fetch('/api/v1/reactions/balance', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ equation: eq })
@@ -994,7 +1078,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                     out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Failed to balance'}</span>`;
                 }
             } catch {
-                out.innerHTML = '<span class="text-rose-400">Unable to reach Chemy.Api (http://localhost:5192). Ensure API service is running.</span>';
+                out.innerHTML = '<span class="text-rose-400">Unable to reach Chemy.Api. Ensure API service is running.</span>';
             }
         }
 
@@ -1005,7 +1089,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             out.innerHTML = '<span class="text-amber-400">Computing Hess Law enthalpy & Gibbs free energy...</span>';
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/reactions/thermodynamics', {
+                const res = await fetch('/api/v1/reactions/thermodynamics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ equation: eq, temperatureKelvin: temp })
@@ -1015,7 +1099,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                     out.innerHTML = `
                         <div class="font-bold ${data.isExothermic ? 'text-amber-400' : 'text-sky-400'}">ΔH° = ${data.enthalpyChangekJ} kJ/mol (${data.isExothermic ? 'Exothermic' : 'Endothermic'})</div>
                         <div class="text-slate-300">ΔS° = ${data.entropyChangeJPerK} J/(mol·K) | ΔG°(${temp}K) = ${data.gibbsFreeEnergykJ} kJ/mol</div>
-                        <div class="text-[10px] ${data.isSpontaneous ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Spontaneity: ${data.isSpontaneous ? 'Spontaneous Thermodynamic Reaction' : 'Non-Spontaneous'}</div>
+                        <div class="text-[10px] ${data.isSpontaneous ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Spontaneity: ${data.isSpontaneous ? 'Spontaneous' : 'Non-Spontaneous'}</div>
                     `;
                 } else {
                     out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
@@ -1031,7 +1115,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('phOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/solutions/ph', {
+                const res = await fetch('/api/v1/solutions/ph', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ concentrationMolar: conc, acidDissociationConstantKa: ka || null })
@@ -1043,6 +1127,36 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                         <div class="text-slate-300">[H⁺] = ${data.hConcentrationMolar.toExponential(3)} M | [OH⁻] = ${data.ohConcentrationMolar.toExponential(3)} M</div>
                         <div class="text-[10px] text-slate-400 font-semibold">Classification: ${data.isAcidic ? 'Acidic Solution (pH < 7.0)' : data.isBasic ? 'Basic Solution' : 'Neutral'}</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runBuffer() {
+            const ha = parseFloat(document.getElementById('phBufHaInput').value) || 0.10;
+            const a = parseFloat(document.getElementById('phBufAInput').value) || 0.10;
+            const pka = parseFloat(document.getElementById('phBufPkaInput').value) || 4.76;
+            const out = document.getElementById('phOutput');
+            out.innerHTML = '<span class="text-teal-400">Evaluating Henderson-Hasselbalch buffer capacity...</span>';
+
+            try {
+                const res = await fetch('/api/v1/solutions/buffer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ acidConcentrationMolar: ha, conjugateBaseConcentrationMolar: a, acidDissociationConstantKa: Math.pow(10, -pka) })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-teal-400 font-bold">Buffer Equilibrium pH: ${data.bufferPh.toFixed(2)}</div>
+                        <div class="text-slate-300">Buffer Capacity (β): ${data.bufferCapacityBeta.toFixed(3)} M/pH | pKa: ${data.acidPka.toFixed(2)}</div>
+                        <div class="text-[10px] text-emerald-400 font-semibold">[HA] = ${data.acidConcentrationMolar} M, [A⁻] = ${data.conjugateBaseConcentrationMolar} M</div>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Buffer calculation failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1055,7 +1169,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('nernstOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/electrochemistry/nernst', {
+                const res = await fetch('/api/v1/electrochemistry/nernst', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ standardCellPotentialVolts: e0, electronsTransferred: n, reactionQuotientQ: 0.01, temperatureKelvin: 298.15 })
@@ -1064,8 +1178,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                 if (res.ok) {
                     out.innerHTML = `
                         <div class="text-sky-400 font-bold">E_cell: ${data.cellPotentialVolts.toFixed(3)} V (E° = ${data.standardCellPotentialVolts} V)</div>
-                        <div class="text-[10px] ${data.isSpontaneousGalvanic ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Galvanic Spontaneity: ${data.isSpontaneousGalvanic ? 'Spontaneous Galvanic Discharge' : 'Electrolytic Cell'}</div>
+                        <div class="text-[10px] ${data.isSpontaneousGalvanic ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Galvanic Spontaneity: ${data.isSpontaneousGalvanic ? 'Spontaneous' : 'Electrolytic Cell'}</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1078,7 +1194,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('kineticsOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/kinetics/network', {
+                const res = await fetch('/api/v1/kinetics/network', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ initialConcA: 1.0, k1, k2, totalTime: 10.0, steps: 20 })
@@ -1091,6 +1207,36 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                         <div class="text-slate-300">k1 = ${data.rateConstantK1} s⁻¹ | k2 = ${data.rateConstantK2} s⁻¹</div>
                         <div class="text-[10px] text-slate-400">Final (t=10s): [A] = ${last.concentrationA.toFixed(3)}M, [B] = ${last.concentrationB.toFixed(3)}M, [C] = ${last.concentrationC.toFixed(3)}M</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Simulation failed'}</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runArrhenius() {
+            const a = parseFloat(document.getElementById('kinArrAInput').value) || 1.0e13;
+            const ea = parseFloat(document.getElementById('kinArrEaInput').value) || 75.0;
+            const temp = parseFloat(document.getElementById('kinArrTInput').value) || 298.15;
+            const out = document.getElementById('kineticsOutput');
+            out.innerHTML = '<span class="text-purple-400">Computing Arrhenius reaction rate constant k(T)...</span>';
+
+            try {
+                const res = await fetch('/api/v1/kinetics/arrhenius', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ preExponentialFactorA: a, activationEnergyKjPerMol: ea, temperatureKelvin: temp })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-purple-400 font-bold">Rate Constant k: ${data.rateConstantK.toExponential(4)} s⁻¹</div>
+                        <div class="text-slate-300">Ea = ${data.activationEnergyKjPerMol} kJ/mol | T = ${data.temperatureKelvin} K (${(data.temperatureKelvin - 273.15).toFixed(1)} °C)</div>
+                        <div class="text-[10px] text-indigo-300">Half-Life: ${data.halfLifeSeconds ? data.halfLifeSeconds.toExponential(3) + ' s' : 'N/A'}</div>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1102,7 +1248,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('specOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/spectroscopy/predict', {
+                const res = await fetch('/api/v1/spectroscopy/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ formula: form })
@@ -1115,6 +1261,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                         <div class="text-[11px] text-slate-300">¹³C-NMR: ${data.c13NmrPeaks.map(p => `${p.chemicalShiftPpm} ppm`).join(', ') || 'None'}</div>
                         <div class="text-[10px] text-slate-400">IR Bands: ${data.irBands.map(b => `${b.waveNumberCm1} cm⁻¹ (${b.vibrationType})`).join(', ')}</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Prediction failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1126,7 +1274,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             out.innerHTML = '<span class="text-purple-400">Minimizing 4-term potential energy...</span>';
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/physics/minimize', {
+                const res = await fetch('/api/v1/physics/minimize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ formula: "@Model.ChemicalFormula", maxIterations: 50 })
@@ -1136,8 +1284,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                     out.innerHTML = `
                         <div class="text-purple-400 font-bold">Force Field Minimization: ${data.converged ? 'Converged' : 'Finished'}</div>
                         <div class="text-slate-300">Initial: ${data.initialEnergyKcalPerMol} kcal/mol -> Relaxed: ${data.finalEnergyKcalPerMol} kcal/mol</div>
-                        <div class="text-[10px] text-slate-400">Iterations: ${data.iterations} steps (Bond stretch, angle bend, dihedral & vdW optimized)</div>
+                        <div class="text-[10px] text-slate-400">Iterations: ${data.iterations} steps</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Minimization failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1150,14 +1300,14 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             out.innerHTML = '<span class="text-teal-400">Querying NCBI PubChem REST API...</span>';
 
             try {
-                const res = await fetch(`http://localhost:5192/api/v1/cloud/pubchem/${encodeURIComponent(q)}`);
+                const res = await fetch(`/api/v1/cloud/pubchem/${encodeURIComponent(q)}`);
                 const data = await res.json();
                 if (res.ok) {
                     out.innerHTML = `
                         <div class="text-teal-400 font-bold">NCBI PubChem CID: ${data.cid} (${data.iupacName})</div>
                         <div class="text-slate-300 text-[10px]">Formula: ${data.molecularFormula} | MW: ${data.molecularWeight} g/mol</div>
                         <div class="text-slate-400 text-[10px] truncate">SMILES: ${data.canonicalSmiles}</div>
-                        <a href="/?Formula=${encodeURIComponent(data.canonicalSmiles)}" class="text-sky-400 underline text-[10px]">Load into 3D Viewport ↗</a>
+                        <button type="button" onclick="loadMoleculeLive('${data.canonicalSmiles}')" class="text-sky-400 underline text-[10px]">Load into 3D Viewport ↗</button>
                     `;
                 } else {
                     out.innerHTML = `<span class="text-rose-400">PubChem compound not found.</span>`;
@@ -1173,7 +1323,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             out.innerHTML = '<span class="text-sky-400">Executing bioisosteric graph mutations...</span>';
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/evolution/evolve', {
+                const res = await fetch('/api/v1/evolution/evolve', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ input: inp, generations: 50 })
@@ -1190,6 +1340,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                             </div>
                         `).join('')}
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Evolution failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1201,7 +1353,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('admetOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/pharmacology/admet', {
+                const res = await fetch('/api/v1/pharmacology/admet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ formula: inp })
@@ -1211,11 +1363,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                     out.innerHTML = `
                         <div class="text-rose-400 font-bold">ADMET &amp; Safety Profile for ${data.formula}</div>
                         <div class="text-slate-300">MW: ${data.molecularWeight} g/mol | LogP: ${data.calculatedLogP} | Ertl TPSA: ${data.tpsaAngstrom2} Å²</div>
-                        <div class="text-[10px] ${data.passesLipinskiRuleOf5 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Rule of 5: ${data.passesLipinskiRuleOf5 ? 'Passes Lipinski' : 'Violates Rule of 5'} (${data.lipinskiViolations} violations)</div>
-                        <div class="text-[10px] text-slate-400">Veber Rules: ${data.passesVeberRules ? 'Compliant' : 'Non-compliant'} | Ghose Filter: ${data.passesGhoseFilter ? 'Passes' : 'Fails'}</div>
-                        <div class="text-[10px] text-amber-300">Cardiac Risk: ${data.hergCardiacRisk}</div>
-                        <div class="text-[10px] text-slate-400">Metabolism: ${data.cyp450MetabolismSite}</div>
+                        <div class="text-[10px] ${data.passesLipinskiRuleOf5 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Rule of 5: ${data.passesLipinskiRuleOf5 ? 'Passes' : 'Violates'} (${data.lipinskiViolations} violations)</div>
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'ADMET calculation failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
@@ -1227,7 +1378,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const out = document.getElementById('ecocleanOutput');
 
             try {
-                const res = await fetch('http://localhost:5192/api/v1/environmental/ecoclean', {
+                const res = await fetch('/api/v1/environmental/ecoclean', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ pollutant: inp })
@@ -1244,6 +1395,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                             </div>
                         `).join('')}
                     `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'EcoClean calculation failed'}</span>`;
                 }
             } catch {
                 out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
