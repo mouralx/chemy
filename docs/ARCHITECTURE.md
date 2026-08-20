@@ -86,18 +86,21 @@ Minimization computes spatial analytical force gradients $\vec{F}_i = -\nabla_i 
 
 1. **Ertl Topological Polar Surface Area (TPSA)**:
    $$\text{TPSA} = \sum_{i \in \{\text{polar atoms O, N, S, P}\}} \Delta S_i$$
-   Based on empirical surface areas: Carbonyl $=O$ ($17.07\text{ \AA}^2$), Ether/Alcohol $-O-$ ($20.23\text{ \AA}^2$), Primary amine ($23.79\text{ \AA}^2$), Secondary amine ($12.03\text{ \AA}^2$), Tertiary amine ($3.24\text{ \AA}^2$).
-2. **Wildman-Crippen $\log P$**:
+   Based on the published 43-fragment Ertl table: Carbonyl $=O$ ($17.07\text{ \AA}^2$), Hydroxyl $-OH$ ($20.23\text{ \AA}^2$), Ester/Ether $-O-$ ($9.23\text{ \AA}^2$), Secondary Amide $-C(=O)NH-$ ($29.10\text{ \AA}^2$), Primary Amide $-C(=O)NH_2$ ($43.09\text{ \AA}^2$), Nitro $-NO_2$ ($45.82\text{ \AA}^2$).
+2. **Wildman-Crippen $\log P$ (1999)**:
    $$\log P = \sum_{i} a_i n_i$$
-   Summing atomic fragment contributions across 118 elemental classifications.
-3. **Veber Oral Bioavailability Rules**:
+   Summing atomic fragment contributions across 68 structural atom classes (hybridization $sp^3, sp^2, sp$, aromaticity, formal charges, heteroatom neighbor bonding).
+3. **Bickerton Quantitative Estimate of Drug-Likeness (QED)**:
+   $$\text{QED} = \exp\left( \frac{\sum_{i=1}^8 w_i \ln d_i}{\sum_{i=1}^8 w_i} \right)$$
+   using asymmetric sigmoid desirability functions across 8 physicochemical and structural parameters.
+4. **Veber Oral Bioavailability Rules**:
    - $\text{Rotatable Bonds} \le 10$
    - $\text{TPSA} \le 140\text{ \AA}^2$
-4. **Ghose Drug Filter**:
+5. **Ghose Drug Filter**:
    - $160 \le \text{Molecular Weight} \le 480\text{ g/mol}$
    - $-0.4 \le \log P \le 5.6$
    - $20 \le \text{Total Atom Count} \le 70$
-5. **Lipinski's Rule of 5 (Pfizer Criteria)**:
+6. **Lipinski's Rule of 5 (Pfizer Criteria)**:
    - $\text{MW} \le 500\text{ g/mol}$, $\log P \le 5.0$, $\text{HBD} \le 5$, $\text{HBA} \le 10$.
 
 ---
