@@ -20,4 +20,12 @@ public class SpectroscopyTests
 
         Assert.Contains(prediction.IrBands, b => b.FunctionalGroup.Contains("Carboxylic Acid"));
     }
+
+    [Fact]
+    public void PredictValidated_IsExplicitlyUnsupported()
+    {
+        var molecule = Molecule.FromSmiles("CCO", "Ethanol");
+        var error = Assert.Throws<NotSupportedException>(() => SpectroscopyEngine.PredictValidated(molecule));
+        Assert.Contains("not implemented", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }

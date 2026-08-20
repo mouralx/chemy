@@ -41,10 +41,16 @@ public record SpectroscopyPrediction(
 public static class SpectroscopyEngine
 {
     /// <summary>
-    /// Predicts complete 1H-NMR, 13C-NMR, and IR spectral features for any given molecular graph.
+    /// Validated atom-resolved spectroscopy is intentionally unavailable.
+    /// </summary>
+    public static SpectroscopyPrediction PredictValidated(Molecule molecule) =>
+        throw new NotSupportedException("Validated NMR/IR prediction is not implemented.");
+
+    /// <summary>
+    /// Returns heuristic functional-group bands; values are not validated spectra.
     /// </summary>
     /// <param name="molecule">Target molecule.</param>
-    /// <returns>Complete SpectroscopyPrediction record.</returns>
+    /// <returns>Heuristic spectroscopy illustration.</returns>
     public static SpectroscopyPrediction Predict(Molecule molecule)
     {
         ArgumentNullException.ThrowIfNull(molecule);

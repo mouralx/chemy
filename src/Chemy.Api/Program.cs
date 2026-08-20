@@ -13,7 +13,7 @@ using Chemy.Core.Spatial;
 using Chemy.Core.Spectroscopy;
 using Chemy.Core.Structure;
 using Chemy.Core.Thermodynamics;
-using Scalar.AspNetCore;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +21,6 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. SERVICE REGISTRATIONS & DEPENDENCY INJECTION (Microsoft .NET Best Practices)
 // ============================================================================
 
-// OpenAPI & API Documentation services
-builder.Services.AddOpenApi();
 
 // Health Check probes for container orchestration (Kubernetes / Docker)
 builder.Services.AddHealthChecks();
@@ -57,16 +55,7 @@ logger.LogInformation("Chemy Computational Chemistry & Chemoinformatics REST API
 app.UseCors();
 app.UseHealthChecks("/healthz");
 
-app.MapOpenApi();
-app.MapScalarApiReference();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/openapi/v1.json", "Chemy API v1");
-    c.RoutePrefix = "swagger";
-});
-
-// Root endpoint redirects directly to interactive Scalar API documentation
-app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+app.MapGet("/", () => Results.Ok(new { service = "Chemy API", status = "Healthy" }))
    .ExcludeFromDescription();
 
 

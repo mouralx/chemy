@@ -7,11 +7,6 @@
     <NoWarn>$(NoWarn);NU1903</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.16.20" />
-    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.2.3" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Chemy.Core\Chemy.Core.csproj" />

@@ -46,7 +46,14 @@ public record AdmetProfile(
 public static class AdmetEngine
 {
     /// <summary>
-    /// Computes a comprehensive ADMET profile for any given molecule.
+    /// Validated ADMET prediction is intentionally unavailable: this package does not
+    /// contain validated hERG, CYP, BBB, or QED models and must not fabricate them.
+    /// </summary>
+    public static AdmetProfile AnalyzeValidated(Molecule molecule) =>
+        throw new NotSupportedException("Validated ADMET prediction is not implemented. Use structure descriptors only.");
+
+    /// <summary>
+    /// Computes explicitly heuristic, non-validated descriptors for a molecular graph.
     /// </summary>
     public static AdmetProfile Analyze(Molecule molecule)
     {

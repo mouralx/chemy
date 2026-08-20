@@ -18,4 +18,12 @@ public class PharmacologyTests
         Assert.True(admet.QedDrugLikenessScore > 0.4);
         Assert.True(admet.PassesLipinskiRuleOf5);
     }
+
+    [Fact]
+    public void AnalyzeValidated_IsExplicitlyUnsupported()
+    {
+        var molecule = Molecule.FromSmiles("CCO", "Ethanol");
+        var error = Assert.Throws<NotSupportedException>(() => AdmetEngine.AnalyzeValidated(molecule));
+        Assert.Contains("not implemented", error.Message, StringComparison.OrdinalIgnoreCase);
+    }
 }
