@@ -214,7 +214,7 @@ var geometryGroup = app.MapGroup("/api/v1/geometry").WithTags("Molecular Structu
 
 geometryGroup.MapPost("/3d", (FormulaRequest request, ILogger<Program> log) =>
 {
-    log.LogInformation("Generating 3D spatial geometry for: '{Formula}' (Override: {OverrideShape})", request.Formula, request.OverrideShape);
+    log.LogInformation("Generating 3D spatial geometry for: '{Formula}' (Override: {OverrideShape}, Planar: {IsPlanar})", request.Formula, request.OverrideShape, request.IsPlanar);
 
     if (!TryParseChemicalInput(request.Formula, request.Name, out var molecule))
     {
@@ -222,7 +222,7 @@ geometryGroup.MapPost("/3d", (FormulaRequest request, ILogger<Program> log) =>
         return Results.BadRequest(new { error = $"Could not parse input '{request.Formula}' as a chemical formula or SMILES string." });
     }
 
-    var m3d = molecule.To3D(request.OverrideShape);
+    var m3d = request.IsPlanar == true ? molecule.ToPlanar3D() : molecule.To3D(request.OverrideShape);
     var functionalGroups = molecule.GetFunctionalGroups().Select(fg => fg.ToString()).ToList();
     var elements = molecule.Atoms.Select(a => a.Element.Symbol).Distinct().ToList();
 
@@ -234,17 +234,55 @@ geometryGroup.MapPost("/3d", (FormulaRequest request, ILogger<Program> log) =>
         m3d.ChemicalFormula,
         m3d.VseprShape,
         m3d.IdealBondAngleDegrees,
+        IsPlanar = request.IsPlanar == true,
         MolecularWeight = molecule.MolecularWeight,
         TotalAtomCount = molecule.Atoms.Count,
         ElementsPresent = elements,
         FunctionalGroups = functionalGroups,
         Atoms = m3d.Atoms.Select(a => new { a.Atom.Element.Symbol, a.Position.X, a.Position.Y, a.Position.Z }),
         XyzFormat = m3d.ToXyz(),
-        PdbFormat = m3d.ToPdb()
+        PdbFormat = m3d.ToPdb(),
+        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d)
     });
 })
 .WithSummary("Calculate 3D molecular geometry & VSEPR shape")
 .WithDescription("Calculates 3D spatial coordinates (X, Y, Z), VSEPR geometries, and generates XYZ & PDB file format representations.");
+
+geometryGroup.MapPost("/planar-3d", (FormulaRequest request, ILogger<Program> log) =>
+{
+    log.LogInformation("Generating Planar 2D-in-3D representation for: '{Formula}'", request.Formula);
+
+    if (!TryParseChemicalInput(request.Formula, request.Name, out var molecule))
+    {
+        log.LogWarning("Input '{Formula}' could not be parsed as formula or SMILES.", request.Formula);
+        return Results.BadRequest(new { error = $"Could not parse input '{request.Formula}' as a chemical formula or SMILES string." });
+    }
+
+    var m3d = molecule.ToPlanar3D();
+    var functionalGroups = molecule.GetFunctionalGroups().Select(fg => fg.ToString()).ToList();
+    var elements = molecule.Atoms.Select(a => a.Element.Symbol).Distinct().ToList();
+
+    log.LogDebug("Planar 2D-in-3D geometry generated: {Formula} with Z=0", m3d.ChemicalFormula);
+
+    return Results.Ok(new
+    {
+        m3d.Name,
+        m3d.ChemicalFormula,
+        m3d.VseprShape,
+        m3d.IdealBondAngleDegrees,
+        IsPlanar = true,
+        MolecularWeight = molecule.MolecularWeight,
+        TotalAtomCount = molecule.Atoms.Count,
+        ElementsPresent = elements,
+        FunctionalGroups = functionalGroups,
+        Atoms = m3d.Atoms.Select(a => new { a.Atom.Element.Symbol, a.Position.X, a.Position.Y, a.Position.Z }),
+        XyzFormat = m3d.ToXyz(),
+        PdbFormat = m3d.ToPdb(),
+        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d)
+    });
+})
+.WithSummary("Calculate Planar 2D-in-3D layout (Z = 0.0)")
+.WithDescription("Generates textbook ChemDraw-style 2D structural diagram coordinates embedded in 3D Euclidean space (Z = 0.0) for 3Dmol.js rendering.");
 
 // ============================================================================
 // 6. SOLUTIONS CHEMISTRY & ACID-BASE EQUILIBRIA ENDPOINTS
@@ -610,7 +648,7 @@ app.Run();
 // ============================================================================
 
 /// <summary>Request contract for chemical formula parsing and 3D geometry calculations.</summary>
-public record FormulaRequest(string Formula = "Fe2(SO4)3*5H2O", string? Name = "Iron(III) Sulfate Pentahydrate", string? OverrideShape = null);
+public record FormulaRequest(string Formula = "Fe2(SO4)3*5H2O", string? Name = "Iron(III) Sulfate Pentahydrate", string? OverrideShape = null, bool? IsPlanar = false);
 
 /// <summary>Request contract for SMILES parsing and functional group detection.</summary>
 public record SmilesRequest(string Smiles = "CC(=O)O", string? Name = "Acetic Acid");

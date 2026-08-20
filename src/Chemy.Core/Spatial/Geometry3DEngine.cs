@@ -446,4 +446,199 @@ public static class Geometry3DEngine
 
         return (angle, pos);
     }
+
+    /// <summary>
+    /// Generates a planar 2D structural diagram representation of the molecule embedded in 3D space with Z = 0.0.
+    /// Provides clear, uncluttered textbook ChemDraw-style layouts (regular polygon rings, 120° angles, zigzag chains)
+    /// while retaining full 3D spatial rotation, lighting, and rendering in 3Dmol.js / WebGL.
+    /// </summary>
+    /// <param name="molecule">Input molecule.</param>
+    /// <returns>Molecule3D with all atomic positions having Z = 0.0.</returns>
+    public static Molecule3D GeneratePlanar3D(Molecule molecule)
+    {
+        ArgumentNullException.ThrowIfNull(molecule);
+
+        int atomCount = molecule.Atoms.Count;
+        if (atomCount == 0)
+        {
+            return new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Planar 2D", 120.0, Array.Empty<Atom3D>(), molecule);
+        }
+
+        if (atomCount == 1)
+        {
+            return new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Planar 2D (Monatomic)", 0.0,
+                new List<Atom3D> { new(molecule.Atoms[0], new Vector3D(0, 0, 0)) }, molecule);
+        }
+
+        if (atomCount == 2)
+        {
+            return new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Planar 2D (Linear)", 180.0,
+                new List<Atom3D>
+                {
+                    new(molecule.Atoms[0], new Vector3D(-0.7, 0, 0)),
+                    new(molecule.Atoms[1], new Vector3D(0.7, 0, 0))
+                }, molecule);
+        }
+
+        var coords = new Vector3D[atomCount];
+        var placed = new bool[atomCount];
+
+        // 1. Detect rings in the chemical graph
+        var graph = Chemy.Core.Graph.ChemicalGraph.FromMolecule(molecule);
+        var rings = graph.FindRings();
+
+        // If there are rings, place the primary ring first centered at origin
+        if (rings.Count > 0)
+        {
+            var primaryRing = rings.OrderByDescending(r => r.Count).First();
+            int ringSize = primaryRing.Count;
+            double radius = 1.40 / (2.0 * Math.Sin(Math.PI / ringSize)); // Regular polygon circumradius with edge ~1.40Å
+
+            for (int k = 0; k < ringSize; k++)
+            {
+                int atomIdx = primaryRing[k];
+                // Start from top and rotate clockwise in XY plane
+                double theta = (Math.PI / 2.0) - (2.0 * Math.PI * k / ringSize);
+                coords[atomIdx] = new Vector3D(
+                    Math.Round(radius * Math.Cos(theta), 4),
+                    Math.Round(radius * Math.Sin(theta), 4),
+                    0.0
+                );
+                placed[atomIdx] = true;
+            }
+        }
+        else
+        {
+            // No rings: Place first heavy atom at (0, 0, 0)
+            int firstIdx = 0;
+            for (int i = 0; i < atomCount; i++)
+            {
+                if (molecule.Atoms[i].Element.Symbol != "H") { firstIdx = i; break; }
+            }
+            coords[firstIdx] = new Vector3D(0, 0, 0);
+            placed[firstIdx] = true;
+        }
+
+        // 2. Breadth-first layout of remaining heavy atoms in planar zigzag / radial patterns
+        var queue = new Queue<int>();
+        for (int i = 0; i < atomCount; i++)
+        {
+            if (placed[i]) queue.Enqueue(i);
+        }
+
+        // Keep track of parent directional angles
+        var parentAngles = new Dictionary<int, double>();
+
+        while (queue.Count > 0)
+        {
+            int current = queue.Dequeue();
+            var currentPos = coords[current];
+
+            // Get unplaced neighbors
+            var neighbors = molecule.Bonds
+                .Where(b => b.Connects(current))
+                .Select(b => b.Atom1Index == current ? b.Atom2Index : b.Atom1Index)
+                .Where(n => !placed[n])
+                .ToList();
+
+            var heavyNeighbors = neighbors.Where(n => molecule.Atoms[n].Element.Symbol != "H").ToList();
+            var hNeighbors = neighbors.Where(n => molecule.Atoms[n].Element.Symbol == "H").ToList();
+
+            double baseAngle = parentAngles.TryGetValue(current, out var pa) ? pa + Math.PI : 0.0;
+            if (placed.Count(p => p) <= 6 && rings.Count > 0 && (currentPos.X != 0 || currentPos.Y != 0))
+            {
+                // Radiate outward from ring center
+                baseAngle = Math.Atan2(currentPos.Y, currentPos.X);
+            }
+
+            // Place heavy neighbors at 120° / 60° / zigzag offsets
+            for (int j = 0; j < heavyNeighbors.Count; j++)
+            {
+                int neighbor = heavyNeighbors[j];
+                double angleOffset;
+                if (heavyNeighbors.Count == 1)
+                {
+                    // Zigzag alternating +/- 30 degrees
+                    angleOffset = (current % 2 == 0) ? (Math.PI / 6.0) : (-Math.PI / 6.0);
+                }
+                else
+                {
+                    double span = Math.PI * 0.8;
+                    angleOffset = -span / 2.0 + (span * (j + 0.5) / heavyNeighbors.Count);
+                }
+
+                double angle = baseAngle + angleOffset;
+                double bondLen = 1.45;
+
+                coords[neighbor] = new Vector3D(
+                    Math.Round(currentPos.X + bondLen * Math.Cos(angle), 4),
+                    Math.Round(currentPos.Y + bondLen * Math.Sin(angle), 4),
+                    0.0
+                );
+                placed[neighbor] = true;
+                parentAngles[neighbor] = angle;
+                queue.Enqueue(neighbor);
+            }
+
+            // Place hydrogens around parent atom symmetrically on the XY plane
+            for (int h = 0; h < hNeighbors.Count; h++)
+            {
+                int hIdx = hNeighbors[h];
+                double hAngle;
+                if (heavyNeighbors.Count == 0)
+                {
+                    hAngle = baseAngle + (2.0 * Math.PI * h / Math.Max(1, hNeighbors.Count));
+                }
+                else
+                {
+                    double hSpan = Math.PI * 0.7;
+                    hAngle = baseAngle + Math.PI - (hSpan / 2.0) + (hSpan * (h + 0.5) / hNeighbors.Count);
+                }
+
+                double hDist = 1.00;
+                coords[hIdx] = new Vector3D(
+                    Math.Round(currentPos.X + hDist * Math.Cos(hAngle), 4),
+                    Math.Round(currentPos.Y + hDist * Math.Sin(hAngle), 4),
+                    0.0
+                );
+                placed[hIdx] = true;
+            }
+        }
+
+        // Place any remaining unplaced disconnected atoms
+        for (int i = 0; i < atomCount; i++)
+        {
+            if (!placed[i])
+            {
+                coords[i] = new Vector3D(i * 1.5, 0, 0);
+                placed[i] = true;
+            }
+        }
+
+        // 3. Center planar coordinates at centroid (0, 0, 0)
+        double cx = coords.Average(p => p.X);
+        double cy = coords.Average(p => p.Y);
+
+        var atom3dList = new List<Atom3D>(atomCount);
+        for (int i = 0; i < atomCount; i++)
+        {
+            atom3dList.Add(new Atom3D(
+                molecule.Atoms[i],
+                new Vector3D(
+                    Math.Round(coords[i].X - cx, 4),
+                    Math.Round(coords[i].Y - cy, 4),
+                    0.0
+                )
+            ));
+        }
+
+        return new Molecule3D(
+            molecule.Name,
+            molecule.ChemicalFormula,
+            "Planar 2D (ChemDraw Style)",
+            120.0,
+            atom3dList,
+            molecule
+        );
+    }
 }

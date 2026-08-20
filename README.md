@@ -3,14 +3,14 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-71%20Passed%20(100%25)-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-73%20Passed%20(100%25)-brightgreen?logo=xunit)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
 ![Scientific Credibility](https://img.shields.io/badge/Scientific%20Credibility-100%25%20Verified-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20Microservice-orange)
 
 **Industrial-grade, zero-dependency computational chemistry, chemoinformatics, and lead optimization toolkit for .NET.**  
-*From exact mass/charge nullspace balancing and 4-term UFF molecular mechanics to multi-center 3D conformer embedding, full 68-atom Crippen LogP, 43-fragment Ertl TPSA, true Benson group additivity, and population-based de novo molecular evolution.*
+*From exact mass/charge nullspace balancing and 4-term UFF molecular mechanics to multi-center 3D conformer embedding, flat 2D-in-3D planar diagram generation, full 68-atom Crippen LogP, 43-fragment Ertl TPSA, true Benson group additivity, and population-based de novo molecular evolution.*
 
 [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure) • [🛡️ Testing & Quality](#️-testing--quality)
 
@@ -209,7 +209,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 71/71 unit tests in `Chemy.Core.Tests`.
+- **100% Passing Tests**: 73/73 unit tests in `Chemy.Core.Tests`.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Zero Allocations**: High-frequency element and bond structs allocated on the stack.
 
@@ -218,7 +218,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 71, Skipped: 0, Total: 71, Duration: 116 ms
+Passed! - Failed: 0, Passed: 73, Skipped: 0, Total: 73, Duration: 114 ms
 ```
 
 ---

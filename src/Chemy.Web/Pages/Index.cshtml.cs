@@ -39,6 +39,10 @@ public class IndexModel : PageModel
     public List<string> FunctionalGroups { get; set; } = new();
     public string PdbContent { get; set; } = string.Empty;
     public string XyzContent { get; set; } = string.Empty;
+    public string MolContent { get; set; } = string.Empty;
+    public string PlanarPdbContent { get; set; } = string.Empty;
+    public string PlanarXyzContent { get; set; } = string.Empty;
+    public string PlanarMolContent { get; set; } = string.Empty;
     public string? ErrorMessage { get; set; }
     public bool IsApiConnected { get; set; }
 
@@ -75,6 +79,7 @@ public class IndexModel : PageModel
                     FunctionalGroups = data.FunctionalGroups ?? new();
                     PdbContent = data.PdbFormat;
                     XyzContent = data.XyzFormat;
+                    MolContent = data.MolFormat ?? string.Empty;
                     IsApiConnected = true;
 
                     _logger.LogDebug("Fetched 3D geometry from Chemy.Api for {Formula}", ChemicalFormula);
@@ -85,11 +90,33 @@ public class IndexModel : PageModel
                 _logger.LogWarning("Chemy.Api returned non-success code {StatusCode}. Falling back to server-side computation.", response.StatusCode);
                 FallbackComputeServerSide();
             }
+
+            // Also fetch or compute planar 2D-in-3D representation
+            var planarResp = await client.PostAsJsonAsync("/api/v1/geometry/planar-3d", new { Formula, Name = Formula });
+            if (planarResp.IsSuccessStatusCode)
+            {
+                var planarData = await planarResp.Content.ReadFromJsonAsync<Geometry3DApiResponse>();
+                if (planarData != null)
+                {
+                    PlanarPdbContent = planarData.PdbFormat;
+                    PlanarXyzContent = planarData.XyzFormat;
+                    PlanarMolContent = planarData.MolFormat ?? string.Empty;
+                }
+            }
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to connect to Chemy.Api. Falling back to local Chemy.Core engine.");
             FallbackComputeServerSide();
+        }
+
+        if (string.IsNullOrEmpty(PlanarXyzContent) && (Molecule.TryParse(Formula, Formula, out var m) || Molecule.FromSmiles(Formula, Formula) is { } sm))
+        {
+            m ??= Molecule.FromSmiles(Formula, Formula);
+            var planar = m.ToPlanar3D();
+            PlanarXyzContent = planar.ToXyz();
+            PlanarPdbContent = planar.ToPdb();
+            PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
         }
     }
 
@@ -103,6 +130,8 @@ public class IndexModel : PageModel
         {
             molecule ??= Molecule.FromSmiles(Formula, Formula);
             var m3d = molecule.To3D(OverrideShape);
+            var planar = molecule.ToPlanar3D();
+
             MoleculeName = m3d.Name;
             ChemicalFormula = m3d.ChemicalFormula;
             VseprShape = m3d.VseprShape;
@@ -113,6 +142,11 @@ public class IndexModel : PageModel
             FunctionalGroups = molecule.GetFunctionalGroups().Select(fg => fg.ToString()).ToList();
             PdbContent = m3d.ToPdb();
             XyzContent = m3d.ToXyz();
+            MolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d);
+
+            PlanarPdbContent = planar.ToPdb();
+            PlanarXyzContent = planar.ToXyz();
+            PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
             IsApiConnected = true;
         }
         else
@@ -161,5 +195,7 @@ public record Geometry3DApiResponse(
     List<string>? ElementsPresent,
     List<string>? FunctionalGroups,
     string XyzFormat,
-    string PdbFormat
+    string PdbFormat,
+    string? MolFormat = null,
+    bool? IsPlanar = false
 );

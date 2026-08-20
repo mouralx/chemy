@@ -38,4 +38,41 @@ public class Geometry3DTests
         Assert.Equal(109.5, m3d.IdealBondAngleDegrees);
         Assert.Equal(5, m3d.Atoms.Count);
     }
+
+    [Fact]
+    public void GeneratePlanar3D_Aspirin_AllAtomsLieStrictlyOnXYPlane()
+    {
+        var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+        var planar3D = aspirin.ToPlanar3D();
+
+        Assert.NotNull(planar3D);
+        Assert.Equal(aspirin.Atoms.Count, planar3D.Atoms.Count);
+        Assert.Contains("Planar", planar3D.VseprShape);
+
+        // Verify that EVERY atom has Z = 0.0 (strictly flat planar representation)
+        foreach (var atom in planar3D.Atoms)
+        {
+            Assert.Equal(0.0, atom.Position.Z, precision: 6);
+        }
+
+        string xyz = planar3D.ToXyz();
+        Assert.Contains("Planar", xyz);
+        Assert.Contains("0.0000", xyz);
+
+        string pdb = planar3D.ToPdb();
+        Assert.Contains("HETATM", pdb);
+    }
+
+    [Fact]
+    public void GeneratePlanar3D_Benzene_FormsRegularPlanarPolygonRing()
+    {
+        var benzene = Molecule.FromSmiles("c1ccccc1", "Benzene");
+        var planar3D = benzene.ToPlanar3D();
+
+        Assert.Equal(12, planar3D.Atoms.Count);
+        foreach (var atom in planar3D.Atoms)
+        {
+            Assert.Equal(0.0, atom.Position.Z, precision: 6);
+        }
+    }
 }

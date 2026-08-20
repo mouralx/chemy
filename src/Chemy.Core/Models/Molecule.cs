@@ -160,6 +160,9 @@ public record Molecule
     /// <summary>Generates 3D Cartesian coordinates and VSEPR spatial geometry.</summary>
     public Molecule3D To3D(string? overrideShape = null) => Geometry3DEngine.Generate3D(this, overrideShape);
 
+    /// <summary>Generates planar 2D Cartesian coordinates embedded in 3D Euclidean space (Z = 0.0).</summary>
+    public Molecule3D ToPlanar3D() => Geometry3DEngine.GeneratePlanar3D(this);
+
     /// <summary>Renders a resolution-independent vector SVG diagram card.</summary>
     public string ToSvg(bool isDarkMode = true) => SvgRenderer.RenderMoleculeSvg(this, isDarkMode);
 

@@ -152,7 +152,7 @@
                 <!-- 3D VIEWPORT CONTAINER -->
                 <div class="lab-card flex-1 min-h-0 flex flex-col overflow-hidden relative">
                     <!-- Viewport Header Toolbar -->
-                    <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-10 shrink-0">
+                    <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-10 shrink-0 flex-wrap gap-2">
                         <div class="flex items-center gap-2">
                             <span class="text-sky-400 font-bold font-mono">3Dmol.js</span>
                             <span class="text-slate-600">//</span>
@@ -160,12 +160,18 @@
                             <span class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
                         </div>
                         <div class="flex items-center gap-1.5 font-mono text-[11px]">
-                            <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500">
+                            <!-- 3D Conformation vs Flat 2D-in-3D Mode Toggle -->
+                            <div class="flex items-center bg-slate-950 border border-slate-800 rounded p-0.5 text-[10px]">
+                                <button id="spatialMode3D" onclick="setSpatialMode('3d')" class="px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition">🌐 3D Conformation</button>
+                                <button id="spatialModeFlat" onclick="setSpatialMode('flat')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">📐 Flat 2D (in 3D)</button>
+                            </div>
+                            <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500 text-[10px]">
                                 <option value="stick">Stick (Covalent)</option>
-                                <option value="sphere">van der Waals Sphere</option>
+                                <option value="sphere">Sphere (vdW)</option>
                                 <option value="ballAndStick" selected>Ball &amp; Stick</option>
-                                <option value="wireframe">Wireframe Mesh</option>
+                                <option value="wireframe">Wireframe</option>
                             </select>
+                            <button onclick="snapFrontView()" title="Snap camera to flat XY plane" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Front View</button>
                             <button onclick="toggleSpin()" id="spinBtn" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔄 Spin</button>
                             <button onclick="autoFitViewer()" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium hover:bg-sky-500 transition">🎯 Center/Fit</button>
                         </div>
@@ -658,6 +664,10 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
     <!-- Hidden Coordinate Data for 3D Viewer & Exporters -->
     <textarea id="rawPdbData" class="hidden">@Model.PdbContent</textarea>
     <textarea id="rawXyzData" class="hidden">@Model.XyzContent</textarea>
+    <textarea id="rawMolData" class="hidden">@Model.MolContent</textarea>
+    <textarea id="rawPlanarPdbData" class="hidden">@Model.PlanarPdbContent</textarea>
+    <textarea id="rawPlanarXyzData" class="hidden">@Model.PlanarXyzContent</textarea>
+    <textarea id="rawPlanarMolData" class="hidden">@Model.PlanarMolContent</textarea>
 
     <!-- ===================================================================== -->
     <!-- 3. COMPREHENSIVE WORKSTATION SCRIPT                                   -->
@@ -670,6 +680,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
         let isSpinning = false;
         let activeCategory = 'all';
         let activeTool = 'balancer';
+        let currentSpatialMode = '3d'; // '3d' or 'flat'
 
         // 50-Compound Preset Database
         const catalogData = [
@@ -716,8 +727,32 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             const config = { backgroundColor: '#070a14', antialias: true };
             viewer = $3Dmol.createViewer(host, config);
 
-            const pdb = document.getElementById('rawPdbData').value;
-            const xyz = document.getElementById('rawXyzData').value;
+            reload3DModel();
+        }
+
+        function setSpatialMode(mode) {
+            currentSpatialMode = mode;
+            const btn3D = document.getElementById('spatialMode3D');
+            const btnFlat = document.getElementById('spatialModeFlat');
+
+            if (mode === '3d') {
+                btn3D.className = 'px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition';
+                btnFlat.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+            } else {
+                btnFlat.className = 'px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition';
+                btn3D.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
+            }
+
+            reload3DModel();
+        }
+
+        function reload3DModel() {
+            if (!viewer) return;
+            viewer.clear();
+
+            const isFlat = (currentSpatialMode === 'flat');
+            const pdb = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
+            const xyz = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
 
             if (xyz && xyz.trim().length > 5) {
                 viewer.addModel(xyz, 'xyz');
@@ -728,8 +763,18 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             }
 
             changeRenderStyle();
-            autoFitViewer();
-            setTimeout(() => autoFitViewer(), 100);
+            if (isFlat) {
+                snapFrontView();
+            } else {
+                autoFitViewer();
+            }
+        }
+
+        function snapFrontView() {
+            if (!viewer) return;
+            viewer.setRotation([0, 0, 0]);
+            viewer.zoomTo();
+            viewer.render();
         }
 
         function changeRenderStyle() {
@@ -1208,14 +1253,16 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
 
         function downloadFormat(ext) {
             let content = '';
-            let filename = `@Model.ChemicalFormula.${ext}`;
+            const isFlat = (currentSpatialMode === 'flat');
+            const suffix = isFlat ? '_planar' : '';
+            let filename = `@Model.ChemicalFormula${suffix}.${ext}`;
 
             if (ext === 'pdb') {
-                content = document.getElementById('rawPdbData').value;
+                content = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
             } else if (ext === 'xyz') {
-                content = document.getElementById('rawXyzData').value;
+                content = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
             } else if (ext === 'mol') {
-                content = document.getElementById('rawPdbData').value; // fallback
+                content = document.getElementById(isFlat ? 'rawPlanarMolData' : 'rawMolData').value || document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
             }
 
             const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
