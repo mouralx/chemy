@@ -239,14 +239,14 @@ geometryGroup.MapPost("/3d", (FormulaRequest request, ILogger<Program> log) =>
         TotalAtomCount = molecule.Atoms.Count,
         ElementsPresent = elements,
         FunctionalGroups = functionalGroups,
-        Atoms = m3d.Atoms.Select(a => new { a.Atom.Element.Symbol, a.Position.X, a.Position.Y, a.Position.Z }),
         XyzFormat = m3d.ToXyz(),
         PdbFormat = m3d.ToPdb(),
-        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d)
+        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d),
+        SkeletalSvg = molecule.ToSkeletalSvg(true)
     });
 })
 .WithSummary("Calculate 3D molecular geometry & VSEPR shape")
-.WithDescription("Calculates 3D spatial coordinates (X, Y, Z), VSEPR geometries, and generates XYZ & PDB file format representations.");
+.WithDescription("Calculates 3D spatial coordinates (X, Y, Z), VSEPR geometries, and generates XYZ, PDB, and 2D skeletal SVG representations.");
 
 geometryGroup.MapPost("/planar-3d", (FormulaRequest request, ILogger<Program> log) =>
 {
@@ -278,11 +278,36 @@ geometryGroup.MapPost("/planar-3d", (FormulaRequest request, ILogger<Program> lo
         Atoms = m3d.Atoms.Select(a => new { a.Atom.Element.Symbol, a.Position.X, a.Position.Y, a.Position.Z }),
         XyzFormat = m3d.ToXyz(),
         PdbFormat = m3d.ToPdb(),
-        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d)
+        MolFormat = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(m3d),
+        SkeletalSvg = molecule.ToSkeletalSvg(true)
     });
 })
 .WithSummary("Calculate Planar 2D-in-3D layout (Z = 0.0)")
 .WithDescription("Generates textbook ChemDraw-style 2D structural diagram coordinates embedded in 3D Euclidean space (Z = 0.0) for 3Dmol.js rendering.");
+
+geometryGroup.MapPost("/skeletal-2d", (FormulaRequest request, ILogger<Program> log) =>
+{
+    log.LogInformation("Generating 2D Skeletal ChemDraw vector SVG for: '{Formula}'", request.Formula);
+
+    if (!TryParseChemicalInput(request.Formula, request.Name, out var molecule))
+    {
+        log.LogWarning("Input '{Formula}' could not be parsed as formula or SMILES.", request.Formula);
+        return Results.BadRequest(new { error = $"Could not parse input '{request.Formula}' as a chemical formula or SMILES string." });
+    }
+
+    string svg = molecule.ToSkeletalSvg(true, 600, 400);
+    log.LogDebug("Generated Skeletal 2D SVG for: {Formula}", molecule.ChemicalFormula);
+
+    return Results.Ok(new
+    {
+        molecule.Name,
+        molecule.ChemicalFormula,
+        molecule.MolecularWeight,
+        SvgContent = svg
+    });
+})
+.WithSummary("Render IUPAC / ChemDraw 2D Skeletal Vector SVG")
+.WithDescription("Generates textbook 2D skeletal line diagram with implicit carbons, parallel double bonds, and heteroatom labels.");
 
 // ============================================================================
 // 6. SOLUTIONS CHEMISTRY & ACID-BASE EQUILIBRIA ENDPOINTS

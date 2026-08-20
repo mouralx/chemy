@@ -166,6 +166,9 @@ public record Molecule
     /// <summary>Renders a resolution-independent vector SVG diagram card.</summary>
     public string ToSvg(bool isDarkMode = true) => SvgRenderer.RenderMoleculeSvg(this, isDarkMode);
 
+    /// <summary>Renders standard IUPAC / ChemDraw 2D skeletal line structural diagram in vector SVG.</summary>
+    public string ToSkeletalSvg(bool isDarkMode = true, int width = 600, int height = 400) => SkeletalSvgRenderer.Render(this, isDarkMode, width, height);
+
     /// <summary>Saves a vector SVG diagram card directly to a local disk path.</summary>
     public void SaveSvg(string filePath, bool isDarkMode = true) => File.WriteAllText(filePath, ToSvg(isDarkMode));
 

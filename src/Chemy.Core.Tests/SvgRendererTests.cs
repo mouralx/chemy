@@ -55,4 +55,29 @@ public class SvgRendererTests
             if (File.Exists(tempRxnFile)) File.Delete(tempRxnFile);
         }
     }
+
+    [Fact]
+    public void MoleculeToSkeletalSvg_Ibuprofen_RendersChemDrawLinesAndHeteroatoms()
+    {
+        var ibuprofen = Molecule.FromSmiles("CC(C)Cc1ccc(cc1)C(C)C(=O)O", "Ibuprofen");
+        string svg = ibuprofen.ToSkeletalSvg(isDarkMode: true);
+
+        Assert.NotNull(svg);
+        Assert.StartsWith("<svg", svg.Trim());
+        Assert.EndsWith("</svg>", svg.Trim());
+        Assert.Contains("<line", svg);
+        Assert.Contains("OH", svg); // Hydroxyl group
+        Assert.Contains("O", svg);  // Carbonyl oxygen
+    }
+
+    [Fact]
+    public void MoleculeToSkeletalSvg_Aspirin_RendersAromaticAndEsterBonds()
+    {
+        var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+        string svg = aspirin.ToSkeletalSvg(isDarkMode: false);
+
+        Assert.NotNull(svg);
+        Assert.Contains("<line", svg);
+        Assert.Contains("stroke-dasharray", svg); // Aromatic bond representation
+    }
 }

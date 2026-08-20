@@ -43,6 +43,7 @@ public class IndexModel : PageModel
     public string PlanarPdbContent { get; set; } = string.Empty;
     public string PlanarXyzContent { get; set; } = string.Empty;
     public string PlanarMolContent { get; set; } = string.Empty;
+    public string SkeletalSvgContent { get; set; } = string.Empty;
     public string? ErrorMessage { get; set; }
     public bool IsApiConnected { get; set; }
 
@@ -80,6 +81,7 @@ public class IndexModel : PageModel
                     PdbContent = data.PdbFormat;
                     XyzContent = data.XyzFormat;
                     MolContent = data.MolFormat ?? string.Empty;
+                    SkeletalSvgContent = data.SkeletalSvg ?? string.Empty;
                     IsApiConnected = true;
 
                     _logger.LogDebug("Fetched 3D geometry from Chemy.Api for {Formula}", ChemicalFormula);
@@ -101,6 +103,10 @@ public class IndexModel : PageModel
                     PlanarPdbContent = planarData.PdbFormat;
                     PlanarXyzContent = planarData.XyzFormat;
                     PlanarMolContent = planarData.MolFormat ?? string.Empty;
+                    if (string.IsNullOrEmpty(SkeletalSvgContent))
+                    {
+                        SkeletalSvgContent = planarData.SkeletalSvg ?? string.Empty;
+                    }
                 }
             }
         }
@@ -117,6 +123,7 @@ public class IndexModel : PageModel
             PlanarXyzContent = planar.ToXyz();
             PlanarPdbContent = planar.ToPdb();
             PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
+            SkeletalSvgContent = m.ToSkeletalSvg(true);
         }
     }
 
@@ -147,6 +154,7 @@ public class IndexModel : PageModel
             PlanarPdbContent = planar.ToPdb();
             PlanarXyzContent = planar.ToXyz();
             PlanarMolContent = Chemy.Core.IO.MolfileExporter.ToMolfileV2000(planar);
+            SkeletalSvgContent = molecule.ToSkeletalSvg(true);
             IsApiConnected = true;
         }
         else
@@ -197,5 +205,6 @@ public record Geometry3DApiResponse(
     string XyzFormat,
     string PdbFormat,
     string? MolFormat = null,
-    bool? IsPlanar = false
+    bool? IsPlanar = false,
+    string? SkeletalSvg = null
 );

@@ -154,36 +154,62 @@
                     <!-- Viewport Header Toolbar -->
                     <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-10 shrink-0 flex-wrap gap-2">
                         <div class="flex items-center gap-2">
-                            <span class="text-sky-400 font-bold font-mono">3Dmol.js</span>
+                            <span class="text-sky-400 font-bold font-mono">Chemy Studio</span>
                             <span class="text-slate-600">//</span>
                             <span class="font-bold text-slate-200">@Model.MoleculeName</span>
                             <span class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
                         </div>
                         <div class="flex items-center gap-1.5 font-mono text-[11px]">
-                            <!-- 3D Conformation vs Flat 2D-in-3D Mode Toggle -->
+                            <!-- Workstation View Mode Toggle: 3D Conformation vs 2D Skeletal ChemDraw -->
                             <div class="flex items-center bg-slate-950 border border-slate-800 rounded p-0.5 text-[10px]">
-                                <button id="spatialMode3D" onclick="setSpatialMode('3d')" class="px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition">🌐 3D Conformation</button>
-                                <button id="spatialModeFlat" onclick="setSpatialMode('flat')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">📐 Flat 2D (in 3D)</button>
+                                <button id="viewTab3D" onclick="setWorkstationView('3d')" class="px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1">
+                                    <span>🔬</span> 3D Conformation
+                                </button>
+                                <button id="viewTab2D" onclick="setWorkstationView('2d')" class="px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1">
+                                    <span>📐</span> 2D Skeletal (ChemDraw)
+                                </button>
                             </div>
-                            <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500 text-[10px]">
-                                <option value="stick">Stick (Covalent)</option>
-                                <option value="sphere">Sphere (vdW)</option>
-                                <option value="ballAndStick" selected>Ball &amp; Stick</option>
-                                <option value="wireframe">Wireframe</option>
-                            </select>
-                            <button onclick="snapFrontView()" title="Snap camera to flat XY plane" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Front View</button>
-                            <button onclick="toggleSpin()" id="spinBtn" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔄 Spin</button>
-                            <button onclick="autoFitViewer()" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium hover:bg-sky-500 transition">🎯 Center/Fit</button>
+
+                            <!-- 3D Controls -->
+                            <div id="controls3D" class="flex items-center gap-1.5">
+                                <div class="flex items-center bg-slate-950 border border-slate-800 rounded p-0.5 text-[10px]">
+                                    <button id="spatialMode3D" onclick="setSpatialMode('3d')" class="px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition">Physical 3D</button>
+                                    <button id="spatialModeFlat" onclick="setSpatialMode('flat')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Planar 3D</button>
+                                </div>
+                                <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500 text-[10px]">
+                                    <option value="stick">Stick</option>
+                                    <option value="sphere">Sphere (vdW)</option>
+                                    <option value="ballAndStick" selected>Ball &amp; Stick</option>
+                                    <option value="wireframe">Wireframe</option>
+                                </select>
+                                <button onclick="snapFrontView()" title="Snap camera to XY plane" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Front</button>
+                                <button onclick="toggleSpin()" id="spinBtn" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔄 Spin</button>
+                                <button onclick="autoFitViewer()" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium hover:bg-sky-500 transition">🎯 Fit</button>
+                            </div>
+
+                            <!-- 2D Controls -->
+                            <div id="controls2D" class="hidden items-center gap-1.5">
+                                <button onclick="downloadSkeletalSvg()" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition flex items-center gap-1 text-[10px]">
+                                    <span>💾</span> Export SVG
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- WebGL Canvas Host -->
+                    <!-- WebGL Canvas Host (3D) -->
                     <div id="viewer3d" class="flex-1 w-full h-full min-h-0 bg-[#070a14] cursor-grab active:cursor-grabbing"></div>
+
+                    <!-- 2D Skeletal ChemDraw Vector Canvas Host -->
+                    <div id="viewer2d" class="hidden flex-1 w-full h-full min-h-0 bg-[#090d16] flex items-center justify-center p-4 overflow-hidden relative">
+                        <div id="skeletalSvgContainer" class="w-full h-full max-w-full max-h-full flex items-center justify-center">
+                            @Html.Raw(Model.SkeletalSvgContent)
+                        </div>
+                    </div>
 
                     <!-- Input Bar Bottom Overlay -->
                     <div class="bg-slate-900/95 border-t border-slate-800 p-2 flex items-center gap-2 z-10 shrink-0">
                         <form method="get" class="flex-1 flex gap-2">
-                            <input type="text" name="Formula" value="@Model.Formula" placeholder="Enter chemical formula (e.g. C6H12O6, H2O) or SMILES (e.g. CC(=O)O)..." 
+                            <input type="text" name="Formula" value="@Model.Formula" placeholder="Enter chemical formula (e.g. C6H12O6, H2O) or SMILES (e.g. CC(C)Cc1ccc(cc1)C(C)C(=O)O)..." 
                                    class="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500" />
                             <select name="OverrideShape" class="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-sky-500">
                                 <option value="Auto" selected="@(Model.OverrideShape == "Auto")">VSEPR: Auto</option>
@@ -194,7 +220,7 @@
                                 <option value="Octahedral" selected="@(Model.OverrideShape == "Octahedral")">Octahedral (90°)</option>
                             </select>
                             <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded font-semibold text-xs transition flex items-center gap-1.5 font-mono">
-                                <span>⚡</span> Load 3D
+                                <span>⚡</span> Render
                             </button>
                         </form>
                     </div>
@@ -210,6 +236,7 @@
                             <button onclick="downloadFormat('xyz')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .XYZ</button>
                             <button onclick="downloadFormat('pdb')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .PDB</button>
                             <button onclick="downloadFormat('mol')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-sky-400 hover:text-white hover:bg-sky-600">💾 .MOL (V2000)</button>
+                            <button onclick="downloadSkeletalSvg()" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-emerald-400 hover:text-white hover:bg-emerald-600">💾 .SVG</button>
                         </div>
                     </div>
 
@@ -728,6 +755,50 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             viewer = $3Dmol.createViewer(host, config);
 
             reload3DModel();
+        }
+
+        let currentWorkstationView = '3d'; // '3d' or '2d'
+
+        function setWorkstationView(view) {
+            currentWorkstationView = view;
+            const btn3D = document.getElementById('viewTab3D');
+            const btn2D = document.getElementById('viewTab2D');
+            const v3d = document.getElementById('viewer3d');
+            const v2d = document.getElementById('viewer2d');
+            const c3d = document.getElementById('controls3D');
+            const c2d = document.getElementById('controls2D');
+
+            if (view === '3d') {
+                btn3D.className = 'px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1';
+                btn2D.className = 'px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1';
+                v3d.classList.remove('hidden');
+                v2d.classList.add('hidden');
+                c3d.classList.remove('hidden');
+                c3d.classList.add('flex');
+                c2d.classList.add('hidden');
+                c2d.classList.remove('flex');
+                setTimeout(() => autoFitViewer(), 50);
+            } else {
+                btn2D.className = 'px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1';
+                btn3D.className = 'px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1';
+                v3d.classList.add('hidden');
+                v2d.classList.remove('hidden');
+                c3d.classList.add('hidden');
+                c3d.classList.remove('flex');
+                c2d.classList.remove('hidden');
+                c2d.classList.add('flex');
+            }
+        }
+
+        function downloadSkeletalSvg() {
+            const svgHost = document.getElementById('skeletalSvgContainer');
+            if (!svgHost) return;
+            const svgContent = svgHost.innerHTML.trim();
+            const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `@(Model.ChemicalFormula)_skeletal.svg`;
+            a.click();
         }
 
         function setSpatialMode(mode) {
