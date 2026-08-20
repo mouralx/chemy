@@ -38,6 +38,7 @@ public record Molecule
     /// <param name="name">Descriptive name.</param>
     /// <param name="atoms">Collection of constituent atoms.</param>
     /// <param name="bonds">Optional collection of chemical bonds between atoms.</param>
+    /// <param name="formalCharge">Formal charge of the molecular species.</param>
     public Molecule(string name, IEnumerable<Atom> atoms, IEnumerable<Bond>? bonds = null, int formalCharge = 0)
     {
         ArgumentNullException.ThrowIfNull(name);
