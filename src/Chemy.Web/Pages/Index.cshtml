@@ -737,6 +737,9 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             init3DViewer();
             renderCatalog();
             loadDoc('api');
+
+            const savedView = localStorage.getItem('chemy_workstation_view') || '3d';
+            setWorkstationView(savedView);
         });
 
         window.addEventListener('resize', () => {
@@ -761,6 +764,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
 
         function setWorkstationView(view) {
             currentWorkstationView = view;
+            localStorage.setItem('chemy_workstation_view', view);
             const btn3D = document.getElementById('viewTab3D');
             const btn2D = document.getElementById('viewTab2D');
             const v3d = document.getElementById('viewer3d');

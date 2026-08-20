@@ -32,7 +32,7 @@ public static class SvgRenderer
         sb.AppendLine($"  <text x=\"32\" y=\"50\" fill=\"{textColor}\" font-family=\"system-ui, sans-serif\" font-size=\"20\" font-weight=\"bold\">{EscapeXml(molecule.Name)}</text>");
         sb.AppendLine($"  <text x=\"32\" y=\"78\" fill=\"{accentColor}\" font-family=\"system-ui, sans-serif\" font-size=\"24\" font-weight=\"600\">{EscapeXml(molecule.ChemicalFormula)}</text>");
 
-        sb.AppendLine($"  <text x=\"{width - 32}\" y=\"50\" fill=\"{subTextColor}\" font-family=\"system-ui, sans-serif\" font-size=\"14\" text-anchor=\"end\">{molecule.MolecularWeight:F3} g/mol</text>");
+        sb.AppendLine($"  <text x=\"{width - 32}\" y=\"50\" fill=\"{subTextColor}\" font-family=\"system-ui, sans-serif\" font-size=\"14\" text-anchor=\"end\">{molecule.MolecularWeight.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} g/mol</text>");
         if (molecule.NetCharge != 0)
         {
             string chargeStr = molecule.NetCharge > 0 ? $"+{molecule.NetCharge}" : $"{molecule.NetCharge}";

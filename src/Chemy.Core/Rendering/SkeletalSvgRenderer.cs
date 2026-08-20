@@ -200,27 +200,27 @@ public static class SkeletalSvgRenderer
             if (bond.Type == BondType.Double)
             {
                 double d = 3.2;
-                sb.AppendLine($"  <line x1=\"{x1 + nx * (d / 2.0):F1}\" y1=\"{y1 + ny * (d / 2.0):F1}\" x2=\"{x2 + nx * (d / 2.0):F1}\" y2=\"{y2 + ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 - nx * (d / 2.0):F1}\" y1=\"{y1 - ny * (d / 2.0):F1}\" x2=\"{x2 - nx * (d / 2.0):F1}\" y2=\"{y2 - ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 + nx * (d / 2.0))}\" y1=\"{F(y1 + ny * (d / 2.0))}\" x2=\"{F(x2 + nx * (d / 2.0))}\" y2=\"{F(y2 + ny * (d / 2.0))}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 - nx * (d / 2.0))}\" y1=\"{F(y1 - ny * (d / 2.0))}\" x2=\"{F(x2 - nx * (d / 2.0))}\" y2=\"{F(y2 - ny * (d / 2.0))}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
             }
             else if (bond.Type == BondType.Triple)
             {
                 double d = 3.6;
-                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.2\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 + nx * d:F1}\" y1=\"{y1 + ny * d:F1}\" x2=\"{x2 + nx * d:F1}\" y2=\"{y2 + ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 - nx * d:F1}\" y1=\"{y1 - ny * d:F1}\" x2=\"{x2 - nx * d:F1}\" y2=\"{y2 - ny * d:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1)}\" y1=\"{F(y1)}\" x2=\"{F(x2)}\" y2=\"{F(y2)}\" stroke=\"{bondColor}\" stroke-width=\"2.2\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 + nx * d)}\" y1=\"{F(y1 + ny * d)}\" x2=\"{F(x2 + nx * d)}\" y2=\"{F(y2 + ny * d)}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 - nx * d)}\" y1=\"{F(y1 - ny * d)}\" x2=\"{F(x2 - nx * d)}\" y2=\"{F(y2 - ny * d)}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
             }
             else if (bond.Type == BondType.Aromatic)
             {
                 // Aromatic bond: primary line + inner parallel line
                 double d = 3.4;
-                sb.AppendLine($"  <line x1=\"{x1 + nx * (d / 2.0):F1}\" y1=\"{y1 + ny * (d / 2.0):F1}\" x2=\"{x2 + nx * (d / 2.0):F1}\" y2=\"{y2 + ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
-                sb.AppendLine($"  <line x1=\"{x1 - nx * (d / 2.0):F1}\" y1=\"{y1 - ny * (d / 2.0):F1}\" x2=\"{x2 - nx * (d / 2.0):F1}\" y2=\"{y2 - ny * (d / 2.0):F1}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 + nx * (d / 2.0))}\" y1=\"{F(y1 + ny * (d / 2.0))}\" x2=\"{F(x2 + nx * (d / 2.0))}\" y2=\"{F(y2 + ny * (d / 2.0))}\" stroke=\"{bondColor}\" stroke-width=\"2.4\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1 - nx * (d / 2.0))}\" y1=\"{F(y1 - ny * (d / 2.0))}\" x2=\"{F(x2 - nx * (d / 2.0))}\" y2=\"{F(y2 - ny * (d / 2.0))}\" stroke=\"{bondColor}\" stroke-width=\"2.0\" stroke-linecap=\"round\" />");
             }
             else
             {
                 // Single bond
-                sb.AppendLine($"  <line x1=\"{x1:F1}\" y1=\"{y1:F1}\" x2=\"{x2:F1}\" y2=\"{y2:F1}\" stroke=\"{bondColor}\" stroke-width=\"2.6\" stroke-linecap=\"round\" />");
+                sb.AppendLine($"  <line x1=\"{F(x1)}\" y1=\"{F(y1)}\" x2=\"{F(x2)}\" y2=\"{F(y2)}\" stroke=\"{bondColor}\" stroke-width=\"2.6\" stroke-linecap=\"round\" />");
             }
         }
 
@@ -237,13 +237,15 @@ public static class SkeletalSvgRenderer
             double textH = 22.0;
 
             // Background knockout rectangle so lines don't cross text
-            sb.AppendLine($"  <rect x=\"{sx - (textW / 2.0):F1}\" y=\"{sy - (textH / 2.0):F1}\" width=\"{textW:F1}\" height=\"{textH:F1}\" fill=\"{bgColor}\" rx=\"4\" />");
-            sb.AppendLine($"  <text x=\"{sx:F1}\" y=\"{sy + 5.5:F1}\" fill=\"{col}\" font-family=\"system-ui, -apple-system, sans-serif\" font-size=\"16\" font-weight=\"bold\" text-anchor=\"middle\">{label}</text>");
+            sb.AppendLine($"  <rect x=\"{F(sx - (textW / 2.0))}\" y=\"{F(sy - (textH / 2.0))}\" width=\"{F(textW)}\" height=\"{F(textH)}\" fill=\"{bgColor}\" rx=\"4\" />");
+            sb.AppendLine($"  <text x=\"{F(sx)}\" y=\"{F(sy + 5.5)}\" fill=\"{col}\" font-family=\"system-ui, -apple-system, sans-serif\" font-size=\"16\" font-weight=\"bold\" text-anchor=\"middle\">{label}</text>");
         }
 
         sb.AppendLine("</svg>");
         return sb.ToString();
     }
+
+    private static string F(double v) => v.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
 
     private static string Subscript(int n) => n switch
     {
