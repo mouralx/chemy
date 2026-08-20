@@ -4,23 +4,22 @@ This document provides a rigorous breakdown of the scientific theories, physical
 
 ---
 
-## 1. De Novo Generative Evolutionary Optimization
+## 1. Bioisosteric Graph Mutations & Lead Optimization
 
-The `MolecularEvolverEngine` implements an autonomous population-based multi-objective genetic algorithm:
-
-$$\text{Fitness}(\mathbf{m}) = w_1 \cdot \text{QED}(\mathbf{m}) + w_2 \cdot \mathcal{S}_{\text{solubility}}(\mathbf{m}) - w_3 \cdot \mathcal{P}_{\text{toxicity}}(\mathbf{m}) - w_4 \cdot \mathcal{C}_{\text{synthetic}}(\mathbf{m})$$
+The `MolecularEvolverEngine` implements graph-traversing bioisosteric optimization:
+- Evaluates candidate lead structures against Quantitative Estimate of Drug-Likeness (QED), calculated lipophilicity ($\log P$), and structural toxicity liabilities.
 
 ### Bioisosteric Graph Transformations
 - **Carboxylic Acid $\to$ 1H-Tetrazole Bioisosterism**: Substituted via `GraphRewriter.ReplaceCarboxylWithTetrazole` to eliminate reactive acyl-glucuronide hepatotoxicity while maintaining isosteric acidic proton binding.
 - **Metabolic Fluorine Shielding**: Introducing para-fluorine ($\text{C-F}$) via `GraphRewriter.AppendFluorineShield` to sterically block Cytochrome P450 CYP3A4 aromatic hydroxylation.
-- **Heterocycle Aza-Substitution**: Pyridyl and pyrimidinyl ring nitrogen insertions to modulate $\log P$ and hydrogen-bonding selectivity.
+- **Heterocycle Aza-Substitution**: Pyridyl ring nitrogen insertions to modulate $\log P$ and hydrogen-bonding selectivity.
 - **Conformational Ring Locking**: Aliphatic methyl $\to$ cyclopropyl substitutions to reduce entropic conformational binding penalties.
 
 ---
 
 ## 2. ADMET & Quantitative Estimate of Drug-Likeness (QED)
 
-### Full 68-Atom Wildman-Crippen $\log P$ (1999)
+### Atom-Additive Wildman-Crippen $\log P$
 Parameterizes the octanol-water partition coefficient based on atom hybridization ($sp^3, sp^2, sp$), aromaticity, formal charge, and neighbor connectivity:
 $$\log P = \sum_{i=1}^N a_i n_i$$
 
@@ -33,7 +32,7 @@ Calculates polar surface area from exact 2D topological fragment tables ($\text{
 - Primary amide ($-C(=O)NH_2$): $43.09\text{ \AA}^2$
 - Nitro group ($-NO_2$): $45.82\text{ \AA}^2$
 
-### Exact Bickerton QED (Nature Chemistry 2012)
+### Bickerton QED (Nature Chemistry 2012)
 $$\text{QED} = \exp\left( \frac{\sum_{i=1}^8 w_i \ln d_i}{\sum_{i=1}^8 w_i} \right)$$
 where each desirability term follows the asymmetric sigmoid function:
 $$d_i(x) = a_i + \frac{b_i}{1 + \exp\left(-\frac{x - c_i}{d_i}\right)}$$
@@ -41,20 +40,20 @@ evaluated across MW, ALOGP, HBD, HBA, PSA, ROTB, AROM, and Structural Alerts (PA
 
 ---
 
-## 3. EcoClean PFAS & Plastic Biocleavage Thermodynamics
+## 3. EcoClean PFAS & Plastic Degradation Pathways
 
-### Bond Dissociation Energies ($\text{BDE}$)
-Calculates local bond strengths from molecular topology:
+### Topological Bond Dissociation Energies ($\text{BDE}$)
+Retrieves characteristic single and multiple bond strengths from molecular topology:
 - $\text{C-F}$ (PFAS): $\sim 116\text{ kcal/mol}$ ($485\text{ kJ/mol}$) (highest single-bond BDE in organic chemistry)
 - $\text{C-H}$ (Aliphatic): $\sim 99\text{ kcal/mol}$ ($414\text{ kJ/mol}$)
 - $\text{C-O}$ (Polyester Ester): $\sim 86\text{ kcal/mol}$ ($358\text{ kJ/mol}$)
 - $\text{C-Cl}$ (Organohalide): $\sim 78\text{ kcal/mol}$ ($328\text{ kJ/mol}$)
 - $\text{C-Br}$ (Organobromide): $\sim 66\text{ kcal/mol}$ ($276\text{ kJ/mol}$)
 
-### Catalytic Cascade Mechanisms
+### Catalytic Degradation Pathways
 1. **Electrochemical Anodic Decarboxylation**: Single-electron oxidation converts terminal perfluoroalkyl carboxylate $\text{R}_f\text{-COO}^-$ into reactive fluororadical $\text{R}_f^\bullet$.
 2. **$\alpha$-Elimination & HF Release**: Hydroxylation generates perfluoroalkanol which spontaneously eliminates $\text{F}^-$.
-3. **Complete Mineralization**: Iterative chain shortening produces harmless inorganic minerals ($\text{F}^-, \text{Cl}^-, \text{Br}^-, \text{SO}_4^{2-}, \text{PO}_4^{3-}, \text{NO}_3^-, \text{CO}_2, \text{H}_2\text{O}$).
+3. **Mineralization Cascade**: Sequential chain shortening produces inorganic mineral salts ($\text{F}^-, \text{Cl}^-, \text{Br}^-, \text{SO}_4^{2-}, \text{PO}_4^{3-}, \text{NO}_3^-, \text{CO}_2, \text{H}_2\text{O}$).
 
 ---
 
@@ -75,14 +74,15 @@ All matrix operations are performed over the exact rational field $\mathbb{Q}$ u
 
 ---
 
-## 6. 4-Term Molecular Mechanics Force Field (UFF)
+## 6. 4-Term Molecular Mechanics Force Field
 
 ### Analytical Potential Function
 $$E_{\text{total}} = \sum \frac{1}{2} k_r (r - r_0)^2 + \sum \frac{1}{2} k_\theta (\theta - \theta_0)^2 + \sum \frac{V_3}{2}[1 + \cos(3\phi)] + \sum_{\text{1,4+}} \epsilon \left[\left(\frac{r_m}{r_{ij}}\right)^{12} - 2\left(\frac{r_m}{r_{ij}}\right)^6\right]$$
 
-### Exact Analytical Force Gradients ($-\nabla E$)
+### Analytical Force Gradients ($-\nabla E$)
 - **Harmonic Bond Pull**: $\mathbf{F}_{i} = -k_r (r - r_0) \frac{\mathbf{r}_i - \mathbf{r}_j}{r}$
-- **Valence Angle Restoring Torque**: Analytical tangential force vectors on triplets $n_1 - c - n_2$.
+- **Valence Angle Restoring Torque**: Analytical tangential force vectors on triplets $n_1 - c - n_2$ using hybridization-assigned ideal angles $\theta_0(c)$.
+- **Dihedral Torsional Restoring Forces**: Exact analytical torque gradients on quartets $i-j-k-l$ distributed across 4 atomic positions.
 - **Lennard-Jones van der Waals Force**:
   $$\mathbf{F}_{\text{vdw}} = \frac{12 \epsilon}{r^2}\left[\left(\frac{r_m}{r}\right)^{12} - \left(\frac{r_m}{r}\right)^6\right](\mathbf{r}_i - \mathbf{r}_j)$$
 
@@ -112,6 +112,8 @@ Standard enthalpies ($\Delta H_f^\circ$), entropies ($S^\circ$), and Gibbs energ
 
 ---
 
-## 10. Verification & Benchmark Suite
+## 10. Verification & Technical Credibility Audit
 
-Every algorithm across Chemy is validated by **71 automated unit tests** in `Chemy.Core.Tests` with zero compiler warnings. Consult [Scientific Verification Benchmarks Suite](file:///Users/moura/Desktop/chemy/docs/SCIENTIFIC_VERIFICATION_BENCHMARKS.md) for full benchmark tables.
+Every algorithm across Chemy is validated by comprehensive automated unit tests in `Chemy.Core.Tests` with zero compiler warnings. 
+- Consult the exhaustive [**Scientific Credibility & Technical Audit Report**](SCIENTIFIC_CREDIBILITY_REPORT.md) for full mathematical proofs, algorithm evaluations, and domain scorecards.
+- Consult the [**Scientific Verification Benchmarks Suite**](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) for empirical benchmark tables across 21 standard chemical systems.

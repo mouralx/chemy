@@ -49,26 +49,28 @@ public record EvolutionOptimizationResult(
 public static class MolecularEvolverEngine
 {
     /// <summary>
-    /// Executes dynamic graph-traversing de novo evolution on any arbitrary chemical compound.
-    /// Runs a population-based genetic algorithm across specified generations optimizing QED, LogP, and toxicity filters.
+    /// Executes dynamic graph-traversing bioisosteric lead optimization on any chemical compound.
+    /// Evaluates bioisosteric graph mutation operators optimizing QED, LogP, and ADMET toxicity filters.
     /// </summary>
     /// <param name="input">Chemical formula or organic SMILES string.</param>
-    /// <param name="generations">Number of evolutionary generations (default: 50).</param>
+    /// <param name="generations">Optimization exploration cycles (default: 50).</param>
     /// <returns>Ranked collection of optimized lead candidates with structural rationales.</returns>
     public static EvolutionOptimizationResult EvolveLeadCandidate(string input, int generations = 50)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(input);
 
         Molecule baseline;
-        string smiles = input;
+        string smiles = input.Trim();
 
-        if (Molecule.TryParse(input, input, out var mol))
-        {
-            baseline = mol;
-        }
-        else if (Molecule.TryParseSmiles(input, input, out var smilesMol))
+        // Priority 1: Try parsing as SMILES to preserve full covalent topology and implicit hydrogens
+        if (Molecule.TryParseSmiles(smiles, smiles, out var smilesMol))
         {
             baseline = smilesMol;
+        }
+        // Priority 2: Try parsing as empirical chemical formula
+        else if (Molecule.TryParse(smiles, smiles, out var mol))
+        {
+            baseline = mol;
         }
         else
         {
@@ -88,9 +90,13 @@ public static class MolecularEvolverEngine
             {
                 var admet = AdmetEngine.Analyze(tetrazoleMol);
                 seenFormulas.Add(tetrazoleMol.ChemicalFormula);
+                string tetrazoleSmiles = smiles.Contains("C(=O)O")
+                    ? smiles.Replace("C(=O)O", "c1nnn[nH]1")
+                    : (smiles.Contains("C(=O)[OH]") ? smiles.Replace("C(=O)[OH]", "c1nnn[nH]1") : smiles + "_Tetrazole");
+
                 candidates.Add(new EvolvedCandidate(
                     "Lead-01 (1H-Tetrazole Bioisostere)",
-                    smiles.Contains("C(=O)O") ? smiles.Replace("C(=O)O", "c1nnn[nH]1") : smiles + "_Tetrazole",
+                    tetrazoleSmiles,
                     tetrazoleMol.ChemicalFormula,
                     tetrazoleMol.MolecularWeight,
                     admet.QedDrugLikenessScore,
@@ -107,9 +113,18 @@ public static class MolecularEvolverEngine
         {
             var admet = AdmetEngine.Analyze(fluorinatedMol);
             seenFormulas.Add(fluorinatedMol.ChemicalFormula);
+
+            string fluorinatedSmiles;
+            if (smiles.Contains("c1ccccc1"))
+                fluorinatedSmiles = smiles.Replace("c1ccccc1", "c1ccc(F)cc1");
+            else if (smiles.Contains("ccccc"))
+                fluorinatedSmiles = smiles.Replace("ccccc", "ccc(F)cc");
+            else
+                fluorinatedSmiles = smiles.EndsWith(')') ? smiles.Insert(smiles.Length - 1, "F") : smiles + "F";
+
             candidates.Add(new EvolvedCandidate(
                 "Lead-02 (Metabolic Fluorine Shield)",
-                smiles.EndsWith(')') ? smiles.Insert(smiles.Length - 1, "F") : smiles + "F",
+                fluorinatedSmiles,
                 fluorinatedMol.ChemicalFormula,
                 fluorinatedMol.MolecularWeight,
                 admet.QedDrugLikenessScore,
@@ -119,7 +134,7 @@ public static class MolecularEvolverEngine
             ));
         }
 
-        // 3. Multi-Generational Evolutionary Loop
+        // 3. Multi-Generational Evolutionary Exploration Loop
         var currentPopulation = new List<Molecule> { baseline, fluorinatedMol };
 
         for (int gen = 1; gen <= Math.Clamp(generations, 5, 100); gen++)
@@ -140,9 +155,14 @@ public static class MolecularEvolverEngine
                     {
                         seenFormulas.Add(mutantA.ChemicalFormula);
                         var admet = AdmetEngine.Analyze(mutantA);
+
+                        string azaSmiles = smiles.Contains("c1ccccc1") 
+                            ? smiles.Replace("c1ccccc1", "c1ncccc1") 
+                            : smiles + "_Aza";
+
                         candidates.Add(new EvolvedCandidate(
                             $"Lead-{candidates.Count + 1:D2} (Pyridyl Aza-Bioisostere)",
-                            smiles.Contains("c1ccccc1") ? smiles.Replace("c1ccccc1", "c1ccncc1") : smiles + "_Aza",
+                            azaSmiles,
                             mutantA.ChemicalFormula,
                             mutantA.MolecularWeight,
                             admet.QedDrugLikenessScore,
@@ -154,7 +174,7 @@ public static class MolecularEvolverEngine
                     }
                 }
 
-                // Mutation B: Cyclopropyl / Deuteromethyl Bioisostere (-CH3 -> -cPr)
+                // Mutation B: Cyclopropyl Bioisostere (-CH3 -> -cPr)
                 var atomsB = parent.Atoms.ToList();
                 var bondsB = parent.Bonds.ToList();
                 int termC = atomsB.FindIndex(a => a.Element.Symbol == "C" && bondsB.Count(b => b.Connects(atomsB.IndexOf(a))) == 1);
@@ -174,9 +194,14 @@ public static class MolecularEvolverEngine
                     {
                         seenFormulas.Add(mutantB.ChemicalFormula);
                         var admet = AdmetEngine.Analyze(mutantB);
+
+                        string cprSmiles = smiles.StartsWith("CC") 
+                            ? "C1CC1" + smiles[1..] 
+                            : smiles + "C1CC1";
+
                         candidates.Add(new EvolvedCandidate(
                             $"Lead-{candidates.Count + 1:D2} (Cyclopropyl Bioisostere)",
-                            smiles + "C1CC1",
+                            cprSmiles,
                             mutantB.ChemicalFormula,
                             mutantB.MolecularWeight,
                             admet.QedDrugLikenessScore,
@@ -200,9 +225,12 @@ public static class MolecularEvolverEngine
                     {
                         seenFormulas.Add(mutantC.ChemicalFormula);
                         var admet = AdmetEngine.Analyze(mutantC);
+
+                        string amineSmiles = smiles.Contains("O") ? smiles.Replace("O", "N") : smiles + "N";
+
                         candidates.Add(new EvolvedCandidate(
                             $"Lead-{candidates.Count + 1:D2} (Amino Bioisostere)",
-                            smiles + "N",
+                            amineSmiles,
                             mutantC.ChemicalFormula,
                             mutantC.MolecularWeight,
                             admet.QedDrugLikenessScore,

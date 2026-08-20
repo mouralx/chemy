@@ -39,10 +39,9 @@ public record EcoCleanDegradationResult(
 );
 
 /// <summary>
-/// 100% Universal EcoClean Environmental Biocleavage &amp; Mineralization Engine.
-/// Dynamically traverses the molecular graph of any pollutant, calculates exact Bond Dissociation
-/// Energies (BDE) from elemental electronegativities and bond orders, and constructs tailored enzymatic
-/// and electrochemical catalytic mineralization cascades.
+/// EcoClean Environmental Biocleavage &amp; Mineralization Knowledge Engine.
+/// Traverses the molecular graph of target pollutants, retrieves topological Bond Dissociation
+/// Energies (BDE), and constructs standard enzymatic and electrochemical catalytic mineralization pathways.
 /// </summary>
 public static class EcoCleanEngine
 {

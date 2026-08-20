@@ -40,4 +40,17 @@ public class PharmacologyTests
 
         Assert.True(logP > 0.5 && logP < 2.5); // Experimental LogP ~ 1.19
     }
+
+    [Fact]
+    public void Analyze_AromaticNitrogenHeterocycles_AccurateHBondDonors()
+    {
+        var pyridine = Molecule.FromSmiles("c1ccncc1", "Pyridine");
+        var pyridineAdmet = AdmetEngine.Analyze(pyridine);
+        Assert.Equal(0, pyridineAdmet.HydrogenBondDonors);
+        Assert.Equal(1, pyridineAdmet.HydrogenBondAcceptors);
+
+        var pyrrole = Molecule.FromSmiles("c1cc[nH]c1", "Pyrrole");
+        var pyrroleAdmet = AdmetEngine.Analyze(pyrrole);
+        Assert.Equal(1, pyrroleAdmet.HydrogenBondDonors);
+    }
 }

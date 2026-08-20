@@ -15,9 +15,16 @@ public record SubgraphQuery(
 /// </summary>
 public static class SubgraphMatcher
 {
-    /// <summary>Predefined query pattern for Carboxylic Acid (-C(=O)O).</summary>
+    /// <summary>Predefined query pattern for Carboxylic Acid (-C(=O)O-H).</summary>
     public static readonly SubgraphQuery CarboxylicAcidQuery = new(
         "CarboxylicAcid",
+        ["C", "O", "O", "H"],
+        [(0, 1, BondType.Double), (0, 2, BondType.Single), (2, 3, BondType.Single)]
+    );
+
+    /// <summary>Query pattern for Carboxyl group (-C(=O)O) without explicit hydrogen requirement.</summary>
+    public static readonly SubgraphQuery CarboxylGroupQuery = new(
+        "CarboxylGroup",
         ["C", "O", "O"],
         [(0, 1, BondType.Double), (0, 2, BondType.Single)]
     );

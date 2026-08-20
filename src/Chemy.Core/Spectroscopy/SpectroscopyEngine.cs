@@ -38,9 +38,9 @@ public record SpectroscopyPrediction(
 );
 
 /// <summary>
-/// 100% Universal Computational Spectroscopy Engine.
-/// Dynamically predicts 1H-NMR, 13C-NMR, and Infrared (IR) spectra across all 20+ organic functional group classes
-/// (Carboxylic Acids, Aldehydes, Esters, Ethers, Alcohols, Ketones, Amines, Amides, Alkenes, Alkynes, Nitriles, Aromatics, Halides).
+/// Computational Spectroscopy Prediction Engine.
+/// Predicts characteristic 1H-NMR, 13C-NMR, and Infrared (IR) spectral bands using empirical
+/// functional group correlation tables across 12+ organic functional classes.
 /// </summary>
 public static class SpectroscopyEngine
 {

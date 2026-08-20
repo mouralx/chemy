@@ -150,6 +150,8 @@ public static class ForceFieldEngine
                 .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
                 .ToList();
 
+            double idealAngleDeg = GetIdealAngleDegrees(molecule3D.SourceMolecule, i, molecule3D.IdealBondAngleDegrees);
+
             for (int j = 0; j < neighbors.Count; j++)
             {
                 for (int k = j + 1; k < neighbors.Count; k++)
@@ -158,7 +160,6 @@ public static class ForceFieldEngine
                     int n2 = neighbors[k];
 
                     double angleDeg = CalculateAngleDegrees(positions[n1], positions[i], positions[n2]);
-                    double idealAngleDeg = molecule3D.IdealBondAngleDegrees > 0 ? molecule3D.IdealBondAngleDegrees : 109.5;
                     double angleDiffRad = (angleDeg - idealAngleDeg) * (Math.PI / 180.0);
                     eAngle += 0.5 * DefaultAngleSpringConstant * angleDiffRad * angleDiffRad;
                 }
@@ -231,7 +232,7 @@ public static class ForceFieldEngine
             }
         }
 
-        return Math.Max(0.0, eBond + eAngle + eTorsion + Math.Max(0.0, eVdw));
+        return Math.Max(0.0, eBond + eAngle + eTorsion + eVdw);
     }
 
     private static List<Vector3D> CalculateGradients(Molecule3D molecule3D, List<Vector3D> positions)
@@ -275,6 +276,9 @@ public static class ForceFieldEngine
                 .Select(b => b.Atom1Index == c ? b.Atom2Index : b.Atom1Index)
                 .ToList();
 
+            double idealAngleDeg = GetIdealAngleDegrees(molecule3D.SourceMolecule, c, molecule3D.IdealBondAngleDegrees);
+            double idealTheta = idealAngleDeg * (Math.PI / 180.0);
+
             for (int j = 0; j < neighbors.Count; j++)
             {
                 for (int k = j + 1; k < neighbors.Count; k++)
@@ -297,7 +301,6 @@ public static class ForceFieldEngine
                         double dot = (v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z) / (r1 * r2);
                         dot = Math.Clamp(dot, -0.9999, 0.9999);
                         double currentTheta = Math.Acos(dot);
-                        double idealTheta = (molecule3D.IdealBondAngleDegrees > 0 ? molecule3D.IdealBondAngleDegrees : 109.5) * (Math.PI / 180.0);
                         double angleForce = -DefaultAngleSpringConstant * 0.0005 * (currentTheta - idealTheta);
 
                         // Tangential restoring vectors
@@ -317,7 +320,74 @@ public static class ForceFieldEngine
             }
         }
 
-        // 3. van der Waals 12-6 Lennard Jones forces (1,4+ non-bonded)
+        // 3. Dihedral torsional restoring forces (analytical gradient of 3-fold torsional barrier)
+        foreach (var centralBond in molecule3D.SourceMolecule.Bonds)
+        {
+            int j = centralBond.Atom1Index;
+            int k = centralBond.Atom2Index;
+            if (j >= nAtoms || k >= nAtoms) continue;
+
+            var jNeighbors = molecule3D.SourceMolecule.Bonds
+                .Where(b => b.Connects(j))
+                .Select(b => b.Atom1Index == j ? b.Atom2Index : b.Atom1Index)
+                .Where(n => n != k)
+                .ToList();
+
+            var kNeighbors = molecule3D.SourceMolecule.Bonds
+                .Where(b => b.Connects(k))
+                .Select(b => b.Atom1Index == k ? b.Atom2Index : b.Atom1Index)
+                .Where(n => n != j)
+                .ToList();
+
+            foreach (var i in jNeighbors)
+            {
+                foreach (var l in kNeighbors)
+                {
+                    if (i != l && i < nAtoms && l < nAtoms)
+                    {
+                        var p1 = positions[i];
+                        var p2 = positions[j];
+                        var p3 = positions[k];
+                        var p4 = positions[l];
+
+                        var b1 = new Vector3D(p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z);
+                        var b2 = new Vector3D(p3.X - p2.X, p3.Y - p2.Y, p3.Z - p2.Z);
+                        var b3 = new Vector3D(p4.X - p3.X, p4.Y - p3.Y, p4.Z - p3.Z);
+
+                        var n1 = Cross(b1, b2);
+                        var n2 = Cross(b2, b3);
+
+                        double lenN1Sq = Dot(n1, n1);
+                        double lenN2Sq = Dot(n2, n2);
+                        double lenB2Sq = Dot(b2, b2);
+                        double lenB2 = Math.Sqrt(lenB2Sq);
+
+                        if (lenN1Sq > 1e-6 && lenN2Sq > 1e-6 && lenB2 > 1e-4)
+                        {
+                            double phiRad = CalculateDihedralAngleRad(p1, p2, p3, p4);
+                            // dE/dphi = -0.5 * V3 * 3 * sin(3*phi)
+                            double dEdPhi = -0.5 * 3.0 * DefaultTorsionBarrier * Math.Sin(3.0 * phiRad) * 0.001;
+
+                            var fi = new Vector3D(-dEdPhi * (lenB2 / lenN1Sq) * n1.X, -dEdPhi * (lenB2 / lenN1Sq) * n1.Y, -dEdPhi * (lenB2 / lenN1Sq) * n1.Z);
+                            var fl = new Vector3D(dEdPhi * (lenB2 / lenN2Sq) * n2.X, dEdPhi * (lenB2 / lenN2Sq) * n2.Y, dEdPhi * (lenB2 / lenN2Sq) * n2.Z);
+
+                            double d12 = Dot(b1, b2) / lenB2Sq;
+                            double d32 = Dot(b3, b2) / lenB2Sq;
+
+                            var fj = new Vector3D(-fi.X + (d12 * fi.X) - (d32 * fl.X), -fi.Y + (d12 * fi.Y) - (d32 * fl.Y), -fi.Z + (d12 * fi.Z) - (d32 * fl.Z));
+                            var fk = new Vector3D(-fl.X - (d12 * fi.X) + (d32 * fl.X), -fl.Y - (d12 * fi.Y) + (d32 * fl.Y), -fl.Z - (d12 * fi.Z) + (d32 * fl.Z));
+
+                            fx[i] += fi.X; fy[i] += fi.Y; fz[i] += fi.Z;
+                            fx[j] += fj.X; fy[j] += fj.Y; fz[j] += fj.Z;
+                            fx[k] += fk.X; fy[k] += fk.Y; fz[k] += fk.Z;
+                            fx[l] += fl.X; fy[l] += fl.Y; fz[l] += fl.Z;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. van der Waals 12-6 Lennard Jones forces (1,4+ non-bonded)
         for (int i = 0; i < nAtoms; i++)
         {
             var bondedToI = molecule3D.SourceMolecule.Bonds
@@ -472,6 +542,53 @@ public static class ForceFieldEngine
 
         double cosTheta = Math.Clamp(dot / (len1 * len2), -1.0, 1.0);
         return Math.Acos(cosTheta) * (180.0 / Math.PI);
+    }
+
+    private static double GetIdealAngleDegrees(Molecule molecule, int centerIndex, double fallbackAngle)
+    {
+        if (centerIndex < 0 || centerIndex >= molecule.Atoms.Count)
+            return fallbackAngle > 0 ? fallbackAngle : 109.5;
+
+        var centerAtom = molecule.Atoms[centerIndex];
+        string sym = centerAtom.Element.Symbol;
+
+        var incidentBonds = molecule.Bonds.Where(b => b.Connects(centerIndex)).ToList();
+        int degree = incidentBonds.Count;
+        bool hasTriple = incidentBonds.Any(b => b.Type == BondType.Triple);
+        bool hasDouble = incidentBonds.Any(b => b.Type == BondType.Double);
+        bool hasAromatic = incidentBonds.Any(b => b.Type == BondType.Aromatic);
+
+        // Linear sp centers (e.g. alkynes, nitriles, CO2)
+        if (hasTriple || (degree == 2 && incidentBonds.Count(b => b.Type == BondType.Double) == 2))
+        {
+            return 180.0;
+        }
+
+        // Trigonal planar sp2 / aromatic centers (e.g. benzene, alkenes, carbonyl C)
+        if (hasAromatic || (hasDouble && degree <= 3))
+        {
+            return 120.0;
+        }
+
+        // Bent water / ether / sulfide centers (AX2E2)
+        if (degree == 2 && (sym is "O" or "S"))
+        {
+            return 104.5;
+        }
+
+        // Trigonal pyramidal amine / phosphine centers (AX3E1)
+        if (degree == 3 && (sym is "N" or "P") && !hasDouble && !hasAromatic)
+        {
+            return 107.0;
+        }
+
+        // Standard tetrahedral sp3 centers
+        if (degree == 4 || sym == "C" || sym == "Si")
+        {
+            return 109.5;
+        }
+
+        return fallbackAngle > 0 ? fallbackAngle : 109.5;
     }
 
     private static double Distance(Vector3D v1, Vector3D v2)

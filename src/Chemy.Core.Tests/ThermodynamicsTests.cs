@@ -48,4 +48,16 @@ public class ThermodynamicsTests
         Assert.True(thermo.IsExothermic);
         Assert.True(thermo.IsSpontaneous);
     }
+
+    [Theory]
+    [InlineData("C2H4O2", -484.5)]
+    [InlineData("CH4O", -239.1)]
+    [InlineData("C2H6O", -277.7)]
+    [InlineData("C3H6O", -248.4)]
+    public void ThermodynamicData_HillFormulas_MatchTabulatedValues(string formula, double expectedEnthalpy)
+    {
+        bool found = ThermodynamicData.TryGetProperties(formula, out var props);
+        Assert.True(found);
+        Assert.Equal(expectedEnthalpy, props.EnthalpyOfFormationkJPerMol);
+    }
 }

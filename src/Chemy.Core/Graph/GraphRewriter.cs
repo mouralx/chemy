@@ -36,18 +36,49 @@ public static class GraphRewriter
         var graph = ChemicalGraph.FromMolecule(source);
         var matches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylicAcidQuery);
 
-        if (matches.Count == 0) return source;
+        IReadOnlyDictionary<int, int> firstMatch;
+        int carbonId, carbonylO, hydroxylO;
+        var hydroxylH = new HashSet<int>();
 
-        var firstMatch = matches[0];
-        int carbonId = firstMatch[0];
-        int carbonylO = firstMatch[1];
-        int hydroxylO = firstMatch[2];
+        if (matches.Count > 0)
+        {
+            firstMatch = matches[0];
+            carbonId = firstMatch[0];
+            carbonylO = firstMatch[1];
+            hydroxylO = firstMatch[2];
+            if (firstMatch.TryGetValue(3, out int hIdx))
+            {
+                hydroxylH.Add(hIdx);
+            }
+        }
+        else
+        {
+            // Fallback for carboxylate without explicit H: match carboxyl where O is not bonded to another Carbon (not an ester)
+            var groupMatches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylGroupQuery);
+            var validAcidMatch = groupMatches.FirstOrDefault(m =>
+            {
+                int sO = m[2];
+                // Check that single-bonded oxygen is NOT bonded to another carbon (which would make it an ester)
+                return !graph.GetIncidentEdges(sO).Any(e => e.Other(sO) != m[0] && graph.Nodes[e.Other(sO)].Element.Symbol == "C");
+            });
+
+            if (validAcidMatch == null) return source;
+
+            firstMatch = validAcidMatch;
+            carbonId = firstMatch[0];
+            carbonylO = firstMatch[1];
+            hydroxylO = firstMatch[2];
+        }
 
         // Also identify any explicit hydrogen attached to the hydroxyl oxygen
-        var hydroxylH = graph.GetIncidentEdges(hydroxylO)
-            .Where(e => graph.Nodes[e.Other(hydroxylO)].Element.Symbol == "H")
-            .Select(e => e.Other(hydroxylO))
-            .ToHashSet();
+        foreach (var edge in graph.GetIncidentEdges(hydroxylO))
+        {
+            int other = edge.Other(hydroxylO);
+            if (other < graph.Nodes.Count && graph.Nodes[other].Element.Symbol == "H")
+            {
+                hydroxylH.Add(other);
+            }
+        }
 
         // Find attachment point (node connecting to the carboxyl carbon that is not the oxygen atoms)
         var attachmentEdge = graph.GetIncidentEdges(carbonId)

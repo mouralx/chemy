@@ -1,19 +1,19 @@
-# Chemy Breakthroughs Showcase: Societal Impact & Case Studies
+# Chemy Breakthroughs Showcase: Case Studies & Applications
 
-This document demonstrates the three societal breakthrough engines introduced in **Chemy**:
-1. 🧬 **Autonomous *De Novo* Molecular Evolver** (AI-guided Lead Optimization)
-2. 🛡️ **ADMET & QED Toxicity Shield** (Clinical Trial Failure Prevention)
-3. ♻️ **EcoClean PFAS & Microplastic Biocleavage Engine** (Planetary Environmental Decontamination)
+This document demonstrates the three practical chemistry engines introduced in **Chemy**:
+1. 🧬 **Bioisosteric Lead Optimization Engine** (Pharmacophore Replacement & Liability Bypass)
+2. 🛡️ **ADMET & QED Property Shield** (Lipinski, Veber, Ghose & Polar Surface Area Audits)
+3. ♻️ **EcoClean PFAS & Microplastic Degradation Pathways** (Bond Dissociation & Biocatalytic Cascades)
 
 ---
 
-## 🧬 Case Study 1: *De Novo* Autonomous Drug Evolution
+## 🧬 Case Study 1: Bioisosteric Lead Optimization
 
 ### The Problem
-Traditional drug design takes **10–15 years and over $2.6 Billion**, often failing late in Phase-II/III clinical trials due to reactive metabolites, poor solubility, or rapid clearance.
+Traditional drug design takes **10–15 years and over $2.6 Billion**, often failing late in clinical trials due to reactive metabolites, poor solubility, or rapid metabolic clearance.
 
-### The Chemy Breakthrough
-The `MolecularEvolverEngine` executes multi-objective genetic optimization to mutate and evolve lead molecular graphs in milliseconds, eliminating metabolic liabilities while boosting Quantitative Estimate of Drug-Likeness ($\text{QED}$).
+### The Chemy Approach
+The `MolecularEvolverEngine` executes graph-traversing bioisosteric substitution to mutate lead molecular graphs, replacing metabolic liabilities (e.g. carboxylic acids causing acyl-glucuronide toxicity) with bioisosteric heterocycles while monitoring Quantitative Estimate of Drug-Likeness ($\text{QED}$).
 
 ### Live Execution Demonstration
 **Input Lead Molecule**: `CC(=O)Oc1ccccc1C(=O)O` (Aspirin — causes gastric ulceration and acyl-glucuronide liver reactivity)

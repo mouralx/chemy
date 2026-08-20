@@ -407,17 +407,20 @@ public static class AdmetEngine
                 }
                 else
                 {
-                    // Check implicit hydrogens from standard valence
-                    int bondValence = molecule.Bonds.Where(b => b.Connects(i)).Sum(b => b.Type switch
+                    bool isAromatic = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic);
+                    if (!isAromatic)
                     {
-                        BondType.Double => 2,
-                        BondType.Triple => 3,
-                        BondType.Aromatic => 1,
-                        _ => 1
-                    });
+                        // Check implicit hydrogens from standard aliphatic valence
+                        int bondValence = molecule.Bonds.Where(b => b.Connects(i)).Sum(b => b.Type switch
+                        {
+                            BondType.Double => 2,
+                            BondType.Triple => 3,
+                            _ => 1
+                        });
 
-                    if (atom.Element.Symbol == "O" && bondValence < 2) count++;
-                    else if (atom.Element.Symbol == "N" && bondValence < 3) count++;
+                        if (atom.Element.Symbol == "O" && bondValence < 2) count++;
+                        else if (atom.Element.Symbol == "N" && bondValence < 3) count++;
+                    }
                 }
             }
         }

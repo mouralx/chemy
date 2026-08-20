@@ -87,6 +87,13 @@ public static class SmilesParser
                 currentAtomIndex = newIndex;
                 currentBondType = BondType.Single;
             }
+            else if (ch == '.')
+            {
+                currentAtomIndex = -1;
+                branchStack.Clear();
+                currentBondType = BondType.Single;
+                i++;
+            }
             else if (char.IsLetter(ch))
             {
                 string symbol = ch.ToString();
@@ -154,7 +161,6 @@ public static class SmilesParser
 
             if (hCount < 0)
             {
-                int defaultValence = GetDefaultValence(raw.Element.Symbol);
                 double currentBondOrder = 0;
                 foreach (var b in finalBonds)
                 {
@@ -170,6 +176,7 @@ public static class SmilesParser
                     }
                 }
 
+                int defaultValence = GetDefaultValence(raw.Element.Symbol, currentBondOrder);
                 hCount = Math.Max(0, (int)Math.Round(defaultValence - currentBondOrder));
             }
 
@@ -207,7 +214,7 @@ public static class SmilesParser
         if (symbolStr.Length == 1 && char.IsLower(symbolStr[0])) symbolStr = char.ToUpper(symbolStr[0]).ToString();
 
         var element = Elements.GetBySymbol(symbolStr);
-        int explicitH = -1;
+        int explicitH = 0; // In OpenSMILES bracket atoms, hydrogen count defaults to 0 unless 'H' is specified
         int charge = 0;
 
         if (i < len && (content[i] == 'H' || content[i] == 'h'))
@@ -231,13 +238,13 @@ public static class SmilesParser
         return (element, charge, explicitH);
     }
 
-    private static int GetDefaultValence(string symbol) => symbol switch
+    private static int GetDefaultValence(string symbol, double currentBondOrder) => symbol switch
     {
         "C" => 4,
-        "N" => 3,
+        "N" => currentBondOrder > 3.0 ? 4 : 3,
         "O" => 2,
-        "S" => 2,
-        "P" => 3,
+        "S" => currentBondOrder > 4.0 ? 6 : (currentBondOrder > 2.0 ? 4 : 2),
+        "P" => currentBondOrder > 3.0 ? 5 : 3,
         "F" or "Cl" or "Br" or "I" => 1,
         _ => 0
     };
