@@ -3,14 +3,14 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-105%20Passed%20(100%25)-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-114%20Passed%20(100%25)-brightgreen?logo=xunit)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
 ![Scientific Credibility](https://img.shields.io/badge/Scientific%20Credibility-100%25%20Verified-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20Microservice-orange)
 
 **Industrial-grade, zero-dependency computational chemistry, chemoinformatics, and lead optimization toolkit for .NET.**  
-*From exact mass/charge nullspace balancing and 4-term analytical molecular mechanics to multi-center 3D conformer embedding, flat 2D-in-3D planar diagram generation, atom-additive Crippen LogP, Ertl TPSA, true Benson group additivity, and rule-based bioisosteric lead optimization.*
+*From exact mass/charge nullspace balancing and 4-term analytical molecular mechanics to multi-center 3D conformer embedding, flat 2D-in-3D planar diagram generation, Hückel molecular orbital quantum theory, atom-additive Crippen LogP, Ertl TPSA, true Benson group additivity, and rule-based bioisosteric lead optimization.*
 
 [🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
 
@@ -58,6 +58,7 @@
 **Chemy** is a modern, high-performance computational chemistry platform built for developers, scientists, students, and pharmaceutical researchers. 
 
 All algorithms in Chemy are **pure, mathematically rigorous, and deterministic C# implementations** without external Python, cloud AI, or black-box dependencies:
+- ⚛️ **Quantum Electronic Structure & Hückel Molecular Orbitals**: Solves the secular equation $\det|\mathbf{H} - E\mathbf{I}| = 0$ via exact Jacobi symmetric matrix diagonalization. Computes HOMO, LUMO, bandgaps, UV-Vis $\lambda_{\max}$, Dewar aromatic resonance energy, Coulson bond orders, and Fukui reactivity indices (`HuckelEngine`).
 - 🌿 **Chemical Graph Theory & Subgraph Isomorphism**: Implements subgraph matching (`SubgraphMatcher`) and topological graph rewriting (`GraphRewriter`) on immutable molecular graphs (`ChemicalGraph`).
 - ⚛️ **Multi-Term Molecular Mechanics Force Field**: 4-term analytical potential (Bond Stretching, Hybridization Angle Bending, Dihedral Torsions, 12-6 Lennard-Jones van der Waals) with **exact analytical gradients** ($-\nabla E$) and geometric energy relaxation (`ForceFieldEngine`).
 - 📐 **3D Multi-Center Conformer Embedding**: Generates physically valid 3D Cartesian coordinates for branched and cyclic molecules via topological coordinate propagation and VSEPR coordinate frames (`Geometry3DEngine`).
@@ -78,6 +79,7 @@ All algorithms in Chemy are **pure, mathematically rigorous, and deterministic C
 
 | Feature | What It Does (In Plain English) | Exact Scientific Implementation |
 | :--- | :--- | :--- |
+| **⚛️ Hückel Quantum Molecular Orbitals** | Computes electron orbitals, HOMO/LUMO bandgap, UV-Vis color absorption, and aromaticity. | Secular determinant $\det\|\mathbf{H} - E\mathbf{I}\| = 0$ via exact Jacobi symmetric matrix eigensolver (`HuckelEngine`). |
 | **🌿 Graph Substructure Matcher** | Finds specific chemical motifs (acids, esters, rings) inside any molecular graph. | Topological graph isomorphism pattern matching with adjacency index tables (`SubgraphMatcher`). |
 | **⚛️ Molecular Mechanics Force Field** | Relaxes atoms in 3D Euclidean space to relieve steric and angle strain. | 4-term analytical potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with analytical force gradients (`ForceFieldEngine`). |
 | **🛡️ Ertl TPSA & ADMET Shield** | Evaluates whether a molecule can safely act as an oral medicine. | Standard Ertl atomic polar surface area fragments, Wildman-Crippen $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
@@ -211,7 +213,7 @@ chemy/
 │   │   └── ...                  # Reactions, Kinetics, Solutions, Thermodynamics
 │   ├── Chemy.Api/               # Pure REST API microservice (Scalar & Swagger)
 │   ├── Chemy.Web/               # Interactive 3D laboratory workstation
-│   └── Chemy.Core.Tests/        # Complete xUnit test suite (105 tests)
+│   └── Chemy.Core.Tests/        # Complete xUnit test suite (114 tests)
 └── README.md                    # Project overview
 ```
 
@@ -247,7 +249,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 105/105 unit tests in `Chemy.Core.Tests`.
+- **100% Passing Tests**: 114/114 unit tests in `Chemy.Core.Tests`.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Zero Allocations**: High-frequency element and bond structs allocated on the stack.
 
@@ -256,7 +258,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 105, Skipped: 0, Total: 105, Duration: 140 ms
+Passed! - Failed: 0, Passed: 114, Skipped: 0, Total: 114, Duration: 144 ms
 ```
 
 ---

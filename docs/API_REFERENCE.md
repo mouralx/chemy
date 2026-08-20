@@ -407,3 +407,18 @@ Solves the Henderson-Hasselbalch equation ($\text{pH} = \text{pK}_a + \log([\tex
 #### `POST /api/v1/electrochemistry/nernst`
 Calculates non-standard electrochemical cell potential ($E_{\text{cell}}$) via the Nernst equation ($E = E^\circ - \frac{RT}{nF}\ln Q$).
 * **Tags**: `Electrochemistry`
+
+---
+
+### Quantum & Molecular Orbitals Endpoints
+
+#### `POST /api/v1/quantum/huckel`
+Computes Hückel Molecular Orbital (HMO) electronic structure, HOMO and LUMO eigenvalues, bandgap $\Delta E$, estimated UV-Vis absorption maximum $\lambda_{\max}$, Dewar aromatic resonance stabilization energy, Coulson $\pi$-bond orders, and Fukui chemical reactivity indices.
+* **Tags**: `Quantum & Molecular Orbitals`
+* **Request Contract**:
+  ```json
+  {
+    "formula": "c1ccccc1",
+    "betaEv": 2.71
+  }
+  ```

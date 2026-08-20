@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Chemy.Core.Parsing;
+using Chemy.Core.Quantum;
 using Chemy.Core.Rendering;
 using Chemy.Core.Spatial;
 using Chemy.Core.Structure;
@@ -168,6 +169,9 @@ public record Molecule
 
     /// <summary>Renders standard IUPAC / ChemDraw 2D skeletal line structural diagram in vector SVG.</summary>
     public string ToSkeletalSvg(bool isDarkMode = true, int width = 600, int height = 400) => SkeletalSvgRenderer.Render(this, isDarkMode, width, height);
+
+    /// <summary>Computes Hückel Molecular Orbital (HMO) electronic structure, HOMO/LUMO bandgaps, and resonance energy.</summary>
+    public HuckelResult ComputeHuckelOrbitals(double betaEv = HuckelEngine.DefaultBetaEv) => HuckelEngine.Analyze(this, betaEv);
 
     /// <summary>Saves a vector SVG diagram card directly to a local disk path.</summary>
     public void SaveSvg(string filePath, bool isDarkMode = true) => File.WriteAllText(filePath, ToSvg(isDarkMode));

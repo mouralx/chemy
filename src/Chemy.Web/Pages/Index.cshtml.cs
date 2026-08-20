@@ -207,6 +207,7 @@ public class IndexModel : PageModel
         if (docsFolder != null)
         {
             DocumentationMap["api"] = ReadDocFile(docsFolder, "API_REFERENCE.md");
+            DocumentationMap["credibility"] = ReadDocFile(docsFolder, "SCIENTIFIC_CREDIBILITY_REPORT.md");
             DocumentationMap["benchmarks"] = ReadDocFile(docsFolder, "SCIENTIFIC_VERIFICATION_BENCHMARKS.md");
             DocumentationMap["showcase"] = ReadDocFile(docsFolder, "BREAKTHROUGHS_SHOWCASE.md");
             DocumentationMap["arch"] = ReadDocFile(docsFolder, "ARCHITECTURE.md");

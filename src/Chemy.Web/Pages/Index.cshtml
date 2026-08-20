@@ -312,6 +312,7 @@
                     <!-- Tab Buttons -->
                     <div class="flex flex-wrap gap-1 bg-slate-950 border border-slate-800 p-1 rounded font-mono text-[10px]">
                         <button onclick="switchToolTab('balancer')" id="ttab-balancer" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium">⚖️ Balancer</button>
+                        <button onclick="switchToolTab('huckel')" id="ttab-huckel" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚛️ Orbitals (HMO)</button>
                         <button onclick="switchToolTab('thermo')" id="ttab-thermo" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🔥 Thermo</button>
                         <button onclick="switchToolTab('ph')" id="ttab-ph" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🧪 pH/Buffer</button>
                         <button onclick="switchToolTab('nernst')" id="ttab-nernst" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚡ Nernst</button>
@@ -464,6 +465,17 @@
                             </div>
                         </div>
 
+                        <!-- TAB 12: QUANTUM ELECTRONIC STRUCTURE (HMO) -->
+                        <div id="pane-huckel" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="huckelFormulaInput" value="@Model.ChemicalFormula" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Conjugated SMILES or formula (e.g. c1ccccc1)..." />
+                                <button onclick="runHuckel()" class="px-3 py-1 rounded bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 font-semibold text-white font-mono text-xs">Compute HMO</button>
+                            </div>
+                            <div id="huckelOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
+                                Solves exact secular determinant det|H - E·I| = 0 via Jacobi eigensolver to calculate π-molecular orbitals, HOMO/LUMO bandgap, UV-Vis λ_max, and Dewar aromatic resonance energy.
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -480,8 +492,9 @@
                     <span class="text-slate-600">//</span>
                     <span class="font-semibold text-slate-200" id="currentDocTitle">API Reference Manual</span>
                 </div>
-                <div class="flex gap-1.5 font-mono text-[11px]">
+                <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
                     <button onclick="loadDoc('api')" id="docbtn-api" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium shadow-sm transition">📘 API Reference</button>
+                    <button onclick="loadDoc('credibility')" id="docbtn-credibility" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔬 Credibility Audit</button>
                     <button onclick="loadDoc('benchmarks')" id="docbtn-benchmarks" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🧪 Verification Suite</button>
                     <button onclick="loadDoc('showcase')" id="docbtn-showcase" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔬 Breakthroughs</button>
                     <button onclick="loadDoc('arch')" id="docbtn-arch" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Architecture</button>
@@ -1038,7 +1051,7 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
         }
 
         function switchToolTab(tabName) {
-            const tabs = ['balancer', 'thermo', 'ph', 'nernst', 'kinetics', 'spec', 'forcefield', 'pubchem', 'evolver', 'admet', 'ecoclean'];
+            const tabs = ['balancer', 'huckel', 'thermo', 'ph', 'nernst', 'kinetics', 'spec', 'forcefield', 'pubchem', 'evolver', 'admet', 'ecoclean'];
             tabs.forEach(t => {
                 const pane = document.getElementById(`pane-${t}`);
                 const btn = document.getElementById(`ttab-${t}`);
@@ -1403,13 +1416,50 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
             }
         }
 
+        async function runHuckel() {
+            const form = document.getElementById('huckelFormulaInput').value;
+            const out = document.getElementById('huckelOutput');
+            out.innerHTML = '<span class="text-cyan-400">Diagonalizing secular Hamiltonian via exact Jacobi eigensolver...</span>';
+
+            try {
+                const res = await fetch('/api/v1/quantum/huckel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formula: form, betaEv: 2.71 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-cyan-400 font-bold flex items-center justify-between">
+                            <span>⚛️ ${data.moleculeName} (${data.conjugatedAtomCount} π-Atoms, ${data.totalPiElectrons} π-Electrons)</span>
+                            <span class="text-emerald-400 font-mono text-[10px]">ΔE = ${data.homoLumoGapEv} eV (λ_max ≈ ${data.estimatedUvVisMaxWavelengthNm} nm)</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1 text-slate-300">
+                            <div><span class="text-sky-300 font-semibold">HOMO (Ψ_${data.homoIndex}):</span> ${data.homoEnergyBetaCoeff}β</div>
+                            <div><span class="text-rose-300 font-semibold">LUMO (Ψ_${data.lumoIndex}):</span> ${data.lumoEnergyBetaCoeff}β</div>
+                        </div>
+                        <div class="text-[10px] text-amber-300/90 pt-1">
+                            Total E_π = ${data.totalPiEnergyBetaCoeff}β | Dewar Resonance Energy = <strong class="text-amber-400">${data.dewarResonanceEnergyBetaCoeff}β (${data.dewarResonanceEnergyKcalPerMol} kcal/mol)</strong>
+                        </div>
+                        <div class="border-t border-slate-800 pt-1 mt-1 text-[10px] text-slate-400">
+                            <span class="font-bold text-slate-300">Orbitals:</span> ${data.orbitals.map(o => `Ψ${o.orbitalIndex} (${o.energyBetaCoeff}β, occ=${o.electronOccupancy})`).join(' · ')}
+                        </div>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'HMO calculation failed'}</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
         // --------------------------------------------------------------------
         // Documentation Viewer Dynamic Content
         // --------------------------------------------------------------------
         const docDatabase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DocumentationMap));
 
         function loadDoc(docKey) {
-            ['api', 'benchmarks', 'showcase', 'arch', 'started', 'science'].forEach(k => {
+            ['api', 'credibility', 'benchmarks', 'showcase', 'arch', 'started', 'science'].forEach(k => {
                 const btn = document.getElementById(`docbtn-${k}`);
                 if (btn) {
                     btn.classList.remove('bg-sky-600', 'text-white');

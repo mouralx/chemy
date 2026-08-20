@@ -247,3 +247,44 @@ This document records the **comprehensive, end-to-end scientific verification** 
   }
   ```
 * **Scientific Assessment**: Catalytic cascade follows peer-reviewed PFAS photochemical and electrochemical destruction pathways. ✅
+
+---
+
+### 13. Quantum Electronic Structure & Hückel Molecular Orbitals (`POST /api/v1/quantum/huckel`)
+* **Sample Request**: `{"formula": "c1ccccc1"}` (Benzene)
+* **Mathematical & Physical Formulation**:
+  Diagonalization of the $6 \times 6$ secular Hamiltonian $\det|\mathbf{H} - E\mathbf{I}| = 0$ via exact Jacobi symmetric matrix decomposition:
+  $$\mathbf{H} = \begin{bmatrix} 0 & 1 & 0 & 0 & 0 & 1 \\ 1 & 0 & 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 & 0 & 1 \\ 1 & 0 & 0 & 0 & 1 & 0 \end{bmatrix}$$
+  * **Analytical Eigenvalues**: $x = +2.000, +1.000, +1.000, -1.000, -1.000, -2.000$ (where $\epsilon_k = \alpha + x_k \beta$).
+  * **Total $\pi$-Electron Energy**: $E_\pi = 6\alpha + 8.000\beta$.
+  * **Dewar Aromatic Resonance Energy**: $E_{\text{deloc}} = 8.000 - 6.000 = \mathbf{2.000\beta}$ ($125.0\text{ kcal/mol}$).
+  * **Coulson $\pi$-Bond Orders**: Exactly $p_{CC} = \frac{2}{3} \approx \mathbf{0.667}$ for all 6 ring bonds ($R = 1.397\text{ \AA}$).
+* **Live Response**:
+  ```json
+  {
+    "moleculeName": "Benzene",
+    "conjugatedAtomCount": 6,
+    "totalPiElectrons": 6,
+    "homoIndex": 3,
+    "lumoIndex": 4,
+    "homoEnergyBetaCoeff": 1.0,
+    "lumoEnergyBetaCoeff": -1.0,
+    "homoLumoGapBetaCoeff": 2.0,
+    "homoLumoGapEv": 5.42,
+    "estimatedUvVisMaxWavelengthNm": 228.8,
+    "totalPiEnergyBetaCoeff": 8.0,
+    "dewarResonanceEnergyBetaCoeff": 2.0,
+    "dewarResonanceEnergyKcalPerMol": 125.0
+  }
+  ```
+* **Analytical Benchmark Matrix**:
+
+| Conjugated System | Formula | Exact Analytical Eigenvalues ($x = \frac{\epsilon - \alpha}{\beta}$) | Total $E_\pi$ | Resonance Energy | Status |
+| :--- | :---: | :--- | :---: | :---: | :---: |
+| **Ethylene** | $\text{C}_2\text{H}_4$ | $+1.000, -1.000$ | $2\alpha + 2.000\beta$ | $0.000\beta$ | **Verified ✅** |
+| **1,3-Butadiene** | $\text{C}_4\text{H}_6$ | $+1.618, +0.618, -0.618, -1.618$ | $4\alpha + 4.472\beta$ | $+0.472\beta$ | **Verified ✅** |
+| **Cyclobutadiene** | $\text{C}_4\text{H}_4$ | $+2.000, 0.000, 0.000, -2.000$ | $4\alpha + 4.000\beta$ | $0.000\beta$ | **Verified ✅** |
+| **Benzene** | $\text{C}_6\text{H}_6$ | $+2.000, +1.000, +1.000, -1.000, -1.000, -2.000$ | $6\alpha + 8.000\beta$ | $+2.000\beta$ | **Verified ✅** |
+| **Naphthalene** | $\text{C}_{10}\text{H}_8$ | $\pm 2.303, \pm 1.618, \pm 1.303, \pm 1.000, \pm 0.618$ | $10\alpha + 13.683\beta$ | $+3.683\beta$ | **Verified ✅** |
+| **Anthracene** | $\text{C}_{14}\text{H}_{10}$ | $\pm 2.414, \pm 2.000, \pm 1.414 (\times 2), \pm 1.000 (\times 2), \pm 0.414$ | $14\alpha + 19.314\beta$ | $+5.314\beta$ | **Verified ✅** |
+

@@ -7,6 +7,7 @@ using Chemy.Core.Kinetics;
 using Chemy.Core.Parsing;
 using Chemy.Core.Pharmacology;
 using Chemy.Core.Physics;
+using Chemy.Core.Quantum;
 using Chemy.Core.Rendering;
 using Chemy.Core.Solutions;
 using Chemy.Core.Spatial;
@@ -664,7 +665,35 @@ envGroup.MapPost("/ecoclean", (EcoCleanRequest request, ILogger<Program> log) =>
     return Results.Ok(result);
 })
 .WithSummary("Solve PFAS and microplastic biocleavage degradation pathways")
-.WithDescription("Calculates bond dissociation energies and generates step-by-step enzymatic/electrochemical mineralization cascades.");
+// ============================================================================
+// 16. QUANTUM ELECTRONIC STRUCTURE & HÜCKEL MOLECULAR ORBITALS (HMO)
+// ============================================================================
+
+var quantumGroup = app.MapGroup("/api/v1/quantum").WithTags("Quantum & Molecular Orbitals");
+
+quantumGroup.MapPost("/huckel", (HuckelRequest request, ILogger<Program> log) =>
+{
+    log.LogInformation("Computing Hückel Molecular Orbital (HMO) electronic structure for input: '{Formula}'", request.Formula);
+
+    if (!TryParseChemicalInput(request.Formula, null, out var molecule))
+    {
+        return Results.BadRequest(new { error = $"Unable to parse '{request.Formula}' as a valid chemical formula or organic SMILES." });
+    }
+
+    try
+    {
+        var result = HuckelEngine.Analyze(molecule, request.BetaEv ?? HuckelEngine.DefaultBetaEv);
+        log.LogDebug("Hückel calculation completed for '{Name}': HOMO={HomoBeta}β, LUMO={LumoBeta}β, Gap={Gap} eV, λ_max={Lambda} nm",
+            result.MoleculeName, result.HomoEnergyBetaCoeff, result.LumoEnergyBetaCoeff, result.HomoLumoGapEv, result.EstimatedUvVisMaxWavelengthNm);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+})
+.WithSummary("Compute Hückel Molecular Orbitals (HMO), HOMO/LUMO, and UV-Vis spectrum")
+.WithDescription("Solves the secular determinant det|H - E·I| = 0 via exact Jacobi symmetric matrix diagonalization for conjugated π-systems.");
 
 app.Run();
 
@@ -713,6 +742,9 @@ public record EvolutionRequest(string Input = "CC(=O)Oc1ccccc1C(=O)O", int? Gene
 
 /// <summary>Request contract for EcoClean PFAS and microplastic catalytic mineralization.</summary>
 public record EcoCleanRequest(string Pollutant = "PFOA C8HF15O2");
+
+/// <summary>Request contract for Hückel Molecular Orbital (HMO) quantum electronic structure calculations.</summary>
+public record HuckelRequest(string Formula = "c1ccccc1", double? BetaEv = 2.71);
 
 public partial class Program
 {
