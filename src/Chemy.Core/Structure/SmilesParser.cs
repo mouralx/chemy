@@ -1,0 +1,272 @@
+using System.Text;
+
+namespace Chemy.Core.Structure;
+
+public static class SmilesParser
+{
+    private sealed record RawAtom(Element Element, int ExplicitCharge, int ExplicitH = -1, bool IsAromatic = false);
+
+    public static Molecule Parse(string smiles, string? name = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(smiles);
+
+        var rawAtoms = new List<RawAtom>();
+        var rawBonds = new List<(int Atom1, int Atom2, BondType Type)>();
+        var ringOpenings = new Dictionary<int, (int AtomIndex, BondType BondType)>();
+        var branchStack = new Stack<int>();
+
+        int currentAtomIndex = -1;
+        int i = 0;
+        int len = smiles.Length;
+        BondType currentBondType = BondType.Single;
+
+        while (i < len)
+        {
+            char ch = smiles[i];
+
+            if (ch == '(')
+            {
+                if (currentAtomIndex >= 0) branchStack.Push(currentAtomIndex);
+                i++;
+                currentBondType = BondType.Single;
+            }
+            else if (ch == ')')
+            {
+                if (branchStack.Count > 0) currentAtomIndex = branchStack.Pop();
+                i++;
+                currentBondType = BondType.Single;
+            }
+            else if (ch is '=' or '#' or ':' or '-')
+            {
+                currentBondType = ch switch
+                {
+                    '=' => BondType.Double,
+                    '#' => BondType.Triple,
+                    ':' => BondType.Aromatic,
+                    _ => BondType.Single
+                };
+                i++;
+            }
+            else if (char.IsDigit(ch))
+            {
+                int ringId = ch - '0';
+                if (ringOpenings.TryGetValue(ringId, out var open))
+                {
+                    bool bothAromatic = rawAtoms[currentAtomIndex].IsAromatic && rawAtoms[open.AtomIndex].IsAromatic;
+                    var ringBondType = open.BondType != BondType.Single 
+                        ? open.BondType 
+                        : (currentBondType != BondType.Single ? currentBondType : (bothAromatic ? BondType.Aromatic : BondType.Single));
+                    rawBonds.Add((open.AtomIndex, currentAtomIndex, ringBondType));
+                    ringOpenings.Remove(ringId);
+                }
+                else
+                {
+                    ringOpenings[ringId] = (currentAtomIndex, currentBondType);
+                }
+                i++;
+                currentBondType = BondType.Single;
+            }
+            else if (ch == '[')
+            {
+                i++;
+                int start = i;
+                while (i < len && smiles[i] != ']') i++;
+
+                string bracketContent = smiles[start..i];
+                i++; // skip ']'
+
+                var (element, charge, explicitH) = ParseBracketAtom(bracketContent);
+                rawAtoms.Add(new RawAtom(element, charge, explicitH, false));
+                int newIndex = rawAtoms.Count - 1;
+
+                if (currentAtomIndex >= 0)
+                {
+                    rawBonds.Add((currentAtomIndex, newIndex, currentBondType));
+                }
+
+                currentAtomIndex = newIndex;
+                currentBondType = BondType.Single;
+            }
+            else if (char.IsLetter(ch))
+            {
+                string symbol = ch.ToString();
+                bool isAromatic = char.IsLower(ch);
+
+                if (i + 1 < len && char.IsLower(smiles[i + 1]) && !isAromatic)
+                {
+                    string candidate = smiles.Substring(i, 2);
+                    if (IsKnownSymbol(candidate))
+                    {
+                        symbol = candidate;
+                        i++;
+                    }
+                }
+
+                if (isAromatic) symbol = char.ToUpper(symbol[0]).ToString();
+
+                var element = Elements.GetBySymbol(symbol);
+                rawAtoms.Add(new RawAtom(element, 0, -1, isAromatic));
+                int newIndex = rawAtoms.Count - 1;
+
+                if (currentAtomIndex >= 0)
+                {
+                    bool bothAromatic = isAromatic && rawAtoms[currentAtomIndex].IsAromatic;
+                    var bondType = currentBondType != BondType.Single 
+                        ? currentBondType 
+                        : (bothAromatic ? BondType.Aromatic : BondType.Single);
+                    rawBonds.Add((currentAtomIndex, newIndex, bondType));
+                }
+
+                currentAtomIndex = newIndex;
+                currentBondType = BondType.Single;
+                i++;
+            }
+            else
+            {
+                i++;
+            }
+        }
+
+        var finalAtoms = new List<Atom>();
+        var finalBonds = new List<Bond>();
+
+        foreach (var bond in rawBonds)
+        {
+            finalBonds.Add(new Bond(bond.Atom1, bond.Atom2, bond.Type));
+        }
+
+        for (int aIdx = 0; aIdx < rawAtoms.Count; aIdx++)
+        {
+            var raw = rawAtoms[aIdx];
+            int defaultNeutrons = Math.Max(0, (int)Math.Round(raw.Element.StandardAtomicMass) - raw.Element.AtomicNumber);
+
+            var atom = new Atom(raw.Element, defaultNeutrons);
+            if (raw.ExplicitCharge != 0) atom = atom.Ionize(raw.ExplicitCharge);
+
+            finalAtoms.Add(atom);
+        }
+
+        int originalAtomCount = finalAtoms.Count;
+        for (int aIdx = 0; aIdx < originalAtomCount; aIdx++)
+        {
+            var raw = rawAtoms[aIdx];
+            int hCount = raw.ExplicitH;
+
+            if (hCount < 0)
+            {
+                int defaultValence = GetDefaultValence(raw.Element.Symbol);
+                double currentBondOrder = 0;
+                foreach (var b in finalBonds)
+                {
+                    if (b.Connects(aIdx))
+                    {
+                        currentBondOrder += b.Type switch
+                        {
+                            BondType.Double => 2.0,
+                            BondType.Triple => 3.0,
+                            BondType.Aromatic => 1.5,
+                            _ => 1.0
+                        };
+                    }
+                }
+
+                hCount = Math.Max(0, (int)Math.Round(defaultValence - currentBondOrder));
+            }
+
+            int hDefaultNeutrons = Math.Max(0, (int)Math.Round(Elements.Hydrogen.StandardAtomicMass) - Elements.Hydrogen.AtomicNumber);
+            for (int h = 0; h < hCount; h++)
+            {
+                finalAtoms.Add(new Atom(Elements.Hydrogen, hDefaultNeutrons));
+                int hIndex = finalAtoms.Count - 1;
+                finalBonds.Add(new Bond(aIdx, hIndex, BondType.Single));
+            }
+        }
+
+        return new Molecule(name ?? smiles, finalAtoms, finalBonds);
+    }
+
+    private static (Element Element, int Charge, int ExplicitH) ParseBracketAtom(string content)
+    {
+        int i = 0;
+        int len = content.Length;
+
+        while (i < len && !char.IsLetter(content[i])) i++;
+
+        int startSymbol = i;
+        if (i < len && char.IsUpper(content[i]))
+        {
+            i++;
+            if (i < len && char.IsLower(content[i])) i++;
+        }
+        else if (i < len && char.IsLower(content[i]))
+        {
+            i++;
+        }
+
+        string symbolStr = content.Substring(startSymbol, i - startSymbol);
+        if (symbolStr.Length == 1 && char.IsLower(symbolStr[0])) symbolStr = char.ToUpper(symbolStr[0]).ToString();
+
+        var element = Elements.GetBySymbol(symbolStr);
+        int explicitH = -1;
+        int charge = 0;
+
+        if (i < len && (content[i] == 'H' || content[i] == 'h'))
+        {
+            i++;
+            int startH = i;
+            while (i < len && char.IsDigit(content[i])) i++;
+            explicitH = startH == i ? 1 : int.Parse(content.Substring(startH, i - startH));
+        }
+
+        if (i < len && (content[i] is '+' or '-'))
+        {
+            char sign = content[i];
+            i++;
+            int startC = i;
+            while (i < len && char.IsDigit(content[i])) i++;
+            int val = startC == i ? 1 : int.Parse(content.Substring(startC, i - startC));
+            charge = sign == '+' ? val : -val;
+        }
+
+        return (element, charge, explicitH);
+    }
+
+    private static int GetDefaultValence(string symbol) => symbol switch
+    {
+        "C" => 4,
+        "N" => 3,
+        "O" => 2,
+        "S" => 2,
+        "P" => 3,
+        "F" or "Cl" or "Br" or "I" => 1,
+        _ => 0
+    };
+
+    public static bool TryParse(string smiles, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Molecule? molecule) =>
+        TryParse(smiles, null, out molecule, out _);
+
+    public static bool TryParse(string smiles, string? name, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Molecule? molecule, out string? errorMessage)
+    {
+        molecule = null;
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(smiles))
+        {
+            errorMessage = "SMILES string cannot be null or whitespace.";
+            return false;
+        }
+
+        try
+        {
+            molecule = Parse(smiles, name);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+            return false;
+        }
+    }
+
+    private static bool IsKnownSymbol(string symbol) => Elements.TryGetBySymbol(symbol, out _);
+}
+

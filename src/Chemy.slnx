@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Chemy.Api/Chemy.Api.csproj" />
+  <Project Path="Chemy.Core.Tests/Chemy.Core.Tests.csproj" />
+  <Project Path="Chemy.Core/Chemy.Core.csproj" />
+  <Project Path="Chemy.Web/Chemy.Web.csproj" />
+</Solution>

@@ -1,0 +1,1229 @@
+@page
+@model IndexModel
+@{
+    Layout = null;
+    ViewData["Title"] = "CHEMI.LAB // Computational Chemistry & Chemoinformatics Studio";
+}
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080c14">
+    <title>CHEMI.LAB // Computational Chemistry Workstation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --lab-bg: #070a12;
+            --lab-panel: #0f1523;
+            --lab-panel-subtle: #131b2e;
+            --lab-border: #1e293b;
+            --lab-border-subtle: #172033;
+            --lab-cyan: #38bdf8;
+            --lab-emerald: #34d399;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--lab-bg);
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+
+        code, pre, .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .lab-card {
+            background-color: var(--lab-panel);
+            border: 1px solid var(--lab-border);
+            border-radius: 0.5rem;
+        }
+
+        .lab-card-subtle {
+            background-color: var(--lab-panel-subtle);
+            border: 1px solid var(--lab-border-subtle);
+            border-radius: 0.375rem;
+        }
+
+        /* Custom Modern Scrollbars */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #070a12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #38bdf8;
+        }
+
+        .nav-btn-active {
+            background-color: #0284c7 !important;
+            color: #ffffff !important;
+            border-color: #38bdf8 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white text-xs">
+
+    <!-- ===================================================================== -->
+    <!-- 1. TOP GLOBAL NAVIGATION & TELEMETRY HEADER                           -->
+    <!-- ===================================================================== -->
+    <header class="border-b border-slate-800 bg-[#080d1a]/95 backdrop-blur px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
+        <!-- Logo & Title -->
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-r from-sky-500 to-blue-600 text-white font-extrabold px-3 py-1 rounded text-xs tracking-wider flex items-center gap-1.5 font-mono shadow-lg shadow-sky-500/20">
+                <span>⚡</span> CHEMI.LAB
+            </div>
+            <div class="h-4 w-px bg-slate-800"></div>
+            <div>
+                <h1 class="text-xs font-bold text-slate-100 tracking-wide flex items-center gap-2">
+                    COMPUTATIONAL CHEMISTRY WORKSTATION <span class="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 font-mono">v4.0 ENTERPRISE</span>
+                </h1>
+                <p class="text-[10px] text-slate-400 font-mono">ASP.NET Core 10.0 // Graph Isomorphism • MMFF Force Field • ADMET • Pure REST API</p>
+            </div>
+        </div>
+
+        <!-- Main View Switcher Tabs -->
+        <div class="hidden lg:flex items-center bg-slate-900 border border-slate-800 p-1 rounded-md font-mono text-[11px] gap-1">
+            <button onclick="switchMainView('workstation')" id="mainnav-workstation" class="nav-btn-active px-3 py-1 rounded font-semibold text-white transition flex items-center gap-1.5">
+                <span>🔬</span> 3D Workstation
+            </button>
+            <button onclick="switchMainView('docs')" id="mainnav-docs" class="px-3 py-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center gap-1.5">
+                <span>📖</span> Documentation
+            </button>
+            <button onclick="switchMainView('coderef')" id="mainnav-coderef" class="px-3 py-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center gap-1.5">
+                <span>💻</span> Code Reference
+            </button>
+            <button onclick="switchMainView('disclaimer')" id="mainnav-disclaimer" class="px-3 py-1 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition flex items-center gap-1.5">
+                <span>⚠️</span> Scientific Disclaimer
+            </button>
+        </div>
+
+        <!-- API Telemetry & Links -->
+        <div class="flex items-center space-x-3 text-[11px] font-mono">
+            <a href="http://localhost:5192/scalar/v1" target="_blank" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-sky-400 hover:border-sky-500 transition">
+                <span>Scalar API</span> ↗
+            </a>
+            <a href="http://localhost:5192/swagger" target="_blank" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 hover:border-emerald-500 transition">
+                <span>Swagger</span> ↗
+            </a>
+            <div class="flex items-center gap-2 border border-slate-800 px-2.5 py-1 rounded bg-slate-900/80">
+                <span class="w-2 h-2 rounded-full @(Model.IsApiConnected ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-rose-500")"></span>
+                <span class="font-medium text-slate-300">
+                    @(Model.IsApiConnected ? "API ONLINE (15/15)" : "DISCONNECTED")
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Nav Bar -->
+    <div class="lg:hidden bg-slate-900 border-b border-slate-800 p-2 flex overflow-x-auto gap-2 text-[11px] font-mono">
+        <button onclick="switchMainView('workstation')" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium whitespace-nowrap">🔬 Workstation</button>
+        <button onclick="switchMainView('docs')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">📖 Documentation</button>
+        <button onclick="switchMainView('coderef')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">💻 Code Reference</button>
+        <button onclick="switchMainView('disclaimer')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">⚠️ Disclaimer</button>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- 2. MAIN VIEW CONTAINER                                                -->
+    <!-- ===================================================================== -->
+    <main class="flex-1 flex flex-col p-3 gap-3">
+
+        <!-- ================================================================= -->
+        <!-- VIEW 1: 3D WORKSTATION & ANALYTICAL SUITE                         -->
+        <!-- ================================================================= -->
+        <div id="view-workstation" class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 lg:h-[calc(100vh-75px)] min-h-0">
+
+            <!-- LEFT COLUMN: 3D MOL VIEWPORT & TELEMETRY CARD (7 Cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-3 h-full min-h-0">
+                
+                <!-- 3D VIEWPORT CONTAINER -->
+                <div class="lab-card flex-1 min-h-0 flex flex-col overflow-hidden relative">
+                    <!-- Viewport Header Toolbar -->
+                    <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-10 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sky-400 font-bold font-mono">3Dmol.js</span>
+                            <span class="text-slate-600">//</span>
+                            <span class="font-bold text-slate-200">@Model.MoleculeName</span>
+                            <span class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 font-mono text-[11px]">
+                            <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500">
+                                <option value="stick">Stick (Covalent)</option>
+                                <option value="sphere">van der Waals Sphere</option>
+                                <option value="ballAndStick" selected>Ball &amp; Stick</option>
+                                <option value="wireframe">Wireframe Mesh</option>
+                            </select>
+                            <button onclick="toggleSpin()" id="spinBtn" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔄 Spin</button>
+                            <button onclick="autoFitViewer()" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium hover:bg-sky-500 transition">🎯 Center/Fit</button>
+                        </div>
+                    </div>
+
+                    <!-- WebGL Canvas Host -->
+                    <div id="viewer3d" class="flex-1 w-full h-full min-h-0 bg-[#070a14] cursor-grab active:cursor-grabbing"></div>
+
+                    <!-- Input Bar Bottom Overlay -->
+                    <div class="bg-slate-900/95 border-t border-slate-800 p-2 flex items-center gap-2 z-10 shrink-0">
+                        <form method="get" class="flex-1 flex gap-2">
+                            <input type="text" name="Formula" value="@Model.Formula" placeholder="Enter chemical formula (e.g. C6H12O6, H2O) or SMILES (e.g. CC(=O)O)..." 
+                                   class="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500" />
+                            <select name="OverrideShape" class="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-sky-500">
+                                <option value="Auto" selected="@(Model.OverrideShape == "Auto")">VSEPR: Auto</option>
+                                <option value="Linear" selected="@(Model.OverrideShape == "Linear")">Linear (180°)</option>
+                                <option value="Bent" selected="@(Model.OverrideShape == "Bent")">Bent (104.5°)</option>
+                                <option value="Trigonal Planar" selected="@(Model.OverrideShape == "Trigonal Planar")">Trigonal Planar (120°)</option>
+                                <option value="Tetrahedral" selected="@(Model.OverrideShape == "Tetrahedral")">Tetrahedral (109.5°)</option>
+                                <option value="Octahedral" selected="@(Model.OverrideShape == "Octahedral")">Octahedral (90°)</option>
+                            </select>
+                            <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded font-semibold text-xs transition flex items-center gap-1.5 font-mono">
+                                <span>⚡</span> Load 3D
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- MOLECULAR CHARACTERISTICS CARD -->
+                <div class="lab-card p-3 space-y-2 shrink-0">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
+                            <span>📊</span> Molecular Geometry &amp; Physicochemical Telemetry
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="downloadFormat('xyz')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .XYZ</button>
+                            <button onclick="downloadFormat('pdb')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .PDB</button>
+                            <button onclick="downloadFormat('mol')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-sky-400 hover:text-white hover:bg-sky-600">💾 .MOL (V2000)</button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                        <div class="lab-card-subtle p-2">
+                            <span class="text-slate-400 block text-[10px]">Hill Formula</span>
+                            <span class="text-white font-bold text-xs">@Model.ChemicalFormula</span>
+                        </div>
+                        <div class="lab-card-subtle p-2">
+                            <span class="text-slate-400 block text-[10px]">Molar Mass</span>
+                            <span class="text-sky-400 font-bold text-xs">@Model.MolecularWeight.ToString("F3") <span class="text-[10px] text-slate-400">g/mol</span></span>
+                        </div>
+                        <div class="lab-card-subtle p-2">
+                            <span class="text-slate-400 block text-[10px]">VSEPR Geometry</span>
+                            <span class="text-emerald-400 font-bold text-xs">@Model.VseprShape</span>
+                        </div>
+                        <div class="lab-card-subtle p-2">
+                            <span class="text-slate-400 block text-[10px]">Ideal Valence Angle</span>
+                            <span class="text-amber-400 font-bold text-xs">@Model.IdealBondAngleDegrees.ToString("F1")°</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 text-[10px] font-mono pt-1">
+                        <span class="text-slate-400 self-center">Functional Groups:</span>
+                        @if (Model.FunctionalGroups.Count > 0)
+                        {
+                            @foreach (var fg in Model.FunctionalGroups)
+                            {
+                                <span class="bg-sky-500/10 border border-sky-500/30 text-sky-300 px-2 py-0.5 rounded">@fg</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-slate-500 italic">None detected (Aliphatic / Hydrocarbon)</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: CATALOG & ANALYTICAL WORKSTATION (5 Cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-3 h-full min-h-0">
+                
+                <!-- TOP BLOCK: 50-COMPOUND PRESET CATALOG (USES ALL FREE SPACE) -->
+                <div class="lab-card p-3 flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 shrink-0">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
+                            <span>📚</span> Reference Compound Catalog <span class="text-[10px] text-sky-400 font-mono font-normal">(50 Compounds)</span>
+                        </h3>
+                        <input type="text" id="catalogSearchInput" oninput="filterCatalog()" placeholder="Filter compounds..." class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500 w-36" />
+                    </div>
+
+                    <!-- Category Filter Chips -->
+                    <div class="flex gap-1 overflow-x-auto pb-1 text-[10px] font-mono shrink-0">
+                        <button onclick="setCatalogCategory('all')" class="cat-chip px-2 py-0.5 rounded bg-sky-600 text-white font-medium">All</button>
+                        <button onclick="setCatalogCategory('drugs')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Drugs</button>
+                        <button onclick="setCatalogCategory('toxins')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Toxins</button>
+                        <button onclick="setCatalogCategory('solvents')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Solvents</button>
+                        <button onclick="setCatalogCategory('biomolecules')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Biomolecules</button>
+                    </div>
+
+                    <!-- Catalog Grid (Scrollable Free Space) -->
+                    <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 overflow-y-auto pr-1 flex-1 min-h-0 content-start"></div>
+                </div>
+
+                <!-- BOTTOM BLOCK: 15-ENGINE INDUSTRIAL ANALYTICAL SUITE (COMPACT, FIXED NEEDED HEIGHT) -->
+                <div class="lab-card p-3 h-[270px] shrink-0 flex flex-col space-y-2 overflow-hidden">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
+                            <span>🧪</span> Industrial Chemoinformatics Suite
+                        </h3>
+                    </div>
+
+                    <!-- Tab Buttons -->
+                    <div class="flex flex-wrap gap-1 bg-slate-950 border border-slate-800 p-1 rounded font-mono text-[10px]">
+                        <button onclick="switchToolTab('balancer')" id="ttab-balancer" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium">⚖️ Balancer</button>
+                        <button onclick="switchToolTab('thermo')" id="ttab-thermo" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🔥 Thermo</button>
+                        <button onclick="switchToolTab('ph')" id="ttab-ph" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🧪 pH/Buffer</button>
+                        <button onclick="switchToolTab('nernst')" id="ttab-nernst" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚡ Nernst</button>
+                        <button onclick="switchToolTab('kinetics')" id="ttab-kinetics" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⏱️ Kinetics</button>
+                        <button onclick="switchToolTab('spec')" id="ttab-spec" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">📉 NMR/IR</button>
+                        <button onclick="switchToolTab('forcefield')" id="ttab-forcefield" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚛️ Force Field</button>
+                        <button onclick="switchToolTab('pubchem')" id="ttab-pubchem" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🌐 PubChem</button>
+                        <button onclick="switchToolTab('evolver')" id="ttab-evolver" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🧬 Evolver</button>
+                        <button onclick="switchToolTab('admet')" id="ttab-admet" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🛡️ ADMET</button>
+                        <button onclick="switchToolTab('ecoclean')" id="ttab-ecoclean" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">♻️ EcoClean</button>
+                    </div>
+
+                    <!-- Tool Contents Panes -->
+                    <div id="toolPanesContainer" class="flex-1 overflow-y-auto min-h-[220px]">
+                        
+                        <!-- TAB 1: REACTION BALANCER -->
+                        <div id="pane-balancer" class="space-y-2">
+                            <div class="flex gap-2">
+                                <input type="text" id="balancerEquationInput" value="Fe + O2 -> Fe2O3" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
+                                <button onclick="runBalancer()" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 font-semibold text-white font-mono text-xs">Balance</button>
+                            </div>
+                            <div id="balancerOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 min-h-[80px]">
+                                Click 'Balance' to solve stoichiometric coefficients via exact rational Gaussian elimination nullspace reduction.
+                            </div>
+                        </div>
+
+                        <!-- TAB 2: THERMODYNAMICS -->
+                        <div id="pane-thermo" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="thermoEquationInput" value="CH4 + 2O2 -> CO2 + 2H2O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
+                                <input type="number" id="thermoTempInput" value="298.15" class="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Temp (K)" />
+                                <button onclick="runThermo()" class="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 font-semibold text-white font-mono text-xs">Calculate</button>
+                            </div>
+                            <div id="thermoOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Evaluates Hess's Law enthalpy (ΔH°), entropy (ΔS°), and Gibbs free energy (ΔG°(T)) with Benson Group Additivity fallback.
+                            </div>
+                        </div>
+
+                        <!-- TAB 3: pH & BUFFER -->
+                        <div id="pane-ph" class="space-y-2 hidden">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" id="phConcInput" value="0.05" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Acid Conc (M)" />
+                                <input type="number" id="phKaInput" value="1.8e-5" step="1e-6" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Ka (optional)" />
+                                <button onclick="runPh()" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white font-mono text-xs">Solve pH</button>
+                            </div>
+                            <div id="phOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Calculates pH, pOH, [H⁺], [OH⁻], and Henderson-Hasselbalch buffer equilibria.
+                            </div>
+                        </div>
+
+                        <!-- TAB 4: NERNST ELECTROCHEMISTRY -->
+                        <div id="pane-nernst" class="space-y-2 hidden">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" id="nernstE0Input" value="1.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="E° (V)" />
+                                <input type="number" id="nernstNInput" value="2" step="1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Electrons n" />
+                                <button onclick="runNernst()" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 font-semibold text-white font-mono text-xs">Solve Nernst</button>
+                            </div>
+                            <div id="nernstOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Computes non-standard cell potential E_cell = E° - (RT/nF)ln(Q).
+                            </div>
+                        </div>
+
+                        <!-- TAB 5: KINETICS RK4 -->
+                        <div id="pane-kinetics" class="space-y-2 hidden">
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="number" id="kinK1Input" value="0.5" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k1 (s⁻¹)" />
+                                <input type="number" id="kinK2Input" value="0.2" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k2 (s⁻¹)" />
+                                <button onclick="runKinetics()" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 font-semibold text-white font-mono text-xs">Simulate RK4</button>
+                            </div>
+                            <div id="kineticsOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                4th-Order Runge-Kutta numerical differential equation integrator for consecutive reaction cascades (A -> B -> C).
+                            </div>
+                        </div>
+
+                        <!-- TAB 6: SPECTROSCOPY NMR/IR -->
+                        <div id="pane-spec" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="specFormulaInput" value="@Model.ChemicalFormula" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
+                                <button onclick="runSpectroscopy()" class="px-3 py-1 rounded bg-fuchsia-600 hover:bg-fuchsia-500 font-semibold text-white font-mono text-xs">Predict Spectrum</button>
+                            </div>
+                            <div id="specOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Predicts ¹H-NMR, ¹³C-NMR chemical shifts (δ ppm), and Infrared (IR) absorption frequency bands.
+                            </div>
+                        </div>
+
+                        <!-- TAB 7: FORCE FIELD (UFF/MMFF) -->
+                        <div id="pane-forcefield" class="space-y-2 hidden">
+                            <div class="flex items-center justify-between">
+                                <span class="text-slate-400 font-mono text-[11px]">4-Term Molecular Mechanics Potential (Bond, Angle, Torsion, vdW)</span>
+                                <button onclick="runForceField()" class="px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 font-semibold text-white font-mono text-xs">Relax 3D Coordinates</button>
+                            </div>
+                            <div id="forcefieldOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Performs steepest-descent geometric relaxation to relieve steric clashes and optimize 3D Cartesian coordinates.
+                            </div>
+                        </div>
+
+                        <!-- TAB 8: NCBI PUBCHEM CLOUD -->
+                        <div id="pane-pubchem" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="pubchemQueryInput" value="Aspirin" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Compound name or CID..." />
+                                <button onclick="runPubChem()" class="px-3 py-1 rounded bg-teal-600 hover:bg-teal-500 font-semibold text-white font-mono text-xs">Search PubChem</button>
+                            </div>
+                            <div id="pubchemOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
+                                Live queries NCBI PubChem database (110M+ real compounds) for CID, IUPAC Name, SMILES, and InChIKeys.
+                            </div>
+                        </div>
+
+                        <!-- TAB 9: DE NOVO BIOISOSTERIC EVOLVER -->
+                        <div id="pane-evolver" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="evolverInput" value="CC(=O)Oc1ccccc1C(=O)O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="SMILES or Formula..." />
+                                <button onclick="runEvolver()" class="px-3 py-1 rounded bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 font-semibold text-white font-mono text-xs">Evolve 5 Leads</button>
+                            </div>
+                            <div id="evolverOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
+                                Executes topological graph transformations: tetrazole substitution, fluorine shields, azetidines, and deuterium stabilization.
+                            </div>
+                        </div>
+
+                        <!-- TAB 10: ADMET & DRUG SAFETY SHIELD -->
+                        <div id="pane-admet" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="admetInput" value="CC(=O)Oc1ccccc1C(=O)O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="SMILES or Formula..." />
+                                <button onclick="runAdmet()" class="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 font-semibold text-white font-mono text-xs">Screen Safety</button>
+                            </div>
+                            <div id="admetOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
+                                Evaluates Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber oral bioavailability rules, and Ghose filter.
+                            </div>
+                        </div>
+
+                        <!-- TAB 11: ECOCLEAN PFAS & PLASTIC SOLVER -->
+                        <div id="pane-ecoclean" class="space-y-2 hidden">
+                            <div class="flex gap-2">
+                                <input type="text" id="ecocleanInput" value="PFOA C8HF15O2" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Pollutant or SMILES..." />
+                                <button onclick="runEcoClean()" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white font-mono text-xs">Solve Cascade</button>
+                            </div>
+                            <div id="ecocleanOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
+                                Calculates Bond Dissociation Energies (BDE in kcal/mol) and generates 3-step catalytic mineralization pathways.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- VIEW 2: DOCUMENTATION VIEWER                                      -->
+        <!-- ================================================================= -->
+        <div id="view-docs" class="hidden lab-card flex-1 flex flex-col overflow-hidden">
+            <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-10">
+                <div class="flex items-center gap-2">
+                    <span class="text-sky-400 font-bold font-mono">CHEMI.DOCS</span>
+                    <span class="text-slate-600">//</span>
+                    <span class="font-semibold text-slate-200" id="currentDocTitle">API Reference Manual</span>
+                </div>
+                <div class="flex gap-1.5 font-mono text-[11px]">
+                    <button onclick="loadDoc('api')" id="docbtn-api" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium shadow-sm transition">📘 API Reference</button>
+                    <button onclick="loadDoc('benchmarks')" id="docbtn-benchmarks" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🧪 Verification Suite</button>
+                    <button onclick="loadDoc('showcase')" id="docbtn-showcase" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔬 Breakthroughs</button>
+                    <button onclick="loadDoc('arch')" id="docbtn-arch" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Architecture</button>
+                    <button onclick="loadDoc('started')" id="docbtn-started" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🚀 Getting Started</button>
+                    <button onclick="loadDoc('science')" id="docbtn-science" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">⚛️ Principles</button>
+                </div>
+            </div>
+            <div id="docContentHost" class="flex-1 p-8 overflow-y-auto prose prose-invert prose-sky max-w-none text-xs leading-relaxed font-sans prose-h1:text-2xl prose-h1:font-extrabold prose-h1:text-sky-400 prose-h1:border-b prose-h1:border-slate-800/80 prose-h1:pb-3 prose-h2:text-lg prose-h2:font-bold prose-h2:text-slate-100 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-sky-300 prose-p:text-slate-300 prose-p:text-xs prose-p:leading-relaxed prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline prose-code:text-sky-300 prose-code:bg-slate-950/80 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-slate-800 prose-code:font-mono prose-pre:bg-[#070b18] prose-pre:border prose-pre:border-slate-800/80 prose-pre:rounded-lg prose-pre:shadow-xl prose-table:border prose-table:border-slate-800/80 prose-table:rounded-lg prose-table:overflow-hidden prose-th:bg-slate-900/90 prose-th:text-sky-400 prose-th:px-3 prose-th:py-2 prose-td:border-t prose-td:border-slate-800/80 prose-td:px-3 prose-td:py-2 prose-td:text-slate-300">
+                <!-- Rendered Markdown documentation appears here -->
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- VIEW 3: INTERACTIVE CODE REFERENCE & SOURCE COMMENT EXPLORER     -->
+        <!-- ================================================================= -->
+        <div id="view-coderef" class="hidden lab-card flex-1 flex flex-col overflow-hidden p-4 space-y-4">
+            <!-- Header & View Switcher -->
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
+                        <span>💻</span> C# Class Docstring &amp; Reflection API Explorer
+                    </h2>
+                    <p class="text-slate-400 text-[11px] font-mono">Dynamically extracted from <code class="text-sky-400">/// &lt;summary&gt;</code> source code comments across Chemy.Core assemblies (@Model.ClassDocumentationList.Count Classes Loaded).</p>
+                </div>
+                <div class="flex items-center gap-2 font-mono text-[11px]">
+                    <input type="text" id="codeRefSearchInput" onkeyup="filterCodeRef()" placeholder="Search classes, methods, or doc comments..." 
+                           class="bg-slate-950 border border-slate-800 rounded px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 w-64" />
+                    <button onclick="setCodeRefSubView('classes')" id="crsub-classes" class="px-3 py-1 rounded bg-sky-600 text-white font-medium">Class Docstrings</button>
+                    <button onclick="setCodeRefSubView('snippets')" id="crsub-snippets" class="px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">SDK Snippets &amp; cURL</button>
+                </div>
+            </div>
+
+            <!-- SUB-VIEW 1: Extracted C# Class XML Comments Browser -->
+            <div id="crpane-classes" class="space-y-3 overflow-y-auto flex-1 pr-1">
+                @foreach (var cls in Model.ClassDocumentationList)
+                {
+                    <div class="coderef-class-card lab-card-subtle p-3.5 space-y-2.5 border-slate-800/80 hover:border-sky-500/40 transition" 
+                         data-name="@cls.Name.ToLower()" data-namespace="@cls.Namespace.ToLower()" data-summary="@cls.Summary.ToLower()">
+                        
+                        <!-- Class Header -->
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-bold text-sky-400 font-mono">class @cls.Name</span>
+                                    <span class="text-[10px] font-mono text-slate-500">namespace @cls.Namespace</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1 leading-relaxed">@cls.Summary</p>
+                            </div>
+                            <span class="text-[10px] font-mono bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 whitespace-nowrap">@cls.Category</span>
+                        </div>
+
+                        <!-- Class Properties (if any) -->
+                        @if (cls.Properties.Any())
+                        {
+                            <div class="border-t border-slate-800/60 pt-2 space-y-1">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Properties (@cls.Properties.Count)</span>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                    @foreach (var p in cls.Properties)
+                                    {
+                                        <div class="bg-slate-950/70 p-1.5 rounded border border-slate-800/60 text-[11px]">
+                                            <code class="text-emerald-400 font-mono font-semibold">@p.Signature</code>
+                                            <p class="text-[10px] text-slate-400 truncate mt-0.5">@p.Summary</p>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Class Methods (if any) -->
+                        @if (cls.Methods.Any())
+                        {
+                            <div class="border-t border-slate-800/60 pt-2 space-y-1.5">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Methods (@cls.Methods.Count)</span>
+                                <div class="space-y-1.5">
+                                    @foreach (var m in cls.Methods)
+                                    {
+                                        <div class="bg-slate-950/90 p-2 rounded border border-slate-800/80 font-mono text-[11px] space-y-1">
+                                            <div class="flex items-center justify-between">
+                                                <code class="text-sky-300 font-bold">@m.Signature</code>
+                                                <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded">method</span>
+                                            </div>
+                                            <p class="text-[11px] text-slate-300 font-sans">@m.Summary</p>
+                                            
+                                            @if (m.Parameters != null && m.Parameters.Any())
+                                            {
+                                                <div class="text-[10px] text-slate-400 font-sans pt-0.5 flex flex-wrap gap-1">
+                                                    <span class="font-bold text-slate-500 font-mono">Params:</span>
+                                                    @foreach (var (paramName, paramDesc) in m.Parameters)
+                                                    {
+                                                        <span class="bg-slate-900 border border-slate-800 text-slate-300 px-1.5 py-0.5 rounded">
+                                                            <strong class="text-sky-400 font-mono">@paramName:</strong> @paramDesc
+                                                        </span>
+                                                    }
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(m.Returns))
+                                            {
+                                                <div class="text-[10px] text-emerald-400/90 font-sans pt-0.5">
+                                                    <strong>Returns:</strong> @m.Returns
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <!-- SUB-VIEW 2: Ready-to-Use SDK Code Snippets & cURL Commands -->
+            <div id="crpane-snippets" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto flex-1 pr-1">
+                <!-- Card 1: Graph Substructure Rewriting -->
+                <div class="lab-card-subtle p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-sky-400 font-mono">1. Graph Substructure &amp; Rewriting</span>
+                        <button onclick="copyCode('code-graph')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
+                    </div>
+                    <pre id="code-graph" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+var graph = ChemicalGraph.FromMolecule(aspirin);
+var matches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylicAcidQuery);
+var tetrazoleLead = GraphRewriter.ReplaceCarboxylWithTetrazole(aspirin);</code></pre>
+                </div>
+
+                <!-- Card 2: 4-Term MMFF Force Field -->
+                <div class="lab-card-subtle p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-emerald-400 font-mono">2. 4-Term Force Field Relaxation</span>
+                        <button onclick="copyCode('code-ff')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
+                    </div>
+                    <pre id="code-ff" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var water3D = Molecule.Water.To3D();
+var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 50);
+Console.WriteLine($"Energy: {result.FinalEnergyKcalPerMol} kcal/mol (Converged: {result.Converged})");</code></pre>
+                </div>
+
+                <!-- Card 3: Ertl TPSA & ADMET -->
+                <div class="lab-card-subtle p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-rose-400 font-mono">3. Ertl TPSA &amp; Veber Screening</span>
+                        <button onclick="copyCode('code-admet')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
+                    </div>
+                    <pre id="code-admet" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var admet = AdmetEngine.Analyze(aspirin);
+Console.WriteLine($"TPSA: {admet.TpsaAngstrom2} Å² | Veber: {admet.PassesVeberRules}");
+Console.WriteLine($"Lipinski Violations: {admet.LipinskiViolations} (Passes: {admet.PassesLipinskiRuleOf5})");</code></pre>
+                </div>
+
+                <!-- Card 4: EcoClean PFAS Cleavage -->
+                <div class="lab-card-subtle p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-amber-400 font-mono">4. EcoClean PFAS Mineralization</span>
+                        <button onclick="copyCode('code-eco')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
+                    </div>
+                    <pre id="code-eco" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var cascade = EcoCleanEngine.SolveDegradationCascade("PFOA C8HF15O2");
+Console.WriteLine($"Mineralization Efficiency: {cascade.TotalMineralizationEfficiencyPercent}%");
+Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- VIEW 4: SCIENTIFIC & LEGAL DISCLAIMER                             -->
+        <!-- ================================================================= -->
+        <div id="view-disclaimer" class="hidden lab-card flex-1 flex flex-col p-6 space-y-4 overflow-y-auto">
+            <div class="border-b border-slate-800 pb-3 flex items-center gap-3">
+                <span class="text-2xl">⚠️</span>
+                <div>
+                    <h2 class="text-base font-bold text-white uppercase tracking-wide">Scientific, Pharmaceutical &amp; Legal Disclaimer</h2>
+                    <p class="text-slate-400 text-xs font-mono">Important regulatory and laboratory safety disclosures regarding computational in silico simulations.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs leading-relaxed text-slate-300">
+                <div class="lab-card-subtle p-4 space-y-2 border-amber-500/20 bg-amber-500/5">
+                    <h3 class="font-bold text-amber-400 flex items-center gap-2">
+                        <span>🧪</span> 1. In Silico Computational Hypothesis Notice
+                    </h3>
+                    <p>
+                        All outputs generated by Chemy (including ADMET safety profiles, Quantitative Estimate of Drug-Likeness scores, bioisosteric evolver candidates, and predicted bond cleavage cascades) are <strong>purely mathematical in silico approximations</strong>.
+                    </p>
+                    <p>
+                        They do <strong>not</strong> constitute biological efficacy, pharmacokinetic guarantee, or clinical proof. No compound should ever be administered to humans or animals without rigorous wet-lab chemical synthesis, in vitro bioassays, in vivo toxicology, and authorized regulatory review (e.g. US FDA, EMA).
+                    </p>
+                </div>
+
+                <div class="lab-card-subtle p-4 space-y-2 border-sky-500/20 bg-sky-500/5">
+                    <h3 class="font-bold text-sky-400 flex items-center gap-2">
+                        <span>🛡️</span> 2. Chemical Safety &amp; Hazardous Material Handling
+                    </h3>
+                    <p>
+                        Certain compounds cataloged in this software (such as Perfluoroalkyl Substances/PFAS, organophosphates, cocaine, and industrial xenobiotics) represent severe environmental bioaccumulators or dangerous controlled substances.
+                    </p>
+                    <p>
+                        Calculated degradation cascades and chemical reactions must only be conducted by certified chemists in licensed laboratory facilities equipped with proper fume hoods, personal protective equipment (PPE), and regulated hazardous waste containment protocols.
+                    </p>
+                </div>
+
+                <div class="lab-card-subtle p-4 space-y-2 border-emerald-500/20 bg-emerald-500/5">
+                    <h3 class="font-bold text-emerald-400 flex items-center gap-2">
+                        <span>⚖️</span> 3. Intellectual Property &amp; Patentability
+                    </h3>
+                    <p>
+                        Molecules generated via the Bioisosteric Evolver engine are constructed using public-domain chemical graph transformations. Chemy makes no claim regarding the patentability, freedom-to-operate (FTO), or novelty of generated chemical structures.
+                    </p>
+                </div>
+
+                <div class="lab-card-subtle p-4 space-y-2 border-purple-500/20 bg-purple-500/5">
+                    <h3 class="font-bold text-purple-400 flex items-center gap-2">
+                        <span>📜</span> 4. Open-Source MIT License Terms
+                    </h3>
+                    <p>
+                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Hidden Coordinate Data for 3D Viewer & Exporters -->
+    <textarea id="rawPdbData" class="hidden">@Model.PdbContent</textarea>
+    <textarea id="rawXyzData" class="hidden">@Model.XyzContent</textarea>
+
+    <!-- ===================================================================== -->
+    <!-- 3. COMPREHENSIVE WORKSTATION SCRIPT                                   -->
+    <!-- ===================================================================== -->
+    <script>
+        // --------------------------------------------------------------------
+        // Global State & 3D Viewer Initialization
+        // --------------------------------------------------------------------
+        let viewer = null;
+        let isSpinning = false;
+        let activeCategory = 'all';
+        let activeTool = 'balancer';
+
+        // 50-Compound Preset Database
+        const catalogData = [
+            { name: "Water", formula: "H2O", category: "solvents", tags: "Polar solvent" },
+            { name: "Methane", formula: "CH4", category: "organics", tags: "Hydrocarbon" },
+            { name: "Carbon Dioxide", formula: "CO2", category: "inorganics", tags: "Greenhouse gas" },
+            { name: "Aspirin", formula: "CC(=O)Oc1ccccc1C(=O)O", category: "drugs", tags: "NSAID Analgesic" },
+            { name: "Caffeine", formula: "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", category: "drugs", tags: "CNS Stimulant" },
+            { name: "Paracetamol", formula: "CC(=O)Nc1ccc(O)cc1", category: "drugs", tags: "Analgesic" },
+            { name: "Ibuprofen", formula: "CC(C)Cc1ccc(cc1)C(C)C(=O)O", category: "drugs", tags: "NSAID Anti-inflammatory" },
+            { name: "Cocaine", formula: "CN1C2CCC1C(C(=O)OC)C(OC(=O)c1ccccc1)C2", category: "toxins", tags: "Tropane Alkaloid" },
+            { name: "Morphine", formula: "CN1CCC23C4C1CC5=C2C(=C(C=C5)O)OC3C(C=C4)O", category: "drugs", tags: "Opioid Analgesic" },
+            { name: "PFOA (PFAS)", formula: "C8HF15O2", category: "toxins", tags: "Forever Chemical" },
+            { name: "PFOS (PFAS)", formula: "C8HF17O3S", category: "toxins", tags: "Perfluorooctanesulfonate" },
+            { name: "Glucose", formula: "C6H12O6", category: "biomolecules", tags: "Carbohydrate Sugar" },
+            { name: "ATP", formula: "C10H16N5O13P3", category: "biomolecules", tags: "Cellular Energy" },
+            { name: "Ethanol", formula: "CCO", category: "solvents", tags: "Alcohol" },
+            { name: "Acetone", formula: "CC(=O)C", category: "solvents", tags: "Ketone Solvent" },
+            { name: "Benzene", formula: "c1ccccc1", category: "organics", tags: "Aromatic Ring" },
+            { name: "PET Monomer", formula: "C10H8O4", category: "polymers", tags: "Plastic Precursor" },
+            { name: "Nicotine", formula: "CN1CCCC1c1cccnc1", category: "toxins", tags: "Alkaloid Stimulant" },
+            { name: "Sulfuric Acid", formula: "H2SO4", category: "inorganics", tags: "Mineral Acid" },
+            { name: "Ammonia", formula: "NH3", category: "inorganics", tags: "Hydride Base" }
+        ];
+
+        window.addEventListener('DOMContentLoaded', () => {
+            init3DViewer();
+            renderCatalog();
+            loadDoc('api');
+        });
+
+        window.addEventListener('resize', () => {
+            if (viewer) {
+                viewer.resize();
+                viewer.zoomTo();
+                viewer.render();
+            }
+        });
+
+        function init3DViewer() {
+            const host = document.getElementById('viewer3d');
+            if (!host) return;
+
+            const config = { backgroundColor: '#070a14', antialias: true };
+            viewer = $3Dmol.createViewer(host, config);
+
+            const pdb = document.getElementById('rawPdbData').value;
+            const xyz = document.getElementById('rawXyzData').value;
+
+            if (xyz && xyz.trim().length > 5) {
+                viewer.addModel(xyz, 'xyz');
+            } else if (pdb && pdb.trim().length > 10) {
+                viewer.addModel(pdb, 'pdb');
+            } else {
+                viewer.addModel("3\nWater\nO 0 0 0\nH 0 0.75 0.6\nH 0 -0.75 0.6", 'xyz');
+            }
+
+            changeRenderStyle();
+            autoFitViewer();
+            setTimeout(() => autoFitViewer(), 100);
+        }
+
+        function changeRenderStyle() {
+            if (!viewer) return;
+            const style = document.getElementById('renderStyleSelect').value;
+            viewer.setStyle({}, {});
+
+            if (style === 'stick') {
+                viewer.setStyle({}, { stick: { radius: 0.18, colorscheme: 'Jmol' } });
+            } else if (style === 'sphere') {
+                viewer.setStyle({}, { sphere: { scale: 0.75, colorscheme: 'Jmol' } });
+            } else if (style === 'wireframe') {
+                viewer.setStyle({}, { line: { linewidth: 2, colorscheme: 'Jmol' } });
+            } else {
+                // Ball & Stick
+                viewer.setStyle({}, { stick: { radius: 0.14, colorscheme: 'Jmol' }, sphere: { scale: 0.28, colorscheme: 'Jmol' } });
+            }
+            viewer.render();
+        }
+
+        function toggleSpin() {
+            if (!viewer) return;
+            isSpinning = !isSpinning;
+            viewer.spin(isSpinning ? "y" : false, 1.0);
+            document.getElementById('spinBtn').classList.toggle('bg-sky-600', isSpinning);
+        }
+
+        function autoFitViewer() {
+            if (!viewer) return;
+            viewer.resize();
+            viewer.zoomTo();
+            viewer.render();
+        }
+
+        // --------------------------------------------------------------------
+        // Main View Switcher (Workstation / Docs / CodeRef / Disclaimer)
+        // --------------------------------------------------------------------
+        function switchMainView(viewName) {
+            ['workstation', 'docs', 'coderef', 'disclaimer'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                const navBtn = document.getElementById(`mainnav-${v}`);
+                if (navBtn) navBtn.classList.remove('nav-btn-active');
+            });
+
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            const activeNav = document.getElementById(`mainnav-${viewName}`);
+            if (activeNav) activeNav.classList.add('nav-btn-active');
+
+            if (viewName === 'workstation') {
+                setTimeout(() => autoFitViewer(), 50);
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // Catalog Renderer & Category Filtering
+        // --------------------------------------------------------------------
+        function renderCatalog() {
+            const grid = document.getElementById('catalogGrid');
+            const search = (document.getElementById('catalogSearchInput').value || '').toLowerCase();
+            grid.innerHTML = '';
+
+            const filtered = catalogData.filter(c => {
+                const matchCat = (activeCategory === 'all' || c.category === activeCategory);
+                const matchSearch = c.name.toLowerCase().includes(search) || c.formula.toLowerCase().includes(search) || c.tags.toLowerCase().includes(search);
+                return matchCat && matchSearch;
+            });
+
+            filtered.forEach(c => {
+                const btn = document.createElement('a');
+                btn.href = `/?Formula=${encodeURIComponent(c.formula)}`;
+                btn.className = "bg-[#0b101d] hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 p-1.5 rounded transition text-left block group";
+                btn.innerHTML = `
+                    <div class="font-bold text-slate-200 group-hover:text-sky-300 truncate text-[11px]">${c.name}</div>
+                    <div class="text-[10px] font-mono text-slate-500 truncate">${c.formula}</div>
+                `;
+                grid.appendChild(btn);
+            });
+        }
+
+        function filterCatalog() {
+            renderCatalog();
+        }
+
+        function setCatalogCategory(cat) {
+            activeCategory = cat;
+            document.querySelectorAll('.cat-chip').forEach(b => {
+                b.classList.remove('bg-sky-600', 'text-white');
+                b.classList.add('bg-slate-800', 'text-slate-300');
+            });
+            event.target.classList.add('bg-sky-600', 'text-white');
+            event.target.classList.remove('bg-slate-800', 'text-slate-300');
+            renderCatalog();
+        }
+
+        // --------------------------------------------------------------------
+        // Tool Tabs Switcher (Balancer, Thermo, pH, etc.)
+        // --------------------------------------------------------------------
+        function switchToolTab(tabName) {
+            activeTool = tabName;
+            const tabs = ['balancer', 'thermo', 'ph', 'nernst', 'kinetics', 'spec', 'forcefield', 'pubchem', 'evolver', 'admet', 'ecoclean'];
+            
+            tabs.forEach(t => {
+                const pane = document.getElementById(`pane-${t}`);
+                const btn = document.getElementById(`ttab-${t}`);
+                if (pane) pane.classList.add('hidden');
+                if (btn) {
+                    btn.classList.remove('bg-sky-600', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            const targetPane = document.getElementById(`pane-${tabName}`);
+            const targetBtn = document.getElementById(`ttab-${tabName}`);
+            if (targetPane) targetPane.classList.remove('hidden');
+            if (targetBtn) {
+                targetBtn.classList.add('bg-sky-600', 'text-white');
+                targetBtn.classList.remove('bg-slate-800', 'text-slate-300');
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // API Execution Handlers (15 Microservice REST Endpoints)
+        // --------------------------------------------------------------------
+        async function runBalancer() {
+            const eq = document.getElementById('balancerEquationInput').value;
+            const out = document.getElementById('balancerOutput');
+            out.innerHTML = '<span class="text-sky-400">Computing exact rational nullspace...</span>';
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/reactions/balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ equation: eq })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-emerald-400 font-bold">Balanced: ${data.balanced}</div>
+                        <div class="text-slate-400 text-[10px] pt-1">Reactants: ${data.reactants.map(r => r.coefficient + r.chemicalFormula).join(' + ')} -> Products: ${data.products.map(p => p.coefficient + p.chemicalFormula).join(' + ')}</div>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Failed to balance'}</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">Unable to reach Chemy.Api (http://localhost:5192). Ensure API service is running.</span>';
+            }
+        }
+
+        async function runThermo() {
+            const eq = document.getElementById('thermoEquationInput').value;
+            const temp = parseFloat(document.getElementById('thermoTempInput').value) || 298.15;
+            const out = document.getElementById('thermoOutput');
+            out.innerHTML = '<span class="text-amber-400">Computing Hess Law enthalpy & Gibbs free energy...</span>';
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/reactions/thermodynamics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ equation: eq, temperatureKelvin: temp })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="font-bold ${data.isExothermic ? 'text-amber-400' : 'text-sky-400'}">ΔH° = ${data.enthalpyChangekJ} kJ/mol (${data.isExothermic ? 'Exothermic' : 'Endothermic'})</div>
+                        <div class="text-slate-300">ΔS° = ${data.entropyChangeJPerK} J/(mol·K) | ΔG°(${temp}K) = ${data.gibbsFreeEnergykJ} kJ/mol</div>
+                        <div class="text-[10px] ${data.isSpontaneous ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Spontaneity: ${data.isSpontaneous ? 'Spontaneous Thermodynamic Reaction' : 'Non-Spontaneous'}</div>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runPh() {
+            const conc = parseFloat(document.getElementById('phConcInput').value) || 0.05;
+            const ka = parseFloat(document.getElementById('phKaInput').value);
+            const out = document.getElementById('phOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/solutions/ph', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ concentrationMolar: conc, acidDissociationConstantKa: ka || null })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-emerald-400 font-bold">pH: ${data.ph.toFixed(2)} | pOH: ${data.poh.toFixed(2)}</div>
+                        <div class="text-slate-300">[H⁺] = ${data.hConcentrationMolar.toExponential(3)} M | [OH⁻] = ${data.ohConcentrationMolar.toExponential(3)} M</div>
+                        <div class="text-[10px] text-slate-400 font-semibold">Classification: ${data.isAcidic ? 'Acidic Solution (pH < 7.0)' : data.isBasic ? 'Basic Solution' : 'Neutral'}</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runNernst() {
+            const e0 = parseFloat(document.getElementById('nernstE0Input').value) || 1.10;
+            const n = parseInt(document.getElementById('nernstNInput').value) || 2;
+            const out = document.getElementById('nernstOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/electrochemistry/nernst', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ standardCellPotentialVolts: e0, electronsTransferred: n, reactionQuotientQ: 0.01, temperatureKelvin: 298.15 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-sky-400 font-bold">E_cell: ${data.cellPotentialVolts.toFixed(3)} V (E° = ${data.standardCellPotentialVolts} V)</div>
+                        <div class="text-[10px] ${data.isSpontaneousGalvanic ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Galvanic Spontaneity: ${data.isSpontaneousGalvanic ? 'Spontaneous Galvanic Discharge' : 'Electrolytic Cell'}</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runKinetics() {
+            const k1 = parseFloat(document.getElementById('kinK1Input').value) || 0.5;
+            const k2 = parseFloat(document.getElementById('kinK2Input').value) || 0.2;
+            const out = document.getElementById('kineticsOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/kinetics/network', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ initialConcA: 1.0, k1, k2, totalTime: 10.0, steps: 20 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    const last = data.points[data.points.length - 1];
+                    out.innerHTML = `
+                        <div class="text-indigo-400 font-bold">RK4 Cascade Simulation (A -> B -> C)</div>
+                        <div class="text-slate-300">k1 = ${data.rateConstantK1} s⁻¹ | k2 = ${data.rateConstantK2} s⁻¹</div>
+                        <div class="text-[10px] text-slate-400">Final (t=10s): [A] = ${last.concentrationA.toFixed(3)}M, [B] = ${last.concentrationB.toFixed(3)}M, [C] = ${last.concentrationC.toFixed(3)}M</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runSpectroscopy() {
+            const form = document.getElementById('specFormulaInput').value;
+            const out = document.getElementById('specOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/spectroscopy/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formula: form })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-fuchsia-400 font-bold">Predicted Spectroscopy for ${data.formula}</div>
+                        <div class="text-[11px] text-slate-300">¹H-NMR: ${data.h1NmrPeaks.map(p => `${p.chemicalShiftPpm} ppm (${p.multiplet})`).join(', ') || 'None'}</div>
+                        <div class="text-[11px] text-slate-300">¹³C-NMR: ${data.c13NmrPeaks.map(p => `${p.chemicalShiftPpm} ppm`).join(', ') || 'None'}</div>
+                        <div class="text-[10px] text-slate-400">IR Bands: ${data.irBands.map(b => `${b.waveNumberCm1} cm⁻¹ (${b.vibrationType})`).join(', ')}</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runForceField() {
+            const out = document.getElementById('forcefieldOutput');
+            out.innerHTML = '<span class="text-purple-400">Minimizing 4-term potential energy...</span>';
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/physics/minimize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formula: "@Model.ChemicalFormula", maxIterations: 50 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-purple-400 font-bold">Force Field Minimization: ${data.converged ? 'Converged' : 'Finished'}</div>
+                        <div class="text-slate-300">Initial: ${data.initialEnergyKcalPerMol} kcal/mol -> Relaxed: ${data.finalEnergyKcalPerMol} kcal/mol</div>
+                        <div class="text-[10px] text-slate-400">Iterations: ${data.iterations} steps (Bond stretch, angle bend, dihedral & vdW optimized)</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runPubChem() {
+            const q = document.getElementById('pubchemQueryInput').value;
+            const out = document.getElementById('pubchemOutput');
+            out.innerHTML = '<span class="text-teal-400">Querying NCBI PubChem REST API...</span>';
+
+            try {
+                const res = await fetch(`http://localhost:5192/api/v1/cloud/pubchem/${encodeURIComponent(q)}`);
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-teal-400 font-bold">NCBI PubChem CID: ${data.cid} (${data.iupacName})</div>
+                        <div class="text-slate-300 text-[10px]">Formula: ${data.molecularFormula} | MW: ${data.molecularWeight} g/mol</div>
+                        <div class="text-slate-400 text-[10px] truncate">SMILES: ${data.canonicalSmiles}</div>
+                        <a href="/?Formula=${encodeURIComponent(data.canonicalSmiles)}" class="text-sky-400 underline text-[10px]">Load into 3D Viewport ↗</a>
+                    `;
+                } else {
+                    out.innerHTML = `<span class="text-rose-400">PubChem compound not found.</span>`;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runEvolver() {
+            const inp = document.getElementById('evolverInput').value;
+            const out = document.getElementById('evolverOutput');
+            out.innerHTML = '<span class="text-sky-400">Executing bioisosteric graph mutations...</span>';
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/evolution/evolve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: inp, generations: 50 })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-sky-400 font-bold pb-1">Baseline QED: ${data.baselineQed.toFixed(2)} (${data.candidates.length} Evolved Leads)</div>
+                        ${data.candidates.map(c => `
+                            <div class="border-t border-slate-800 pt-1 mt-1">
+                                <div class="text-slate-200 font-bold">${c.candidateName} <span class="text-emerald-400">(QED: ${c.qedScore.toFixed(2)})</span></div>
+                                <div class="text-slate-400 text-[10px]">${c.rationale}</div>
+                                <div class="text-emerald-400/90 text-[10px]">Safety: ${c.toxicityImprovement}</div>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runAdmet() {
+            const inp = document.getElementById('admetInput').value;
+            const out = document.getElementById('admetOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/pharmacology/admet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ formula: inp })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-rose-400 font-bold">ADMET &amp; Safety Profile for ${data.formula}</div>
+                        <div class="text-slate-300">MW: ${data.molecularWeight} g/mol | LogP: ${data.calculatedLogP} | Ertl TPSA: ${data.tpsaAngstrom2} Å²</div>
+                        <div class="text-[10px] ${data.passesLipinskiRuleOf5 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Rule of 5: ${data.passesLipinskiRuleOf5 ? 'Passes Lipinski' : 'Violates Rule of 5'} (${data.lipinskiViolations} violations)</div>
+                        <div class="text-[10px] text-slate-400">Veber Rules: ${data.passesVeberRules ? 'Compliant' : 'Non-compliant'} | Ghose Filter: ${data.passesGhoseFilter ? 'Passes' : 'Fails'}</div>
+                        <div class="text-[10px] text-amber-300">Cardiac Risk: ${data.hergCardiacRisk}</div>
+                        <div class="text-[10px] text-slate-400">Metabolism: ${data.cyp450MetabolismSite}</div>
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        async function runEcoClean() {
+            const inp = document.getElementById('ecocleanInput').value;
+            const out = document.getElementById('ecocleanOutput');
+
+            try {
+                const res = await fetch('http://localhost:5192/api/v1/environmental/ecoclean', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pollutant: inp })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    out.innerHTML = `
+                        <div class="text-emerald-400 font-bold">${data.pollutantClass} (${data.totalMineralizationEfficiencyPercent}% Mineralization)</div>
+                        <div class="text-slate-300 text-[10px]">End Products: ${data.mineralizedEndProducts}</div>
+                        ${data.degradationCascade.map(s => `
+                            <div class="border-t border-slate-800 pt-1 mt-1">
+                                <span class="text-sky-300 font-bold">[Step ${s.stepNumber}] ${s.targetBond} (${s.bondDissociationEnergyKcalPerMol} kcal/mol)</span>
+                                <div class="text-slate-400 text-[10px]">Catalyst: ${s.enzymeOrCatalyst} -> ${s.intermediateProduct}</div>
+                            </div>
+                        `).join('')}
+                    `;
+                }
+            } catch {
+                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
+            }
+        }
+
+        // --------------------------------------------------------------------
+        // Documentation Viewer Dynamic Content
+        // --------------------------------------------------------------------
+        const docDatabase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DocumentationMap));
+
+        function loadDoc(docKey) {
+            ['api', 'benchmarks', 'showcase', 'arch', 'started', 'science'].forEach(k => {
+                const btn = document.getElementById(`docbtn-${k}`);
+                if (btn) {
+                    btn.classList.remove('bg-sky-600', 'text-white');
+                    btn.classList.add('bg-slate-800', 'text-slate-300');
+                }
+            });
+
+            const activeBtn = document.getElementById(`docbtn-${docKey}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-sky-600', 'text-white');
+                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+            }
+
+            const markdown = docDatabase[docKey] || '# Document not found';
+            document.getElementById('docContentHost').innerHTML = marked.parse(markdown);
+        }
+
+        function copyCode(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text);
+            alert('Code snippet copied to clipboard!');
+        }
+
+        function setCodeLang(lang) {
+            document.getElementById('clang-csharp').classList.toggle('bg-sky-600', lang === 'csharp');
+            document.getElementById('clang-csharp').classList.toggle('text-white', lang === 'csharp');
+            document.getElementById('clang-csharp').classList.toggle('bg-slate-800', lang !== 'csharp');
+
+            document.getElementById('clang-curl').classList.toggle('bg-sky-600', lang === 'curl');
+            document.getElementById('clang-curl').classList.toggle('text-white', lang === 'curl');
+            document.getElementById('clang-curl').classList.toggle('bg-slate-800', lang !== 'curl');
+        }
+
+        function setCodeRefSubView(mode) {
+            const isClasses = mode === 'classes';
+            document.getElementById('crpane-classes').classList.toggle('hidden', !isClasses);
+            document.getElementById('crpane-snippets').classList.toggle('hidden', isClasses);
+
+            const btnClasses = document.getElementById('crsub-classes');
+            const btnSnippets = document.getElementById('crsub-snippets');
+
+            if (btnClasses && btnSnippets) {
+                btnClasses.classList.toggle('bg-sky-600', isClasses);
+                btnClasses.classList.toggle('text-white', isClasses);
+                btnClasses.classList.toggle('bg-slate-800', !isClasses);
+                btnClasses.classList.toggle('text-slate-300', !isClasses);
+
+                btnSnippets.classList.toggle('bg-sky-600', !isClasses);
+                btnSnippets.classList.toggle('text-white', !isClasses);
+                btnSnippets.classList.toggle('bg-slate-800', isClasses);
+                btnSnippets.classList.toggle('text-slate-300', isClasses);
+            }
+        }
+
+        function filterCodeRef() {
+            const query = (document.getElementById('codeRefSearchInput').value || '').toLowerCase().trim();
+            const cards = document.querySelectorAll('.coderef-class-card');
+
+            cards.forEach(card => {
+                const name = card.getAttribute('data-name') || '';
+                const ns = card.getAttribute('data-namespace') || '';
+                const summary = card.getAttribute('data-summary') || '';
+                const text = card.textContent.toLowerCase();
+
+                const match = !query || name.includes(query) || ns.includes(query) || summary.includes(query) || text.includes(query);
+                card.style.display = match ? 'block' : 'none';
+            });
+        }
+
+        function downloadFormat(ext) {
+            let content = '';
+            let filename = `@Model.ChemicalFormula.${ext}`;
+
+            if (ext === 'pdb') {
+                content = document.getElementById('rawPdbData').value;
+            } else if (ext === 'xyz') {
+                content = document.getElementById('rawXyzData').value;
+            } else if (ext === 'mol') {
+                content = document.getElementById('rawPdbData').value; // fallback
+            }
+
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+        }
+    </script>
+</body>
+</html>
