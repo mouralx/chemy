@@ -3,7 +3,7 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-94%20Passed%20(100%25)-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-105%20Passed%20(100%25)-brightgreen?logo=xunit)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
 ![Scientific Credibility](https://img.shields.io/badge/Scientific%20Credibility-100%25%20Verified-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
@@ -12,7 +12,42 @@
 **Industrial-grade, zero-dependency computational chemistry, chemoinformatics, and lead optimization toolkit for .NET.**  
 *From exact mass/charge nullspace balancing and 4-term analytical molecular mechanics to multi-center 3D conformer embedding, flat 2D-in-3D planar diagram generation, atom-additive Crippen LogP, Ertl TPSA, true Benson group additivity, and rule-based bioisosteric lead optimization.*
 
-[✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure) • [🛡️ Testing & Quality](#️-testing--quality)
+[🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
+
+</div>
+
+---
+
+## 🖼️ Visual Tour & Workstation UI
+
+### 1. Interactive 3D Molecular Laboratory Workstation (`Chemy.Web`)
+*Explore rotatable 3D ball-and-stick conformations, real-time VSEPR geometries, 50+ curated reference compounds, and instantaneous ADMET safety scoring.*
+
+<div align="center">
+
+![Chemy 3D Molecular Laboratory Workstation](docs/images/3d_workstation_nicotine.png)
+
+</div>
+
+---
+
+### 2. Interactive Scalar REST API Explorer (`Chemy.Api`)
+*Live interactive API testing console powered by Scalar with full OpenAPI specification, parameter inspection, and zero-latency local execution.*
+
+<div align="center">
+
+![Chemy Scalar REST API Explorer](docs/images/scalar_api_reference.png)
+
+</div>
+
+---
+
+### 3. In-App C# Reflection & Class Docstring API Explorer
+*Live reflection-driven docstring and type signature browser exposing all 68+ computational chemistry and chemoinformatics classes.*
+
+<div align="center">
+
+![Chemy C# Reflection API Explorer](docs/images/csharp_reflection_api_explorer.png)
 
 </div>
 
@@ -160,7 +195,8 @@ chemy/
 │   ├── GETTING_STARTED.md       # Step-by-step developer tutorial
 │   ├── SCIENTIFIC_APPROACH.md   # Physical chemistry and computational principles
 │   ├── SCIENTIFIC_CREDIBILITY_REPORT.md # Technical audit and mathematical proofs
-│   └── SCIENTIFIC_VERIFICATION_BENCHMARKS.md # 21 experimental verification benchmarks
+│   ├── SCIENTIFIC_VERIFICATION_BENCHMARKS.md # 21 experimental verification benchmarks
+│   └── images/                  # High-resolution UI screenshots & diagrams
 ├── src/                         # All project source code
 │   ├── Chemy.slnx               # Modern solution file
 │   ├── Directory.Build.props    # Global zero-warning compiler rules
@@ -175,7 +211,7 @@ chemy/
 │   │   └── ...                  # Reactions, Kinetics, Solutions, Thermodynamics
 │   ├── Chemy.Api/               # Pure REST API microservice (Scalar & Swagger)
 │   ├── Chemy.Web/               # Interactive 3D laboratory workstation
-│   └── Chemy.Core.Tests/        # Complete xUnit test suite (71 tests)
+│   └── Chemy.Core.Tests/        # Complete xUnit test suite (105 tests)
 └── README.md                    # Project overview
 ```
 
@@ -211,7 +247,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 94/94 unit tests in `Chemy.Core.Tests`.
+- **100% Passing Tests**: 105/105 unit tests in `Chemy.Core.Tests`.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Zero Allocations**: High-frequency element and bond structs allocated on the stack.
 
@@ -220,7 +256,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 94, Skipped: 0, Total: 94, Duration: 103 ms
+Passed! - Failed: 0, Passed: 105, Skipped: 0, Total: 105, Duration: 140 ms
 ```
 
 ---
