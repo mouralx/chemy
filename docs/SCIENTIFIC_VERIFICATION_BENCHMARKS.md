@@ -294,11 +294,11 @@ This document records the **comprehensive, end-to-end scientific verification** 
 
 ### 14. Machine-Reproducible External Reference Dataset & Statistical Error Distribution
 
-* **Reference Dataset Generator**: [`scripts/generate_reference_dataset.py`](file:///Users/moura/Desktop/chemy/scripts/generate_reference_dataset.py)
-* **Dataset File**: [`src/Chemy.Core.Tests/ValidationData/reference_compounds.json`](file:///Users/moura/Desktop/chemy/src/Chemy.Core.Tests/ValidationData/reference_compounds.json)
-* **On-Disk File SHA-256 Checksum**: `bbcbc89f9cdcbe7b673a0096c5da8d4baa36e3b856f234f0b23cbcd3b4c197e4`
-* **Automated Test Suite**: [`ScientificBenchmarkValidationTests.cs`](file:///Users/moura/Desktop/chemy/src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs)
-* **CI Verification Gate**: Live calculation and byte-for-byte comparison against pinned RDKit 2025.09.2 on every push and pull request.
+* **Reference Dataset Generator**: [`scripts/generate_reference_dataset.py`](../scripts/generate_reference_dataset.py)
+* **Dataset File**: [`reference_compounds.json`](../src/Chemy.Core.Tests/ValidationData/reference_compounds.json)
+* **On-Disk File SHA-256 Checksum**: `fda1ca39cd853bd49bcb1827abe68e1668d55a60c6bfe83deb6217ea20a5a0a1`
+* **Automated Test Suite**: [`ScientificBenchmarkValidationTests.cs`](../src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs)
+* **CI Verification Gate**: Live calculation and byte-for-byte comparison against hash-locked RDKit 2025.09.2 (`scripts/requirements-reference.txt`) on every push and pull request.
 
 #### Observed vs. Reference Benchmark Metrics Across 32 Stratified Compounds
 
@@ -320,28 +320,33 @@ This document records the **comprehensive, end-to-end scientific verification** 
 | **Acetamide** | $\text{C}_2\text{H}_5\text{NO}$ | Tuning | $43.09\text{ \AA}^2$ | $43.09\text{ \AA}^2$ | $-0.24$ | $-0.51$ | $0.411$ | $0.401$ | $1$ | $1$ | $0$ |
 | **Ethyl Acetate** | $\text{C}_4\text{H}_8\text{O}_2$ | Tuning | $26.30\text{ \AA}^2$ | $26.30\text{ \AA}^2$ | $0.82$ | $0.57$ | $0.474$ | $0.438$ | $0$ | $2$ | $1$ |
 | **Urea** | $\text{CH}_4\text{N}_2\text{O}$ | Tuning | $69.11\text{ \AA}^2$ | $69.11\text{ \AA}^2$ | $-1.19$ | $-0.98$ | $0.362$ | $0.371$ | $2$ | $1$ | $0$ |
-| **Fluorobenzene** | $\text{C}_6\text{H}_5\text{F}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.07$ | $1.83$ | $0.463$ | $0.462$ | $0$ | $0$ | $0$ |
-| **Chlorobenzene** | $\text{C}_6\text{H}_5\text{Cl}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.34$ | $2.34$ | $0.483$ | $0.483$ | $0$ | $0$ | $0$ |
-| **Bromobenzene** | $\text{C}_6\text{H}_5\text{Br}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.50$ | $2.45$ | $0.542$ | $0.542$ | $0$ | $0$ | $0$ |
-| **4-Chlorobenzoic Acid** | $\text{C}_7\text{H}_5\text{ClO}_2$ | Held-Out | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $2.06$ | $2.04$ | $0.664$ | $0.676$ | $1$ | $1$ | $1$ |
-| **Thiophene** | $\text{C}_4\text{H}_4\text{S}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $1.62$ | $1.75$ | $0.448$ | $0.449$ | $0$ | $1$ | $0$ |
-| **Furan** | $\text{C}_4\text{H}_4\text{O}$ | Held-Out | $13.14\text{ \AA}^2$ | $13.14\text{ \AA}^2$ | $1.17$ | $1.28$ | $0.444$ | $0.446$ | $0$ | $1$ | $0$ |
-| **Indole** | $\text{C}_8\text{H}_7\text{N}$ | Held-Out | $15.79\text{ \AA}^2$ | $15.79\text{ \AA}^2$ | $1.69$ | $2.17$ | $0.540$ | $0.544$ | $1$ | $0$ | $0$ |
-| **Quinoline** | $\text{C}_9\text{H}_7\text{N}$ | Held-Out | $12.89\text{ \AA}^2$ | $12.89\text{ \AA}^2$ | $2.01$ | $2.23$ | $0.530$ | $0.531$ | $0$ | $1$ | $0$ |
-| **Anthracene** | $\text{C}_{14}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
-| **Phenanthrene** | $\text{C}_{14}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
-| **Biphenyl** | $\text{C}_{12}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.30$ | $3.35$ | $0.591$ | $0.591$ | $0$ | $0$ | $1$ |
-| **Dimethyl Sulfoxide** | $\text{C}_2\text{H}_6\text{OS}$ | Held-Out | $17.07\text{ \AA}^2$ | $17.07\text{ \AA}^2$ | $-0.21$ | $-0.01$ | $0.391$ | $0.398$ | $0$ | $1$ | $0$ |
-| **Methanesulfonic Acid** | $\text{CH}_4\text{O}_3\text{S}$ | Held-Out | $54.37\text{ \AA}^2$ | $54.37\text{ \AA}^2$ | $-0.73$ | $-0.50$ | $0.432$ | $0.414$ | $1$ | $2$ | $0$ |
-| **Trimethyl Phosphate** | $\text{C}_3\text{H}_9\text{O}_4\text{P}$ | Held-Out | $44.76\text{ \AA}^2$ | $44.76\text{ \AA}^2$ | $0.40$ | $1.03$ | $0.569$ | $0.549$ | $0$ | $4$ | $3$ |
-| **Trichloroethylene** | $\text{C}_2\text{HCl}_3$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.43$ | $2.50$ | $0.474$ | $0.474$ | $0$ | $0$ | $0$ |
-| **Dapsone** | $\text{C}_{12}\text{H}_{12}\text{N}_2\text{O}_2\text{S}$ | Held-Out | $86.18\text{ \AA}^2$ | $86.18\text{ \AA}^2$ | $1.19$ | $1.68$ | $0.835$ | $0.792$ | $2$ | $4$ | $2$ |
+| **Fluorobenzene** | $\text{C}_6\text{H}_5\text{F}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.07$ | $1.83$ | $0.463$ | $0.462$ | $0$ | $0$ | $0$ |
+| **Chlorobenzene** | $\text{C}_6\text{H}_5\text{Cl}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.34$ | $2.34$ | $0.483$ | $0.483$ | $0$ | $0$ | $0$ |
+| **Bromobenzene** | $\text{C}_6\text{H}_5\text{Br}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.50$ | $2.45$ | $0.542$ | $0.542$ | $0$ | $0$ | $0$ |
+| **4-Chlorobenzoic Acid** | $\text{C}_7\text{H}_5\text{ClO}_2$ | Expanded | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $2.06$ | $2.04$ | $0.664$ | $0.676$ | $1$ | $1$ | $1$ |
+| **Thiophene** | $\text{C}_4\text{H}_4\text{S}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $1.62$ | $1.75$ | $0.448$ | $0.449$ | $0$ | $1$ | $0$ |
+| **Furan** | $\text{C}_4\text{H}_4\text{O}$ | Expanded | $13.14\text{ \AA}^2$ | $13.14\text{ \AA}^2$ | $1.17$ | $1.28$ | $0.444$ | $0.446$ | $0$ | $1$ | $0$ |
+| **Indole** | $\text{C}_8\text{H}_7\text{N}$ | Expanded | $15.79\text{ \AA}^2$ | $15.79\text{ \AA}^2$ | $1.69$ | $2.17$ | $0.540$ | $0.544$ | $1$ | $0$ | $0$ |
+| **Quinoline** | $\text{C}_9\text{H}_7\text{N}$ | Expanded | $12.89\text{ \AA}^2$ | $12.89\text{ \AA}^2$ | $2.01$ | $2.23$ | $0.530$ | $0.531$ | $0$ | $1$ | $0$ |
+| **Anthracene** | $\text{C}_{14}\text{H}_{10}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
+| **Phenanthrene** | $\text{C}_{14}\text{H}_{10}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
+| **Biphenyl** | $\text{C}_{12}\text{H}_{10}$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.30$ | $3.35$ | $0.591$ | $0.591$ | $0$ | $0$ | $1$ |
+| **Dimethyl Sulfoxide** | $\text{C}_2\text{H}_6\text{OS}$ | Expanded | $17.07\text{ \AA}^2$ | $17.07\text{ \AA}^2$ | $-0.21$ | $-0.01$ | $0.391$ | $0.398$ | $0$ | $1$ | $0$ |
+| **Methanesulfonic Acid** | $\text{CH}_4\text{O}_3\text{S}$ | Expanded | $54.37\text{ \AA}^2$ | $54.37\text{ \AA}^2$ | $-0.73$ | $-0.50$ | $0.432$ | $0.414$ | $1$ | $2$ | $0$ |
+| **Trimethyl Phosphate** | $\text{C}_3\text{H}_9\text{O}_4\text{P}$ | Expanded | $44.76\text{ \AA}^2$ | $44.76\text{ \AA}^2$ | $0.40$ | $1.03$ | $0.569$ | $0.549$ | $0$ | $4$ | $3$ |
+| **Trichloroethylene** | $\text{C}_2\text{HCl}_3$ | Expanded | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.43$ | $2.50$ | $0.474$ | $0.474$ | $0$ | $0$ | $0$ |
+| **Dapsone** | $\text{C}_{12}\text{H}_{12}\text{N}_2\text{O}_2\text{S}$ | Expanded | $86.18\text{ \AA}^2$ | $86.18\text{ \AA}^2$ | $1.19$ | $1.68$ | $0.835$ | $0.792$ | $2$ | $4$ | $2$ |
 
-#### Statistical Error Distribution Summary (N = 32)
+#### Statistical Error Distribution Summary by Partition
 
-| Property | Mean Absolute Error ($\text{MAE}$) | Root Mean Square Error ($\text{RMSE}$) | Maximum Error | Acceptance Threshold | Model Characterization |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Topological Polar Surface Area ($\text{TPSA}$)** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | $< 0.0500\text{ \AA}^2$ | Exact Fragment Table Agreement |
-| **Wildman-Crippen Lipophilicity ($\log P$)** | **$0.2121$** | **$0.2699$** | **$0.6320$** | $< 0.3500$ | Fragment Approximation Model |
-| **Bickerton Drug-Likeness ($\text{QED}$)** | **$0.0195$** | **$0.0412$** | **$0.2030$** | $< 0.1000$ | Desirability Model (Reduced Alert Set) |
-
+| Partition | Evaluated Metric | Mean Absolute Error ($\text{MAE}$) | Root Mean Square Error ($\text{RMSE}$) | Maximum Absolute Error | CI Acceptance Floor |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Tuning Subset ($N=16$)** | **$\text{TPSA}$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | $< 0.0500\text{ \AA}^2$ |
+| | **$\log P$** | **$0.2289$** | **$0.2737$** | **$0.5630$** | $< 0.3500$ |
+| | **$\text{QED}$** | **$0.0280$** | **$0.0555$** | **$0.2030$** | $< 0.1000$ |
+| **Expanded Regression ($N=16$)** | **$\text{TPSA}$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | $< 0.0500\text{ \AA}^2$ |
+| | **$\log P$** | **$0.1953$** | **$0.2659$** | **$0.6320$** | $< 0.3500$ |
+| | **$\text{QED}$** | **$0.0111$** | **$0.0179$** | **$0.0430$** | $< 0.1000$ |
+| **Combined Benchmark ($N=32$)** | **$\text{TPSA}$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | $< 0.0500\text{ \AA}^2$ |
+| | **$\log P$** | **$0.2121$** | **$0.2699$** | **$0.6320$** | $< 0.3500$ |
+| | **$\text{QED}$** | **$0.0195$** | **$0.0412$** | **$0.2030$** | $< 0.1000$ |

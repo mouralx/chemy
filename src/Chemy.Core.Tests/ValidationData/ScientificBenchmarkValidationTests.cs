@@ -21,7 +21,7 @@ using Xunit.Abstractions;
 
 /// <summary>
 /// Machine-reproducible scientific benchmark validation suite.
-/// Evaluates Chemy against a pinned external reference dataset generated via RDKit 2025.09.2, NIST JANAF, and IUPAC CIAAW.
+/// Evaluates Chemy against a hash-locked external reference dataset generated via RDKit 2025.09.2, NIST JANAF, and IUPAC CIAAW.
 /// </summary>
 public class ScientificBenchmarkValidationTests
 {
@@ -197,128 +197,181 @@ public class ScientificBenchmarkValidationTests
         var dataset = LoadedBenchmarkDataset.Value;
 
         var tuningSet = dataset.Where(d => d.Subset == "tuning").ToList();
-        var heldOutSet = dataset.Where(d => d.Subset == "held_out").ToList();
+        var expandedSet = dataset.Where(d => d.Subset == "expanded_regression").ToList();
 
         _output.WriteLine("| Compound | Subset | Actual TPSA | Ref TPSA | Actual LogP | Ref LogP | Actual QED | Ref QED |");
         _output.WriteLine("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |");
 
-        var allTpsaErrors = new List<double>();
-        var allLogpErrors = new List<double>();
-        var allQedErrors = new List<double>();
-
-        foreach (var entry in dataset)
+        void EvaluateSubset(string label, IReadOnlyList<BenchmarkMoleculeRecord> subset)
         {
-            var mol = SmilesParser.Parse(entry.Smiles, entry.Name);
-            double tpsa = ErtlTpsa.Calculate(mol).TotalTpsa;
-            double logp = WildmanCrippenLogP.Calculate(mol).CalculatedLogP;
-            double qed = BickertonQed.Calculate(mol).QedScore;
+            var tpsaErrors = new List<double>();
+            var logpErrors = new List<double>();
+            var qedErrors = new List<double>();
 
-            allTpsaErrors.Add(tpsa - entry.ReferenceTpsa);
-            allLogpErrors.Add(logp - entry.ReferenceLogP);
-            allQedErrors.Add(qed - entry.ReferenceQed);
+            foreach (var entry in subset)
+            {
+                var mol = SmilesParser.Parse(entry.Smiles, entry.Name);
+                double tpsa = ErtlTpsa.Calculate(mol).TotalTpsa;
+                double logp = WildmanCrippenLogP.Calculate(mol).CalculatedLogP;
+                double qed = BickertonQed.Calculate(mol).QedScore;
 
-            _output.WriteLine($"| {entry.Name} | {entry.Subset} | {tpsa:F2} | {entry.ReferenceTpsa:F2} | {logp:F2} | {entry.ReferenceLogP:F2} | {qed:F3} | {entry.ReferenceQed:F3} |");
+                tpsaErrors.Add(tpsa - entry.ReferenceTpsa);
+                logpErrors.Add(logp - entry.ReferenceLogP);
+                qedErrors.Add(qed - entry.ReferenceQed);
+
+                _output.WriteLine($"| {entry.Name} | {entry.Subset} | {tpsa:F2} | {entry.ReferenceTpsa:F2} | {logp:F2} | {entry.ReferenceLogP:F2} | {qed:F3} | {entry.ReferenceQed:F3} |");
+            }
+
+            double tMae = tpsaErrors.Average(Math.Abs);
+            double tRmse = Math.Sqrt(tpsaErrors.Select(e => e * e).Average());
+            double tMax = tpsaErrors.Max(Math.Abs);
+
+            double lMae = logpErrors.Average(Math.Abs);
+            double lRmse = Math.Sqrt(logpErrors.Select(e => e * e).Average());
+            double lMax = logpErrors.Max(Math.Abs);
+
+            double qMae = qedErrors.Average(Math.Abs);
+            double qRmse = Math.Sqrt(qedErrors.Select(e => e * e).Average());
+            double qMax = qedErrors.Max(Math.Abs);
+
+            _output.WriteLine($"\n=== {label.ToUpperInvariant()} (N={subset.Count}) ===");
+            _output.WriteLine($"TPSA: MAE = {tMae:F4} Å², RMSE = {tRmse:F4} Å², MaxErr = {tMax:F4} Å²");
+            _output.WriteLine($"LogP: MAE = {lMae:F4}, RMSE = {lRmse:F4}, MaxErr = {lMax:F4}");
+            _output.WriteLine($"QED:  MAE = {qMae:F4}, RMSE = {qRmse:F4}, MaxErr = {qMax:F4}");
+
+            Assert.True(tMae < 0.05, $"{label} TPSA MAE {tMae:F4} exceeds 0.05");
+            Assert.True(lMae < 0.35, $"{label} LogP MAE {lMae:F4} exceeds 0.35");
+            Assert.True(qMae < 0.10, $"{label} QED MAE {qMae:F4} exceeds 0.10");
         }
 
-        double tpsaMae = allTpsaErrors.Average(Math.Abs);
-        double tpsaRmse = Math.Sqrt(allTpsaErrors.Select(e => e * e).Average());
-        double tpsaMax = allTpsaErrors.Max(Math.Abs);
+        _output.WriteLine("\n--- 1. TUNING SUBSET ---");
+        EvaluateSubset("Tuning Subset", tuningSet);
 
-        double logpMae = allLogpErrors.Average(Math.Abs);
-        double logpRmse = Math.Sqrt(allLogpErrors.Select(e => e * e).Average());
-        double logpMax = allLogpErrors.Max(Math.Abs);
+        _output.WriteLine("\n--- 2. EXPANDED CHEMICAL SPACE REGRESSION SUBSET ---");
+        EvaluateSubset("Expanded Regression Subset", expandedSet);
 
-        double qedMae = allQedErrors.Average(Math.Abs);
-        double qedRmse = Math.Sqrt(allQedErrors.Select(e => e * e).Average());
-        double qedMax = allQedErrors.Max(Math.Abs);
-
-        _output.WriteLine($"\n=== OVERALL STATISTICAL VALIDATION SUMMARY (N={dataset.Count}) ===");
-        _output.WriteLine($"TPSA: MAE = {tpsaMae:F4} Å², RMSE = {tpsaRmse:F4} Å², MaxErr = {tpsaMax:F4} Å²");
-        _output.WriteLine($"LogP: MAE = {logpMae:F4}, RMSE = {logpRmse:F4}, MaxErr = {logpMax:F4}");
-        _output.WriteLine($"QED:  MAE = {qedMae:F4}, RMSE = {qedRmse:F4}, MaxErr = {qedMax:F4}");
-
-        Assert.True(tpsaMae < 0.05, $"TPSA MAE {tpsaMae:F4} exceeds 0.05");
-        Assert.True(logpMae < 0.35, $"LogP MAE {logpMae:F4} exceeds 0.35");
-        Assert.True(qedMae < 0.10, $"QED MAE {qedMae:F4} exceeds 0.10");
+        _output.WriteLine("\n--- 3. COMBINED BENCHMARK DATASET ---");
+        EvaluateSubset("Overall Combined Benchmark", dataset);
     }
 
     [Fact]
-    public void Benchmark_ForceField_ButaneConformationalTorsionBarrier_PhysicalEnergyOrdering()
+    public void Benchmark_ForceField_ButaneConformationalTorsionBarrier_AllAtomPhysicalCoordinates()
     {
-        // Construct explicit butane conformers (Anti 180°, Gauche 60°, Eclipsed 120°, Syn-eclipsed 0°)
+        // Construct authentic all-atom butane (C4H10, 14 atoms) conformers with tetrahedral sp3 geometry
         var butane = Molecule.FromSmiles("CCCC", "n-Butane");
         var c1 = butane.Atoms[0];
         var c2 = butane.Atoms[1];
         var c3 = butane.Atoms[2];
         var c4 = butane.Atoms[3];
 
-        // 1. Anti Conformer (dihedral = 180°, global minimum)
-        var antiAtoms = new List<Atom3D>
-        {
-            new(c1, new Vector3D(-0.51, 1.44, 0.00)),
-            new(c2, new Vector3D(0.00, 0.00, 0.00)),
-            new(c3, new Vector3D(1.53, 0.00, 0.00)),
-            new(c4, new Vector3D(2.04, -1.44, 0.00))
-        };
-        for (int i = 4; i < butane.Atoms.Count; i++) antiAtoms.Add(new Atom3D(butane.Atoms[i], new Vector3D(0, 0, 0)));
-        var antiConformer = new Molecule3D("n-Butane-Anti", "C4H10", "Conformer", 109.5, antiAtoms, butane);
+        // Hydrogen atoms
+        var h1a = butane.Atoms[4]; var h1b = butane.Atoms[5]; var h1c = butane.Atoms[6];
+        var h2a = butane.Atoms[7]; var h2b = butane.Atoms[8];
+        var h3a = butane.Atoms[9]; var h3b = butane.Atoms[10];
+        var h4a = butane.Atoms[11]; var h4b = butane.Atoms[12]; var h4c = butane.Atoms[13];
 
-        // 2. Gauche Conformer (dihedral = 60°, local minimum)
-        var gaucheAtoms = new List<Atom3D>
+        Molecule3D BuildButaneConformer(string conformerName, double phiDeg)
         {
-            new(c1, new Vector3D(-0.51, 1.44, 0.00)),
-            new(c2, new Vector3D(0.00, 0.00, 0.00)),
-            new(c3, new Vector3D(1.53, 0.00, 0.00)),
-            new(c4, new Vector3D(2.04, 0.72, 1.247))
-        };
-        for (int i = 4; i < butane.Atoms.Count; i++) gaucheAtoms.Add(new Atom3D(butane.Atoms[i], new Vector3D(0, 0, 0)));
-        var gaucheConformer = new Molecule3D("n-Butane-Gauche", "C4H10", "Conformer", 109.5, gaucheAtoms, butane);
+            double phi = phiDeg * Math.PI / 180.0;
+            double cosPhi = Math.Cos(phi);
+            double sinPhi = Math.Sin(phi);
 
-        // 3. Eclipsed Conformer (dihedral = 120°, rotational barrier)
-        var eclipsedAtoms = new List<Atom3D>
-        {
-            new(c1, new Vector3D(-0.51, 1.44, 0.00)),
-            new(c2, new Vector3D(0.00, 0.00, 0.00)),
-            new(c3, new Vector3D(1.53, 0.00, 0.00)),
-            new(c4, new Vector3D(2.04, -0.72, 1.247))
-        };
-        for (int i = 4; i < butane.Atoms.Count; i++) eclipsedAtoms.Add(new Atom3D(butane.Atoms[i], new Vector3D(0, 0, 0)));
-        var eclipsedConformer = new Molecule3D("n-Butane-Eclipsed", "C4H10", "Conformer", 109.5, eclipsedAtoms, butane);
+            var pC1 = new Vector3D(-0.51, 1.44, 0.0);
+            var pC2 = new Vector3D(0.0, 0.0, 0.0);
+            var pC3 = new Vector3D(1.53, 0.0, 0.0);
+            var pC4 = new Vector3D(1.53 + 0.51, 1.44 * cosPhi, 1.44 * sinPhi);
 
-        // 4. Syn-Eclipsed Conformer (dihedral = 0°, highest steric barrier)
-        var synAtoms = new List<Atom3D>
+            // C1 Hydrogens
+            var pH1a = new Vector3D(-1.55, 1.44, 0.0);
+            var pH1b = new Vector3D(-0.16, 1.95, 0.89);
+            var pH1c = new Vector3D(-0.16, 1.95, -0.89);
+
+            // C2 Hydrogens
+            var pH2a = new Vector3D(-0.36, -0.51, 0.89);
+            var pH2b = new Vector3D(-0.36, -0.51, -0.89);
+
+            // C3 Hydrogens (rotated by phi)
+            var pH3a = new Vector3D(1.53 + 0.36, -0.51 * cosPhi - 0.89 * sinPhi, -0.51 * sinPhi + 0.89 * cosPhi);
+            var pH3b = new Vector3D(1.53 + 0.36, -0.51 * cosPhi + 0.89 * sinPhi, -0.51 * sinPhi - 0.89 * cosPhi);
+
+            // C4 Hydrogens (rotated by phi)
+            var pH4a = new Vector3D(1.53 + 1.55, 1.44 * cosPhi, 1.44 * sinPhi);
+            var pH4b = new Vector3D(1.53 + 0.16, 1.95 * cosPhi - 0.89 * sinPhi, 1.95 * sinPhi + 0.89 * cosPhi);
+            var pH4c = new Vector3D(1.53 + 0.16, 1.95 * cosPhi + 0.89 * sinPhi, 1.95 * sinPhi - 0.89 * cosPhi);
+
+            var atom3Ds = new List<Atom3D>
+            {
+                new(c1, pC1), new(c2, pC2), new(c3, pC3), new(c4, pC4),
+                new(h1a, pH1a), new(h1b, pH1b), new(h1c, pH1c),
+                new(h2a, pH2a), new(h2b, pH2b),
+                new(h3a, pH3a), new(h3b, pH3b),
+                new(h4a, pH4a), new(h4b, pH4b), new(h4c, pH4c)
+            };
+
+            return new Molecule3D(conformerName, "C4H10", "Conformer", 109.5, atom3Ds, butane);
+        }
+
+        double CalculateDihedral(Molecule3D mol)
         {
-            new(c1, new Vector3D(-0.51, 1.44, 0.00)),
-            new(c2, new Vector3D(0.00, 0.00, 0.00)),
-            new(c3, new Vector3D(1.53, 0.00, 0.00)),
-            new(c4, new Vector3D(2.04, 1.44, 0.00))
-        };
-        for (int i = 4; i < butane.Atoms.Count; i++) synAtoms.Add(new Atom3D(butane.Atoms[i], new Vector3D(0, 0, 0)));
-        var synConformer = new Molecule3D("n-Butane-Syn", "C4H10", "Conformer", 109.5, synAtoms, butane);
+            var p1 = mol.Atoms[0].Position;
+            var p2 = mol.Atoms[1].Position;
+            var p3 = mol.Atoms[2].Position;
+            var p4 = mol.Atoms[3].Position;
+
+            var b1 = new Vector3D(p2.X - p1.X, p2.Y - p1.Y, p2.Z - p1.Z);
+            var b2 = new Vector3D(p3.X - p2.X, p3.Y - p2.Y, p3.Z - p2.Z);
+            var b3 = new Vector3D(p4.X - p3.X, p4.Y - p3.Y, p4.Z - p3.Z);
+
+            Vector3D Cross(Vector3D v1, Vector3D v2) =>
+                new(v1.Y * v2.Z - v1.Z * v2.Y, v1.Z * v2.X - v1.X * v2.Z, v1.X * v2.Y - v1.Y * v2.X);
+
+            double Dot(Vector3D v1, Vector3D v2) => v1.X * v2.X + v1.Y * v2.Y + v1.Z * v2.Z;
+            Vector3D Norm(Vector3D v) { double l = Math.Sqrt(Dot(v, v)); return l > 0 ? new(v.X / l, v.Y / l, v.Z / l) : v; }
+
+            var n1 = Norm(Cross(b1, b2));
+            var n2 = Norm(Cross(b2, b3));
+            var m1 = Cross(n1, Norm(b2));
+
+            double x = Dot(n1, n2);
+            double y = Dot(m1, n2);
+            double angleDeg = Math.Abs(Math.Atan2(y, x) * 180.0 / Math.PI);
+            return angleDeg;
+        }
+
+        var antiConformer = BuildButaneConformer("Butane-Anti", 180.0);
+        var gaucheConformer = BuildButaneConformer("Butane-Gauche", 60.0);
+        var eclipsedConformer = BuildButaneConformer("Butane-Eclipsed", 120.0);
+        var synConformer = BuildButaneConformer("Butane-Syn", 0.0);
+
+        // Verify explicit geometric dihedral angles
+        Assert.InRange(CalculateDihedral(antiConformer), 179.9, 180.1);
+        Assert.InRange(CalculateDihedral(gaucheConformer), 59.9, 60.1);
+        Assert.InRange(CalculateDihedral(eclipsedConformer), 119.9, 120.1);
+        Assert.InRange(CalculateDihedral(synConformer), 0.0, 0.1);
 
         double eAnti = ForceFieldEngine.CalculateTotalEnergy(antiConformer);
         double eGauche = ForceFieldEngine.CalculateTotalEnergy(gaucheConformer);
         double eEclipsed = ForceFieldEngine.CalculateTotalEnergy(eclipsedConformer);
         double eSyn = ForceFieldEngine.CalculateTotalEnergy(synConformer);
 
-        _output.WriteLine($"\n=== BUTANE TORSIONAL ENERGY BARRIERS ===");
-        _output.WriteLine($"E(Anti 180°):         {eAnti:F4} kcal/mol (Global Minimum)");
-        _output.WriteLine($"E(Gauche 60°):        {eGauche:F4} kcal/mol (Local Minimum)");
-        _output.WriteLine($"E(Eclipsed 120°):     {eEclipsed:F4} kcal/mol (Torsional Barrier)");
-        _output.WriteLine($"E(Syn-Eclipsed 0°):   {eSyn:F4} kcal/mol (Steric Maximum)");
+        _output.WriteLine($"\n=== ALL-ATOM BUTANE CONFORMATIONAL ENERGIES (N=14 atoms) ===");
+        _output.WriteLine($"E(Anti 180°):         {eAnti:F4} kcal/mol (Dihedral: {CalculateDihedral(antiConformer):F1}°)");
+        _output.WriteLine($"E(Gauche 60°):        {eGauche:F4} kcal/mol (Dihedral: {CalculateDihedral(gaucheConformer):F1}°)");
+        _output.WriteLine($"E(Eclipsed 120°):     {eEclipsed:F4} kcal/mol (Dihedral: {CalculateDihedral(eclipsedConformer):F1}°)");
+        _output.WriteLine($"E(Syn-Eclipsed 0°):   {eSyn:F4} kcal/mol (Dihedral: {CalculateDihedral(synConformer):F1}°)");
 
         // Assert physical conformational hierarchy: E(anti) <= E(gauche) < E(eclipsed 120°) <= E(syn 0°)
         Assert.True(eAnti <= eGauche, "Anti conformation must have potential energy <= Gauche conformation.");
         Assert.True(eGauche < eEclipsed, "Gauche conformation must have potential energy < Eclipsed (120°) barrier.");
         Assert.True(eEclipsed <= eSyn, "Eclipsed (120°) must have potential energy <= Syn-Eclipsed (0°) steric maximum.");
 
-        // Assert optimization relaxes high-energy conformer downhill
+        // Assert steepest-descent optimization relaxes the high-energy conformer downhill
         var relaxedSyn = ForceFieldEngine.MinimizeEnergy(synConformer, maxIterations: 100);
         Assert.True(relaxedSyn.FinalEnergyKcalPerMol < eSyn, "Energy minimization must relax syn-eclipsed butane downhill.");
     }
 
     [Fact]
-    public void Benchmark_MolfileAndSdf_StrictRoundTripFidelityAndConservation()
+    public void Benchmark_MolfileAndSdf_StrictRoundTripWithFormalCharges()
     {
         var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
         var asp3D = Geometry3DEngine.GenerateConformer3D(aspirin);
@@ -352,6 +405,30 @@ public class ScientificBenchmarkValidationTests
             Assert.Equal(originalBond.Atom1Index, parsedBond.Atom1Index);
             Assert.Equal(originalBond.Atom2Index, parsedBond.Atom2Index);
         }
+
+        // Test explicit formal charge round-trip (e.g. Sodium Acetate with COO- and Na+)
+        var acetateAtoms = new List<Atom3D>
+        {
+            new(new Atom(Elements.Carbon, 6), new Vector3D(0.0, 0.0, 0.0)),
+            new(new Atom(Elements.Carbon, 6), new Vector3D(1.5, 0.0, 0.0)),
+            new(new Atom(Elements.Oxygen, 8), new Vector3D(2.1, 1.2, 0.0)),
+            new(new Atom(Elements.Oxygen, 8, 9), new Vector3D(2.1, -1.2, 0.0)) // O- formal charge -1
+        };
+        var acetateBonds = new List<Bond>
+        {
+            new(0, 1, BondType.Single),
+            new(1, 2, BondType.Double),
+            new(1, 3, BondType.Single)
+        };
+        var acetateMol = new Molecule("AcetateIon", acetateAtoms.Select(a => a.Atom).ToList(), acetateBonds);
+        var acetate3D = new Molecule3D("AcetateIon", "C2H3O2-", "Conformer", 120.0, acetateAtoms, acetateMol);
+
+        string acetateMolfile = MolfileExporter.ToMolfileV2000(acetate3D);
+        Assert.Contains("M  CHG", acetateMolfile);
+
+        var roundTrippedAcetate = MolfileParser.FromMolfileV2000(acetateMolfile);
+        Assert.Equal(-1, roundTrippedAcetate.Atoms[3].Atom.NetCharge);
+        Assert.Equal(0, roundTrippedAcetate.Atoms[0].Atom.NetCharge);
 
         // Check multi-molecule SDF export and import round-trip
         var dataset = new List<Molecule3D>

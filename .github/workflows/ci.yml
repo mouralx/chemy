@@ -21,10 +21,10 @@ jobs:
         python-version: '3.11'
         cache: 'pip'
 
-    - name: Install Pinned RDKit Reference Dependencies
+    - name: Install Hash-Locked RDKit Reference Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r scripts/requirements-reference.txt
+        pip install -r scripts/requirements-reference.txt --require-hashes
 
     - name: Verify Live RDKit External Dataset Derivation Gate (32 Compounds)
       run: |
@@ -44,17 +44,9 @@ jobs:
     - name: Run Scientific Test Suite with Coverage
       run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
-    - name: Install ReportGenerator Global Tool & Verify Coverage Floors
+    - name: Enforce Scientific Line & Branch Coverage Floors
       run: |
-        dotnet tool install --global dotnet-reportgenerator-globaltool || true
-        reportgenerator -reports:"**/TestResults/**/coverage.cobertura.xml" -targetdir:"CoverageReport" -reporttypes:"TextSummary;Cobertura"
-        cat CoverageReport/Summary.txt
-        line_coverage=$(grep -i "Line coverage:" CoverageReport/Summary.txt | head -n 1 | grep -oE "[0-9]+(\.[0-9]+)?" | head -n 1)
-        echo "Detected Line Coverage: $line_coverage%"
-        if (( $(echo "$line_coverage < 80.0" | bc -l) )); then
-          echo "::error::Line coverage $line_coverage% is below 80.0% threshold!"
-          exit 1
-        fi
+        python3 scripts/verify_coverage.py "**/coverage.cobertura.xml"
 
     - name: Upload Test Coverage Artifact
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1

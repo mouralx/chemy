@@ -163,7 +163,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Fluorobenzene",
         "smiles": "c1ccc(F)cc1",
         "formula": "C6H5F",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 10008 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -171,7 +171,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Chlorobenzene",
         "smiles": "c1ccc(Cl)cc1",
         "formula": "C6H5Cl",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 7964 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -179,7 +179,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Bromobenzene",
         "smiles": "c1ccc(Br)cc1",
         "formula": "C6H5Br",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 7961 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -187,7 +187,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "4-ChlorobenzoicAcid",
         "smiles": "O=C(O)c1ccc(Cl)cc1",
         "formula": "C7H5ClO2",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 7419 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -195,7 +195,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Thiophene",
         "smiles": "c1ccsc1",
         "formula": "C4H4S",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 8030 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -203,7 +203,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Furan",
         "smiles": "c1ccoc1",
         "formula": "C4H4O",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 8029 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -211,7 +211,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Indole",
         "smiles": "c1ccc2[nH]ccc2c1",
         "formula": "C8H7N",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 798 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -219,7 +219,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Quinoline",
         "smiles": "c1ccc2ncccc2c1",
         "formula": "C9H7N",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 7047 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -227,7 +227,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Anthracene",
         "smiles": "c1ccc2cc3ccccc3cc2c1",
         "formula": "C14H10",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 8418 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -235,7 +235,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Phenanthrene",
         "smiles": "c1ccc2c(c1)ccc3ccccc23",
         "formula": "C14H10",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 995 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -243,7 +243,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Biphenyl",
         "smiles": "c1ccccc1-c2ccccc2",
         "formula": "C12H10",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 7067 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -251,7 +251,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "DimethylSulfoxide",
         "smiles": "CS(=O)C",
         "formula": "C2H6OS",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 679 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -259,7 +259,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "MethanesulfonicAcid",
         "smiles": "CS(=O)(=O)O",
         "formula": "CH4O3S",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 6395 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -267,7 +267,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "TrimethylPhosphate",
         "smiles": "COP(=O)(OC)OC",
         "formula": "C3H9O4P",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 10672 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -275,7 +275,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Trichloroethylene",
         "smiles": "ClC=C(Cl)Cl",
         "formula": "C2HCl3",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"PubChem CID 6575 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
@@ -283,7 +283,7 @@ BENCHMARK_COMPOUNDS = [
         "name": "Dapsone",
         "smiles": "Nc1ccc(S(=O)(=O)c2ccc(N)cc2)cc1",
         "formula": "C12H12N2O2S",
-        "subset": "held_out",
+        "subset": "expanded_regression",
         "provenance": f"ChEMBL22 / RDKit {PINNED_RDKIT_VERSION}"
     }
 ]
