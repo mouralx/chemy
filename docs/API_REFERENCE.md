@@ -107,8 +107,8 @@ public static class AdmetEngine
 
 ---
 
-### `MolfileExporter`
-Serializes 3D molecular structures to industry-standard ISO/IUPAC MDL Molfile (V2000) and Structure-Data File (SDF) formats.
+### `MolfileExporter` & `MolfileParser`
+Serializes and deserializes 3D molecular structures to MDL Molfile (V2000) and Structure-Data File (SDF) CTfile formats, supporting Cartesian coordinates, element types, bond orders (single, double, triple, aromatic), and formal charge blocks (`M  CHG` and atom-block charge codes).
 
 ```csharp
 namespace Chemy.Core.IO;
@@ -117,6 +117,12 @@ public static class MolfileExporter
 {
     public static string ToMolfileV2000(Molecule3D molecule3D);
     public static string ToSdf(IEnumerable<Molecule3D> molecules);
+}
+
+public static class MolfileParser
+{
+    public static Molecule3D FromMolfileV2000(string molfileContent);
+    public static IReadOnlyList<Molecule3D> FromSdf(string sdfContent);
 }
 ```
 

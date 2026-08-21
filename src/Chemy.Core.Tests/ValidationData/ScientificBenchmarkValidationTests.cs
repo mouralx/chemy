@@ -239,9 +239,15 @@ public class ScientificBenchmarkValidationTests
             _output.WriteLine($"LogP: MAE = {lMae:F4}, RMSE = {lRmse:F4}, MaxErr = {lMax:F4}");
             _output.WriteLine($"QED:  MAE = {qMae:F4}, RMSE = {qRmse:F4}, MaxErr = {qMax:F4}");
 
+            // Mean Absolute Error Gates
             Assert.True(tMae < 0.05, $"{label} TPSA MAE {tMae:F4} exceeds 0.05");
             Assert.True(lMae < 0.35, $"{label} LogP MAE {lMae:F4} exceeds 0.35");
             Assert.True(qMae < 0.10, $"{label} QED MAE {qMae:F4} exceeds 0.10");
+
+            // Maximum Absolute Error Gates
+            Assert.True(tMax <= 0.05, $"{label} TPSA Maximum Error {tMax:F4} exceeds 0.05");
+            Assert.True(lMax <= 0.70, $"{label} LogP Maximum Error {lMax:F4} exceeds 0.70");
+            Assert.True(qMax <= 0.25, $"{label} QED Maximum Error {qMax:F4} exceeds 0.25");
         }
 
         _output.WriteLine("\n--- 1. TUNING SUBSET ---");
@@ -255,7 +261,7 @@ public class ScientificBenchmarkValidationTests
     }
 
     [Fact]
-    public void Benchmark_ForceField_ButaneConformationalTorsionBarrier_AllAtomPhysicalCoordinates()
+    public void Benchmark_ForceField_ButaneConformationalTorsionBarrier_MatchesRDKitUffReference()
     {
         // Construct authentic all-atom butane (C4H10, 14 atoms) conformers with tetrahedral sp3 geometry
         var butane = Molecule.FromSmiles("CCCC", "n-Butane");
@@ -354,11 +360,20 @@ public class ScientificBenchmarkValidationTests
         double eEclipsed = ForceFieldEngine.CalculateTotalEnergy(eclipsedConformer);
         double eSyn = ForceFieldEngine.CalculateTotalEnergy(synConformer);
 
-        _output.WriteLine($"\n=== ALL-ATOM BUTANE CONFORMATIONAL ENERGIES (N=14 atoms) ===");
-        _output.WriteLine($"E(Anti 180°):         {eAnti:F4} kcal/mol (Dihedral: {CalculateDihedral(antiConformer):F1}°)");
-        _output.WriteLine($"E(Gauche 60°):        {eGauche:F4} kcal/mol (Dihedral: {CalculateDihedral(gaucheConformer):F1}°)");
-        _output.WriteLine($"E(Eclipsed 120°):     {eEclipsed:F4} kcal/mol (Dihedral: {CalculateDihedral(eclipsedConformer):F1}°)");
-        _output.WriteLine($"E(Syn-Eclipsed 0°):   {eSyn:F4} kcal/mol (Dihedral: {CalculateDihedral(synConformer):F1}°)");
+        // Pinned RDKit 2025.09.2 UFF reference energies:
+        // Anti: 7.3147 kcal/mol, Gauche: 16.1286 kcal/mol
+        const double rdkitUffAnti = 7.3147;
+        const double rdkitUffGauche = 16.1286;
+
+        _output.WriteLine($"\n=== ALL-ATOM BUTANE CONFORMATIONAL ENERGIES VS RDKIT UFF ===");
+        _output.WriteLine($"E(Anti 180°):         {eAnti:F4} kcal/mol (Ref RDKit UFF: {rdkitUffAnti:F4} kcal/mol, Diff: {Math.Abs(eAnti - rdkitUffAnti):F4})");
+        _output.WriteLine($"E(Gauche 60°):        {eGauche:F4} kcal/mol (Ref RDKit UFF: {rdkitUffGauche:F4} kcal/mol, Diff: {Math.Abs(eGauche - rdkitUffGauche):F4})");
+        _output.WriteLine($"E(Eclipsed 120°):     {eEclipsed:F4} kcal/mol (Torsional Barrier)");
+        _output.WriteLine($"E(Syn-Eclipsed 0°):   {eSyn:F4} kcal/mol (Steric Maximum)");
+
+        // Assert quantitative agreement with external RDKit UFF reference energy within 0.05 kcal/mol
+        Assert.InRange(Math.Abs(eAnti - rdkitUffAnti), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eGauche - rdkitUffGauche), 0.0, 0.05);
 
         // Assert physical conformational hierarchy: E(anti) <= E(gauche) < E(eclipsed 120°) <= E(syn 0°)
         Assert.True(eAnti <= eGauche, "Anti conformation must have potential energy <= Gauche conformation.");
@@ -429,6 +444,35 @@ public class ScientificBenchmarkValidationTests
         var roundTrippedAcetate = MolfileParser.FromMolfileV2000(acetateMolfile);
         Assert.Equal(-1, roundTrippedAcetate.Atoms[3].Atom.NetCharge);
         Assert.Equal(0, roundTrippedAcetate.Atoms[0].Atom.NetCharge);
+
+        // Test positive cation charge round-trip (e.g. Pyridinium C5H6N+)
+        var pyAtoms = new List<Atom3D>
+        {
+            new(new Atom(Elements.Nitrogen, 7, 6), new Vector3D(0.0, 1.4, 0.0)), // N+ formal charge +1
+            new(new Atom(Elements.Carbon, 6), new Vector3D(1.2, 0.7, 0.0)),
+            new(new Atom(Elements.Carbon, 6), new Vector3D(1.2, -0.7, 0.0)),
+            new(new Atom(Elements.Carbon, 6), new Vector3D(0.0, -1.4, 0.0)),
+            new(new Atom(Elements.Carbon, 6), new Vector3D(-1.2, -0.7, 0.0)),
+            new(new Atom(Elements.Carbon, 6), new Vector3D(-1.2, 0.7, 0.0))
+        };
+        var pyBonds = new List<Bond>
+        {
+            new(0, 1, BondType.Aromatic),
+            new(1, 2, BondType.Aromatic),
+            new(2, 3, BondType.Aromatic),
+            new(3, 4, BondType.Aromatic),
+            new(4, 5, BondType.Aromatic),
+            new(5, 0, BondType.Aromatic)
+        };
+        var pyMol = new Molecule("Pyridinium", pyAtoms.Select(a => a.Atom).ToList(), pyBonds);
+        var py3D = new Molecule3D("Pyridinium", "C5H6N+", "Conformer", 120.0, pyAtoms, pyMol);
+
+        string pyMolfile = MolfileExporter.ToMolfileV2000(py3D);
+        Assert.Contains("M  CHG", pyMolfile);
+
+        var roundTrippedPy = MolfileParser.FromMolfileV2000(pyMolfile);
+        Assert.Equal(1, roundTrippedPy.Atoms[0].Atom.NetCharge);
+        Assert.Equal(0, roundTrippedPy.Atoms[1].Atom.NetCharge);
 
         // Check multi-molecule SDF export and import round-trip
         var dataset = new List<Molecule3D>

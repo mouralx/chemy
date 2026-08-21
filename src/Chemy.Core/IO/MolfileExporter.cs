@@ -6,8 +6,9 @@ using Chemy.Core.Structure;
 namespace Chemy.Core.IO;
 
 /// <summary>
-/// Industrial-Grade MDL Molfile (V2000) &amp; Structure-Data File (SDF) Serializer.
-/// Produces ISO/IUPAC-compliant chemical structure files compatible with ChemDraw, PyMOL, RDKit, and BIOVIA Discovery Studio.
+/// MDL Molfile (V2000) &amp; Structure-Data File (SDF) CTfile Serializer.
+/// Serializes 3D Cartesian coordinates, element symbols, single/double/triple/aromatic bond orders,
+/// and formal charge records (atom-block charge codes and M  CHG property blocks) validated against RDKit 2025.09.2.
 /// </summary>
 public static class MolfileExporter
 {

@@ -30,6 +30,10 @@ jobs:
       run: |
         python3 scripts/generate_reference_dataset.py --verify src/Chemy.Core.Tests/ValidationData/reference_compounds.json
 
+    - name: Verify Bidirectional Cross-Tool Molfile Conformance with RDKit
+      run: |
+        python3 scripts/verify_molfile_interop.py
+
     - name: Setup .NET 10 SDK
       uses: actions/setup-dotnet@39504859a4d33458efecad9d9eb933e49dcadfa7 # v4.3.0
       with:

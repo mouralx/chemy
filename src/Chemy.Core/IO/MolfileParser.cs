@@ -5,9 +5,9 @@ using Chemy.Core.Structure;
 namespace Chemy.Core.IO;
 
 /// <summary>
-/// Parser and Deserializer for standard MDL Molfile (V2000) &amp; Structure-Data File (SDF) strings and files.
+/// Parser and Deserializer for MDL Molfile (V2000) &amp; Structure-Data File (SDF) strings and files.
 /// Reconstructs bonded molecular graphs, bond orders, formal charges (via atom-block charge codes and M  CHG records),
-/// and 3D spatial coordinates with coordinate fidelity.
+/// and 3D spatial coordinates with coordinate fidelity validated against RDKit 2025.09.2.
 /// </summary>
 public static class MolfileParser
 {

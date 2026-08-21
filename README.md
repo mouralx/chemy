@@ -3,15 +3,15 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![CI Status](https://img.shields.io/badge/CI-Passing-brightgreen?logo=githubactions)
+[![Chemy CI](https://github.com/mouralx/chemy/actions/workflows/ci.yml/badge.svg)](https://github.com/mouralx/chemy/actions/workflows/ci.yml)
 ![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen?logo=xunit)
-![Coverage](https://img.shields.io/badge/Coverage-81.15%25-brightgreen)
+![Coverage Gate](https://img.shields.io/badge/Coverage%20Gate-%E2%89%A580%25%20Line%20%7C%20%E2%89%A570%25%20Branch-blue)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
-![Deterministic Implementation](https://img.shields.io/badge/Implementation-Pure%20C%23%20%7C%20Zero%20Dependencies-blue)
+![Implementation](https://img.shields.io/badge/Implementation-Pure%20C%23%20%7C%20Zero%20Native%20Dependencies-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20Microservice-orange)
 
-**High-performance, zero-dependency computational chemistry, chemoinformatics, and molecular analysis toolkit for .NET.**  
+**High-performance, pure C# computational chemistry, chemoinformatics, and molecular analysis toolkit for .NET (zero runtime scientific library dependencies).**  
 *From exact mass/charge rational nullspace balancing and finite-difference molecular mechanics to multi-center 3D conformer embedding, Hückel molecular orbital quantum theory, atom-additive Crippen LogP, Ertl TPSA, NIST Shomate thermodynamics, Weisfeiler-Lehman topological graph symmetry, and Horton SSSR minimum cycle bases.*
 
 [🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
