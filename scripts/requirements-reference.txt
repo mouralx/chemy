@@ -1,0 +1,5 @@
+# Pinned reference dataset generation dependencies
+# Python 3.11 / macOS / Linux x86_64 / arm64
+rdkit==2025.9.2
+numpy==2.0.2
+pillow==11.3.0

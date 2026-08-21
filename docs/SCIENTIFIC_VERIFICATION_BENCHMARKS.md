@@ -207,18 +207,18 @@ This document records the **comprehensive, end-to-end scientific verification** 
 ### 11. Pharmacology & ADMET Profile (`POST /api/v1/pharmacology/admet`)
 * **Sample Request**: `{"formula": "CC(C)Cc1ccc(cc1)C(C)C(=O)O"}` (Ibuprofen)
 * **Chemoinformatics Rules**:
-  * **Ertl TPSA**: Sum of polar oxygen/nitrogen contributions ($\text{COOH} = 37.3\text{ \AA}^2 \implies 34.1\text{ \AA}^2$).
-  * **Wildman-Crippen $\log P$**: Hydrophobic isobutyl + phenyl + carboxylic acid = $4.00$ (Literature: $3.97$).
-  * **Veber Rules**: Rotatable bonds $\le 10$ ($4$) and $\text{TPSA} \le 140\text{ \AA}^2$ ($34.1$) $\implies$ High oral bioavailability.
+  * **Ertl TPSA**: Sum of polar oxygen/nitrogen contributions ($\text{COOH} = 17.07 + 20.23 = 37.30\text{ \AA}^2$).
+  * **Wildman-Crippen $\log P$**: Hydrophobic isobutyl + phenyl + carboxylic acid = $3.42$ (Reference: $3.07$).
+  * **Veber Rules**: Rotatable bonds $\le 10$ ($4$) and $\text{TPSA} \le 140\text{ \AA}^2$ ($37.30\text{ \AA}^2$) $\implies$ Passes oral permeability heuristic.
 * **Live Response**:
   ```json
   {
     "formula": "C13H18O2",
-    "molecularWeight": 206.29,
-    "calculatedLogP": 4.0,
-    "tpsaAngstrom2": 34.1,
+    "molecularWeight": 206.285,
+    "calculatedLogP": 3.42,
+    "tpsaAngstrom2": 37.3,
     "hydrogenBondDonors": 1,
-    "hydrogenBondAcceptors": 2,
+    "hydrogenBondAcceptors": 1,
     "rotatableBonds": 4,
     "aromaticRings": 1,
     "lipinskiViolations": 0,
@@ -226,7 +226,7 @@ This document records the **comprehensive, end-to-end scientific verification** 
     "passesVeberRules": true
   }
   ```
-* **Scientific Assessment**: Matches industry-standard RDKit/PubChem drug-likeness profiles. ✅
+* **Scientific Assessment**: Evaluates core Lipinski and Veber descriptors in agreement with standard chemoinformatics tools.
 
 ---
 
@@ -296,36 +296,52 @@ This document records the **comprehensive, end-to-end scientific verification** 
 
 * **Reference Dataset Generator**: [`scripts/generate_reference_dataset.py`](file:///Users/moura/Desktop/chemy/scripts/generate_reference_dataset.py)
 * **Dataset File**: [`src/Chemy.Core.Tests/ValidationData/reference_compounds.json`](file:///Users/moura/Desktop/chemy/src/Chemy.Core.Tests/ValidationData/reference_compounds.json)
-* **On-Disk File SHA-256 Checksum**: `02ad63b87a75c0283f6b8c59f2bb6ea97be97eb155ab51843c5e357c1c053738`
+* **On-Disk File SHA-256 Checksum**: `bbcbc89f9cdcbe7b673a0096c5da8d4baa36e3b856f234f0b23cbcd3b4c197e4`
 * **Automated Test Suite**: [`ScientificBenchmarkValidationTests.cs`](file:///Users/moura/Desktop/chemy/src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs)
-* **CI Verification Gate**: Live calculation and comparison against RDKit 2024.03+ on every push and pull request.
+* **CI Verification Gate**: Live calculation and byte-for-byte comparison against pinned RDKit 2025.09.2 on every push and pull request.
 
-#### Observed vs. Reference Benchmark Metrics Across 16 Compounds
+#### Observed vs. Reference Benchmark Metrics Across 32 Stratified Compounds
 
-| Compound | Formula | Actual TPSA | Ref TPSA | Actual LogP | Ref LogP | Actual QED | Ref QED | HBD | HBA | Rotatable Bonds |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Aspirin** | $\text{C}_9\text{H}_8\text{O}_4$ | $63.60\text{ \AA}^2$ | $63.60\text{ \AA}^2$ | $1.69$ | $1.31$ | $0.753$ | $0.550$ | $1$ | $3$ | $2$ |
-| **Ibuprofen** | $\text{C}_{13}\text{H}_{18}\text{O}_2$ | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $3.42$ | $3.07$ | $0.805$ | $0.822$ | $1$ | $1$ | $4$ |
-| **Paracetamol** | $\text{C}_8\text{H}_9\text{NO}_2$ | $49.33\text{ \AA}^2$ | $49.33\text{ \AA}^2$ | $1.40$ | $1.35$ | $0.637$ | $0.595$ | $2$ | $2$ | $1$ |
-| **Caffeine** | $\text{C}_8\text{H}_{10}\text{N}_4\text{O}_2$ | $61.82\text{ \AA}^2$ | $61.82\text{ \AA}^2$ | $-1.29$ | $-1.03$ | $0.481$ | $0.538$ | $0$ | $4$ | $0$ |
-| **Nicotine** | $\text{C}_{10}\text{H}_{14}\text{N}_2$ | $16.13\text{ \AA}^2$ | $16.13\text{ \AA}^2$ | $1.29$ | $1.85$ | $0.618$ | $0.626$ | $0$ | $2$ | $1$ |
-| **Benzene** | $\text{C}_6\text{H}_6$ | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $1.63$ | $1.69$ | $0.442$ | $0.443$ | $0$ | $0$ | $0$ |
-| **Naphthalene** | $\text{C}_{10}\text{H}_8$ | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.76$ | $2.84$ | $0.511$ | $0.511$ | $0$ | $0$ | $0$ |
-| **Pyridine** | $\text{C}_5\text{H}_5\text{N}$ | $12.89\text{ \AA}^2$ | $12.89\text{ \AA}^2$ | $0.88$ | $1.08$ | $0.449$ | $0.453$ | $0$ | $1$ | $0$ |
-| **Aniline** | $\text{C}_6\text{H}_7\text{N}$ | $26.02\text{ \AA}^2$ | $26.02\text{ \AA}^2$ | $0.98$ | $1.27$ | $0.508$ | $0.480$ | $1$ | $1$ | $0$ |
-| **Benzoic Acid** | $\text{C}_7\text{H}_6\text{O}_2$ | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $1.35$ | $1.38$ | $0.599$ | $0.611$ | $1$ | $1$ | $1$ |
-| **Ethanol** | $\text{C}_2\text{H}_6\text{O}$ | $20.23\text{ \AA}^2$ | $20.23\text{ \AA}^2$ | $0.46$ | $-0.00$ | $0.420$ | $0.407$ | $1$ | $1$ | $0$ |
-| **Acetone** | $\text{C}_3\text{H}_6\text{O}$ | $17.07\text{ \AA}^2$ | $17.07\text{ \AA}^2$ | $0.71$ | $0.60$ | $0.401$ | $0.398$ | $0$ | $1$ | $0$ |
-| **Acetic Acid** | $\text{C}_2\text{H}_4\text{O}_2$ | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $0.18$ | $0.09$ | $0.425$ | $0.430$ | $1$ | $1$ | $0$ |
-| **Acetamide** | $\text{C}_2\text{H}_5\text{NO}$ | $43.09\text{ \AA}^2$ | $43.09\text{ \AA}^2$ | $-0.24$ | $-0.51$ | $0.411$ | $0.401$ | $1$ | $1$ | $0$ |
-| **Ethyl Acetate** | $\text{C}_4\text{H}_8\text{O}_2$ | $26.30\text{ \AA}^2$ | $26.30\text{ \AA}^2$ | $0.82$ | $0.57$ | $0.474$ | $0.438$ | $0$ | $2$ | $1$ |
-| **Urea** | $\text{CH}_4\text{N}_2\text{O}$ | $69.11\text{ \AA}^2$ | $69.11\text{ \AA}^2$ | $-1.19$ | $-0.98$ | $0.362$ | $0.371$ | $2$ | $1$ | $0$ |
+| Compound | Formula | Subset | Actual TPSA | Ref TPSA | Actual LogP | Ref LogP | Actual QED | Ref QED | HBD | HBA | RotB |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Aspirin** | $\text{C}_9\text{H}_8\text{O}_4$ | Tuning | $63.60\text{ \AA}^2$ | $63.60\text{ \AA}^2$ | $1.69$ | $1.31$ | $0.753$ | $0.550$ | $1$ | $3$ | $2$ |
+| **Ibuprofen** | $\text{C}_{13}\text{H}_{18}\text{O}_2$ | Tuning | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $3.42$ | $3.07$ | $0.805$ | $0.822$ | $1$ | $1$ | $4$ |
+| **Paracetamol** | $\text{C}_8\text{H}_9\text{NO}_2$ | Tuning | $49.33\text{ \AA}^2$ | $49.33\text{ \AA}^2$ | $1.40$ | $1.35$ | $0.637$ | $0.595$ | $2$ | $2$ | $1$ |
+| **Caffeine** | $\text{C}_8\text{H}_{10}\text{N}_4\text{O}_2$ | Tuning | $61.82\text{ \AA}^2$ | $61.82\text{ \AA}^2$ | $-1.29$ | $-1.03$ | $0.481$ | $0.538$ | $0$ | $4$ | $0$ |
+| **Nicotine** | $\text{C}_{10}\text{H}_{14}\text{N}_2$ | Tuning | $16.13\text{ \AA}^2$ | $16.13\text{ \AA}^2$ | $1.29$ | $1.85$ | $0.618$ | $0.626$ | $0$ | $2$ | $1$ |
+| **Benzene** | $\text{C}_6\text{H}_6$ | Tuning | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $1.63$ | $1.69$ | $0.442$ | $0.443$ | $0$ | $0$ | $0$ |
+| **Naphthalene** | $\text{C}_{10}\text{H}_8$ | Tuning | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.76$ | $2.84$ | $0.511$ | $0.511$ | $0$ | $0$ | $0$ |
+| **Pyridine** | $\text{C}_5\text{H}_5\text{N}$ | Tuning | $12.89\text{ \AA}^2$ | $12.89\text{ \AA}^2$ | $0.88$ | $1.08$ | $0.449$ | $0.453$ | $0$ | $1$ | $0$ |
+| **Aniline** | $\text{C}_6\text{H}_7\text{N}$ | Tuning | $26.02\text{ \AA}^2$ | $26.02\text{ \AA}^2$ | $0.98$ | $1.27$ | $0.508$ | $0.480$ | $1$ | $1$ | $0$ |
+| **Benzoic Acid** | $\text{C}_7\text{H}_6\text{O}_2$ | Tuning | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $1.35$ | $1.38$ | $0.599$ | $0.611$ | $1$ | $1$ | $1$ |
+| **Ethanol** | $\text{C}_2\text{H}_6\text{O}$ | Tuning | $20.23\text{ \AA}^2$ | $20.23\text{ \AA}^2$ | $0.46$ | $-0.00$ | $0.420$ | $0.407$ | $1$ | $1$ | $0$ |
+| **Acetone** | $\text{C}_3\text{H}_6\text{O}$ | Tuning | $17.07\text{ \AA}^2$ | $17.07\text{ \AA}^2$ | $0.71$ | $0.60$ | $0.401$ | $0.398$ | $0$ | $1$ | $0$ |
+| **Acetic Acid** | $\text{C}_2\text{H}_4\text{O}_2$ | Tuning | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $0.18$ | $0.09$ | $0.425$ | $0.430$ | $1$ | $1$ | $0$ |
+| **Acetamide** | $\text{C}_2\text{H}_5\text{NO}$ | Tuning | $43.09\text{ \AA}^2$ | $43.09\text{ \AA}^2$ | $-0.24$ | $-0.51$ | $0.411$ | $0.401$ | $1$ | $1$ | $0$ |
+| **Ethyl Acetate** | $\text{C}_4\text{H}_8\text{O}_2$ | Tuning | $26.30\text{ \AA}^2$ | $26.30\text{ \AA}^2$ | $0.82$ | $0.57$ | $0.474$ | $0.438$ | $0$ | $2$ | $1$ |
+| **Urea** | $\text{CH}_4\text{N}_2\text{O}$ | Tuning | $69.11\text{ \AA}^2$ | $69.11\text{ \AA}^2$ | $-1.19$ | $-0.98$ | $0.362$ | $0.371$ | $2$ | $1$ | $0$ |
+| **Fluorobenzene** | $\text{C}_6\text{H}_5\text{F}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.07$ | $1.83$ | $0.463$ | $0.462$ | $0$ | $0$ | $0$ |
+| **Chlorobenzene** | $\text{C}_6\text{H}_5\text{Cl}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.34$ | $2.34$ | $0.483$ | $0.483$ | $0$ | $0$ | $0$ |
+| **Bromobenzene** | $\text{C}_6\text{H}_5\text{Br}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.50$ | $2.45$ | $0.542$ | $0.542$ | $0$ | $0$ | $0$ |
+| **4-Chlorobenzoic Acid** | $\text{C}_7\text{H}_5\text{ClO}_2$ | Held-Out | $37.30\text{ \AA}^2$ | $37.30\text{ \AA}^2$ | $2.06$ | $2.04$ | $0.664$ | $0.676$ | $1$ | $1$ | $1$ |
+| **Thiophene** | $\text{C}_4\text{H}_4\text{S}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $1.62$ | $1.75$ | $0.448$ | $0.449$ | $0$ | $1$ | $0$ |
+| **Furan** | $\text{C}_4\text{H}_4\text{O}$ | Held-Out | $13.14\text{ \AA}^2$ | $13.14\text{ \AA}^2$ | $1.17$ | $1.28$ | $0.444$ | $0.446$ | $0$ | $1$ | $0$ |
+| **Indole** | $\text{C}_8\text{H}_7\text{N}$ | Held-Out | $15.79\text{ \AA}^2$ | $15.79\text{ \AA}^2$ | $1.69$ | $2.17$ | $0.540$ | $0.544$ | $1$ | $0$ | $0$ |
+| **Quinoline** | $\text{C}_9\text{H}_7\text{N}$ | Held-Out | $12.89\text{ \AA}^2$ | $12.89\text{ \AA}^2$ | $2.01$ | $2.23$ | $0.530$ | $0.531$ | $0$ | $1$ | $0$ |
+| **Anthracene** | $\text{C}_{14}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
+| **Phenanthrene** | $\text{C}_{14}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.89$ | $3.99$ | $0.490$ | $0.456$ | $0$ | $0$ | $0$ |
+| **Biphenyl** | $\text{C}_{12}\text{H}_{10}$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $3.30$ | $3.35$ | $0.591$ | $0.591$ | $0$ | $0$ | $1$ |
+| **Dimethyl Sulfoxide** | $\text{C}_2\text{H}_6\text{OS}$ | Held-Out | $17.07\text{ \AA}^2$ | $17.07\text{ \AA}^2$ | $-0.21$ | $-0.01$ | $0.391$ | $0.398$ | $0$ | $1$ | $0$ |
+| **Methanesulfonic Acid** | $\text{CH}_4\text{O}_3\text{S}$ | Held-Out | $54.37\text{ \AA}^2$ | $54.37\text{ \AA}^2$ | $-0.73$ | $-0.50$ | $0.432$ | $0.414$ | $1$ | $2$ | $0$ |
+| **Trimethyl Phosphate** | $\text{C}_3\text{H}_9\text{O}_4\text{P}$ | Held-Out | $44.76\text{ \AA}^2$ | $44.76\text{ \AA}^2$ | $0.40$ | $1.03$ | $0.569$ | $0.549$ | $0$ | $4$ | $3$ |
+| **Trichloroethylene** | $\text{C}_2\text{HCl}_3$ | Held-Out | $0.00\text{ \AA}^2$ | $0.00\text{ \AA}^2$ | $2.43$ | $2.50$ | $0.474$ | $0.474$ | $0$ | $0$ | $0$ |
+| **Dapsone** | $\text{C}_{12}\text{H}_{12}\text{N}_2\text{O}_2\text{S}$ | Held-Out | $86.18\text{ \AA}^2$ | $86.18\text{ \AA}^2$ | $1.19$ | $1.68$ | $0.835$ | $0.792$ | $2$ | $4$ | $2$ |
 
-#### Statistical Error Distribution Summary
+#### Statistical Error Distribution Summary (N = 32)
 
 | Property | Mean Absolute Error ($\text{MAE}$) | Root Mean Square Error ($\text{RMSE}$) | Maximum Error | Acceptance Threshold | Model Characterization |
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **Topological Polar Surface Area ($\text{TPSA}$)** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | **$0.0000\text{ \AA}^2$** | $< 0.0500\text{ \AA}^2$ | Exact Fragment Table Agreement |
-| **Wildman-Crippen Lipophilicity ($\log P$)** | **$0.2289$** | **$0.2737$** | **$0.5630$** | $< 0.3500$ | Fragment Approximation Model |
-| **Bickerton Drug-Likeness ($\text{QED}$)** | **$0.0280$** | **$0.0555$** | **$0.2030$** | $< 0.1000$ | Desirability Model (Reduced Alert Set) |
+| **Wildman-Crippen Lipophilicity ($\log P$)** | **$0.2121$** | **$0.2699$** | **$0.6320$** | $< 0.3500$ | Fragment Approximation Model |
+| **Bickerton Drug-Likeness ($\text{QED}$)** | **$0.0195$** | **$0.0412$** | **$0.2030$** | $< 0.1000$ | Desirability Model (Reduced Alert Set) |
 

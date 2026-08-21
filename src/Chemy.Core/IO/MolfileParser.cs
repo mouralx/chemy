@@ -5,8 +5,8 @@ using Chemy.Core.Structure;
 namespace Chemy.Core.IO;
 
 /// <summary>
-/// Parser and Deserializer for standard MDL Molfile (V2000) strings and files.
-/// Reconstructs bonded molecular graphs and 3D spatial coordinates.
+/// Parser and Deserializer for standard MDL Molfile (V2000) &amp; Structure-Data File (SDF) strings and files.
+/// Reconstructs bonded molecular graphs, bond orders, formal charges, and 3D spatial coordinates with coordinate fidelity.
 /// </summary>
 public static class MolfileParser
 {
@@ -53,7 +53,7 @@ public static class MolfileParser
             string line = lines[currentLine++];
             if (line.Length < 34)
             {
-                throw new FormatException($"Invalid atom block line length: '{line}'");
+                throw new FormatException($"Invalid atom block line length at atom {i + 1}: '{line}'");
             }
 
             double x = double.Parse(line[..10].Trim(), CultureInfo.InvariantCulture);
@@ -80,12 +80,17 @@ public static class MolfileParser
             string line = lines[currentLine++];
             if (line.Length < 9)
             {
-                throw new FormatException($"Invalid bond block line length: '{line}'");
+                throw new FormatException($"Invalid bond block line length at bond {i + 1}: '{line}'");
             }
 
             int atom1 = int.Parse(line[..3].Trim(), CultureInfo.InvariantCulture) - 1;
             int atom2 = int.Parse(line[3..6].Trim(), CultureInfo.InvariantCulture) - 1;
             int orderCode = int.Parse(line[6..9].Trim(), CultureInfo.InvariantCulture);
+
+            if (atom1 < 0 || atom1 >= atomCount || atom2 < 0 || atom2 >= atomCount)
+            {
+                throw new FormatException($"Molfile bond endpoint index out of range: atom1={atom1 + 1}, atom2={atom2 + 1}, total atoms={atomCount}");
+            }
 
             var bondType = orderCode switch
             {
@@ -93,7 +98,7 @@ public static class MolfileParser
                 2 => BondType.Double,
                 3 => BondType.Triple,
                 4 => BondType.Aromatic,
-                _ => BondType.Single
+                _ => throw new FormatException($"Unsupported or invalid MDL Molfile bond order code '{orderCode}' at bond {i + 1}.")
             };
 
             bondList.Add(new Bond(atom1, atom2, bondType));
@@ -101,5 +106,32 @@ public static class MolfileParser
 
         var sourceMol = new Molecule(name, atomList, bondList);
         return new Molecule3D(name, sourceMol.ChemicalFormula, "Conformer", 109.5, atom3DList, sourceMol);
+    }
+
+    /// <summary>
+    /// Parses a multi-record Structure-Data File (.sdf) into a list of Molecule3D instances.
+    /// </summary>
+    public static IReadOnlyList<Molecule3D> FromSdf(string sdfContent)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sdfContent);
+
+        var rawRecords = sdfContent.Split(["$$$$\r\n", "$$$$\r", "$$$$\n", "$$$$"], StringSplitOptions.RemoveEmptyEntries);
+        var result = new List<Molecule3D>(rawRecords.Length);
+
+        foreach (var record in rawRecords)
+        {
+            string trimmed = record.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed)) continue;
+
+            // Extract the Molfile block (up to and including 'M  END')
+            int mEndIndex = trimmed.IndexOf("M  END", StringComparison.Ordinal);
+            if (mEndIndex >= 0)
+            {
+                string molBlock = trimmed[..(mEndIndex + 6)];
+                result.Add(FromMolfileV2000(molBlock));
+            }
+        }
+
+        return result;
     }
 }

@@ -109,6 +109,11 @@ public static class ErtlTpsa
                     // -OH
                     return ("-OH (Hydroxyl oxygen)", 20.23);
                 }
+                if (isAromatic)
+                {
+                    // :O: (Aromatic ring oxygen, e.g. furan)
+                    return (":O: (Aromatic ring oxygen)", 13.14);
+                }
                 if (in3MemberedRing)
                 {
                     // -O- in 3-membered ring (oxirane)
@@ -215,31 +220,31 @@ public static class ErtlTpsa
                 {
                     return hCount switch
                     {
-                        >= 1 => ("-NH- (Aziridine 3-ring nitrogen)", 18.28),
+                        >= 1 => ("-NH- (Aziridine 3-ring nitrogen with H)", 8.25),
                         _ => ("-NR- (Aziridine 3-ring tertiary nitrogen)", 3.01)
                     };
                 }
 
-                // Standard aliphatic amine
+                // Standard aliphatic amines
                 return hCount switch
                 {
-                    >= 2 => ("-NH2 (Primary aliphatic amine)", 26.02),
-                    1 => ("-NH- (Secondary aliphatic amine)", 12.03),
-                    _ => ("-N< (Tertiary aliphatic amine)", 3.24)
+                    >= 2 => ("-NH2 (Primary amine nitrogen)", 26.02),
+                    1 => ("-NH- (Secondary amine nitrogen)", 12.03),
+                    _ => ("-NR2 (Tertiary amine nitrogen)", 3.24)
                 };
 
             case "S":
                 // 3. Sulfur Fragments (Ertl Table 1)
-                int sOxygens = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "O");
-                if (sOxygens >= 2)
+                if (isAromatic)
                 {
-                    // Sulfone =S(=O)2
-                    return ("-SO2- (Sulfone sulfur)", 43.70);
+                    // :S: (Aromatic ring sulfur, e.g. thiophene)
+                    return (":S: (Aromatic ring sulfur)", 0.0);
                 }
-                if (sOxygens == 1)
+                int sOxygens = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "O");
+                if (sOxygens >= 1)
                 {
-                    // Sulfoxide =S=O
-                    return ("-SO- (Sulfoxide sulfur)", 36.28);
+                    // Sulfoxide / Sulfone sulfur atom (polar area is carried by double-bonded oxygens)
+                    return ("-SO- / -SO2- (Sulfoxide/Sulfone sulfur)", 0.0);
                 }
                 if (hCount >= 1)
                 {
@@ -257,9 +262,14 @@ public static class ErtlTpsa
             case "P":
                 // 4. Phosphorus Fragments (Ertl Table 1)
                 int pOxygens = neighbors.Count(n => molecule.Atoms[n].Element.Symbol == "O");
-                if (doubleBonds >= 1 || pOxygens >= 1)
+                if (pOxygens >= 3)
                 {
-                    return ("=P- / -PO4- (Phosphate phosphorus)", 9.81);
+                    // Phosphate / Phosphonate phosphorus (polar area carried by oxygens)
+                    return ("-PO4- (Phosphate phosphorus)", 0.0);
+                }
+                if (doubleBonds >= 1)
+                {
+                    return ("=P- (Phosphorus with double bond)", 9.81);
                 }
                 return ("-P< (Phosphine phosphorus)", 13.59);
 

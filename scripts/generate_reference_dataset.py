@@ -3,7 +3,7 @@
 Chemy Independent Reference Dataset Generator
 =============================================
 Calculates and verifies the external chemoinformatics benchmark dataset (`reference_compounds.json`)
-directly using authentic RDKit (2024.03+) and IUPAC CIAAW atomic weights.
+directly using authentic RDKit (2025.09.2) and IUPAC CIAAW atomic weights.
 
 Usage:
     python3 scripts/generate_reference_dataset.py --output src/Chemy.Core.Tests/ValidationData/reference_compounds.json
@@ -15,6 +15,8 @@ import json
 import os
 import sys
 
+PINNED_RDKIT_VERSION = "2025.09.2"
+
 try:
     import rdkit
     from rdkit import Chem
@@ -24,119 +26,265 @@ except ImportError:
     RDKIT_AVAILABLE = False
 
 
-# Reference compound list: (ID, Name, SMILES, Formula, ChEMBL/PubChem reference)
+# 32 Benchmark Compounds: 16 Tuning set + 16 Held-out Validation set (F, Cl, Br, S, P, Heterocycles, Polycycles)
 BENCHMARK_COMPOUNDS = [
+    # --- SUBSET 1: Core Tuning Benchmark (16 molecules) ---
     {
         "id": "CHEMBL25",
         "name": "Aspirin",
         "smiles": "CC(=O)Oc1ccccc1C(=O)O",
         "formula": "C9H8O4",
-        "provenance": "ChEMBL25 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"ChEMBL25 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CHEMBL521",
         "name": "Ibuprofen",
         "smiles": "CC(C)Cc1ccc(cc1)C(C)C(=O)O",
         "formula": "C13H18O2",
-        "provenance": "ChEMBL521 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"ChEMBL521 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CHEMBL112",
         "name": "Paracetamol",
         "smiles": "CC(=O)Nc1ccc(O)cc1",
         "formula": "C8H9NO2",
-        "provenance": "ChEMBL112 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"ChEMBL112 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CHEMBL113",
         "name": "Caffeine",
         "smiles": "CN1C=NC2=C1C(=O)N(C)C(=O)N2C",
         "formula": "C8H10N4O2",
-        "provenance": "ChEMBL113 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"ChEMBL113 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CHEMBL3",
         "name": "Nicotine",
         "smiles": "CN1CCCC1c2cccnc2",
         "formula": "C10H14N2",
-        "provenance": "ChEMBL3 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"ChEMBL3 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_241",
         "name": "Benzene",
         "smiles": "c1ccccc1",
         "formula": "C6H6",
-        "provenance": "PubChem CID 241 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 241 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_931",
         "name": "Naphthalene",
         "smiles": "c1ccc2ccccc2c1",
         "formula": "C10H8",
-        "provenance": "PubChem CID 931 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 931 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_1049",
         "name": "Pyridine",
         "smiles": "c1ccncc1",
         "formula": "C5H5N",
-        "provenance": "PubChem CID 1049 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 1049 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_6115",
         "name": "Aniline",
         "smiles": "c1ccccc1N",
         "formula": "C6H7N",
-        "provenance": "PubChem CID 6115 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 6115 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_243",
         "name": "BenzoicAcid",
         "smiles": "c1ccccc1C(=O)O",
         "formula": "C7H6O2",
-        "provenance": "PubChem CID 243 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 243 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_702",
         "name": "Ethanol",
         "smiles": "CCO",
         "formula": "C2H6O",
-        "provenance": "PubChem CID 702 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 702 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_180",
         "name": "Acetone",
         "smiles": "CC(=O)C",
         "formula": "C3H6O",
-        "provenance": "PubChem CID 180 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 180 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_176",
         "name": "AceticAcid",
         "smiles": "CC(=O)O",
         "formula": "C2H4O2",
-        "provenance": "PubChem CID 176 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 176 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_178",
         "name": "Acetamide",
         "smiles": "CC(=O)N",
         "formula": "C2H5NO",
-        "provenance": "PubChem CID 178 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 178 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_8857",
         "name": "EthylAcetate",
         "smiles": "CCOC(=O)C",
         "formula": "C4H8O2",
-        "provenance": "PubChem CID 8857 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 8857 / RDKit {PINNED_RDKIT_VERSION}"
     },
     {
         "id": "CID_1176",
         "name": "Urea",
         "smiles": "NC(=O)N",
         "formula": "CH4N2O",
-        "provenance": "PubChem CID 1176 / RDKit 2024.03+"
+        "subset": "tuning",
+        "provenance": f"PubChem CID 1176 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    # --- SUBSET 2: Held-Out Chemical Space (Heteroatoms F, Cl, Br, S, P, Polycycles) (16 molecules) ---
+    {
+        "id": "CID_10008",
+        "name": "Fluorobenzene",
+        "smiles": "c1ccc(F)cc1",
+        "formula": "C6H5F",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 10008 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_7964",
+        "name": "Chlorobenzene",
+        "smiles": "c1ccc(Cl)cc1",
+        "formula": "C6H5Cl",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 7964 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_7961",
+        "name": "Bromobenzene",
+        "smiles": "c1ccc(Br)cc1",
+        "formula": "C6H5Br",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 7961 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_7419",
+        "name": "4-ChlorobenzoicAcid",
+        "smiles": "O=C(O)c1ccc(Cl)cc1",
+        "formula": "C7H5ClO2",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 7419 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_8030",
+        "name": "Thiophene",
+        "smiles": "c1ccsc1",
+        "formula": "C4H4S",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 8030 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_8029",
+        "name": "Furan",
+        "smiles": "c1ccoc1",
+        "formula": "C4H4O",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 8029 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_798",
+        "name": "Indole",
+        "smiles": "c1ccc2[nH]ccc2c1",
+        "formula": "C8H7N",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 798 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_7047",
+        "name": "Quinoline",
+        "smiles": "c1ccc2ncccc2c1",
+        "formula": "C9H7N",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 7047 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_8418",
+        "name": "Anthracene",
+        "smiles": "c1ccc2cc3ccccc3cc2c1",
+        "formula": "C14H10",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 8418 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_995",
+        "name": "Phenanthrene",
+        "smiles": "c1ccc2c(c1)ccc3ccccc23",
+        "formula": "C14H10",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 995 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_7067",
+        "name": "Biphenyl",
+        "smiles": "c1ccccc1-c2ccccc2",
+        "formula": "C12H10",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 7067 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_679",
+        "name": "DimethylSulfoxide",
+        "smiles": "CS(=O)C",
+        "formula": "C2H6OS",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 679 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_6395",
+        "name": "MethanesulfonicAcid",
+        "smiles": "CS(=O)(=O)O",
+        "formula": "CH4O3S",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 6395 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_10672",
+        "name": "TrimethylPhosphate",
+        "smiles": "COP(=O)(OC)OC",
+        "formula": "C3H9O4P",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 10672 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CID_6575",
+        "name": "Trichloroethylene",
+        "smiles": "ClC=C(Cl)Cl",
+        "formula": "C2HCl3",
+        "subset": "held_out",
+        "provenance": f"PubChem CID 6575 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL22",
+        "name": "Dapsone",
+        "smiles": "Nc1ccc(S(=O)(=O)c2ccc(N)cc2)cc1",
+        "formula": "C12H12N2O2S",
+        "subset": "held_out",
+        "provenance": f"ChEMBL22 / RDKit {PINNED_RDKIT_VERSION}"
     }
 ]
 
@@ -166,12 +314,12 @@ def calculate_descriptors_with_rdkit(smiles: str):
 def generate_reference_dataset():
     """Generates the benchmark dataset records by invoking RDKit."""
     records = []
-    rdkit_version = rdkit.__version__ if RDKIT_AVAILABLE else "2024.03+"
 
     for entry in BENCHMARK_COMPOUNDS:
         name = entry["name"]
         smiles = entry["smiles"]
         formula = entry["formula"]
+        subset = entry["subset"]
         
         mw, exact_mass, tpsa, logp, qed_val, hbd, hba, rotb, arom = calculate_descriptors_with_rdkit(smiles)
 
@@ -180,6 +328,7 @@ def generate_reference_dataset():
             "name": name,
             "smiles": smiles,
             "formula": formula,
+            "subset": subset,
             "standardMolecularWeight": mw,
             "monoisotopicExactMass": exact_mass,
             "referenceTpsa": tpsa,
@@ -191,15 +340,15 @@ def generate_reference_dataset():
             "referenceAromaticRings": arom,
             "provenance": entry["provenance"],
             "propertyProvenance": {
-                "standardMolecularWeight": f"RDKit {rdkit_version} Descriptors.MolWt (IUPAC CIAAW)",
-                "monoisotopicExactMass": f"RDKit {rdkit_version} Descriptors.ExactMolWt (NIST Physical Measurement Laboratory)",
-                "referenceTpsa": f"RDKit {rdkit_version} rdMolDescriptors.CalcTPSA (Ertl et al. J. Med. Chem. 2000)",
-                "referenceLogP": f"RDKit {rdkit_version} Crippen.MolLogP (Wildman & Crippen J. Chem. Inf. Comput. Sci. 1999)",
-                "referenceQed": f"RDKit {rdkit_version} QED.qed (Bickerton et al. Nature Chem. 2012)",
-                "referenceHbd": f"RDKit {rdkit_version} Lipinski.NumHDonors (Lipinski et al. Adv. Drug Deliv. Rev. 1997)",
-                "referenceHba": f"RDKit {rdkit_version} Lipinski.NumHAcceptors (Lipinski et al. Adv. Drug Deliv. Rev. 1997)",
-                "referenceRotatableBonds": f"RDKit {rdkit_version} Lipinski.NumRotatableBonds (Veber et al. J. Med. Chem. 2002)",
-                "referenceAromaticRings": f"RDKit {rdkit_version} Lipinski.NumAromaticRings (Horton SSSR cycle basis)"
+                "standardMolecularWeight": f"RDKit {PINNED_RDKIT_VERSION} Descriptors.MolWt (IUPAC CIAAW)",
+                "monoisotopicExactMass": f"RDKit {PINNED_RDKIT_VERSION} Descriptors.ExactMolWt (NIST Physical Measurement Laboratory)",
+                "referenceTpsa": f"RDKit {PINNED_RDKIT_VERSION} rdMolDescriptors.CalcTPSA (Ertl et al. J. Med. Chem. 2000)",
+                "referenceLogP": f"RDKit {PINNED_RDKIT_VERSION} Crippen.MolLogP (Wildman & Crippen J. Chem. Inf. Comput. Sci. 1999)",
+                "referenceQed": f"RDKit {PINNED_RDKIT_VERSION} QED.qed (Bickerton et al. Nature Chem. 2012)",
+                "referenceHbd": f"RDKit {PINNED_RDKIT_VERSION} Lipinski.NumHDonors (Lipinski et al. Adv. Drug Deliv. Rev. 1997)",
+                "referenceHba": f"RDKit {PINNED_RDKIT_VERSION} Lipinski.NumHAcceptors (Lipinski et al. Adv. Drug Deliv. Rev. 1997)",
+                "referenceRotatableBonds": f"RDKit {PINNED_RDKIT_VERSION} Lipinski.NumRotatableBonds (Veber et al. J. Med. Chem. 2002)",
+                "referenceAromaticRings": f"RDKit {PINNED_RDKIT_VERSION} Lipinski.NumAromaticRings (Horton SSSR cycle basis)"
             }
         }
         records.append(record)
@@ -209,7 +358,11 @@ def generate_reference_dataset():
 
 if __name__ == "__main__":
     if not RDKIT_AVAILABLE:
-        print("ERROR: RDKit is not installed. Install via `pip install rdkit` to execute reference generator.", file=sys.stderr)
+        print("ERROR: RDKit is not installed. Install via `pip install -r scripts/requirements-reference.txt`", file=sys.stderr)
+        sys.exit(1)
+
+    if rdkit.__version__ != PINNED_RDKIT_VERSION:
+        print(f"ERROR: RDKit version mismatch. Expected {PINNED_RDKIT_VERSION}, found {rdkit.__version__}", file=sys.stderr)
         sys.exit(1)
 
     output_path = "src/Chemy.Core.Tests/ValidationData/reference_compounds.json"
@@ -234,12 +387,12 @@ if __name__ == "__main__":
         with open(output_path, "rb") as f:
             existing_bytes = f.read()
         if existing_bytes != formatted_bytes:
-            print(f"FAIL: Target file '{output_path}' differs from RDKit {rdkit.__version__} calculated output.", file=sys.stderr)
+            print(f"FAIL: Target file '{output_path}' differs from RDKit {PINNED_RDKIT_VERSION} calculated output.", file=sys.stderr)
             sys.exit(1)
-        print(f"SUCCESS: '{output_path}' matches RDKit {rdkit.__version__} calculated values.")
+        print(f"SUCCESS: '{output_path}' matches RDKit {PINNED_RDKIT_VERSION} calculated values ({len(records)} compounds).")
         print(f"On-Disk File SHA-256: {actual_file_sha256}")
     else:
         with open(output_path, "wb") as f:
             f.write(formatted_bytes)
-        print(f"Generated {len(records)} reference records using RDKit {rdkit.__version__} -> {output_path}")
+        print(f"Generated {len(records)} reference records using RDKit {PINNED_RDKIT_VERSION} -> {output_path}")
         print(f"On-Disk File SHA-256: {actual_file_sha256}")

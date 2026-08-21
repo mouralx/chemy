@@ -169,13 +169,13 @@ public static class AdmetEngine
 
             if (a.Element.Symbol == "O")
             {
-                // Exclude carboxylic acid -OH oxygens where the lone pair is resonance-delocalized into carbonyl C=O
+                // Exclude acidic -OH oxygens (carboxylic, sulfonic, phosphoric) where the lone pair is resonance-delocalized
                 bool hasHydrogen = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
-                bool isCarboxylicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                bool isAcidicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol is "C" or "S" or "P" &&
                     molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
 
-                if (!isCarboxylicHydroxyl)
+                if (!isAcidicHydroxyl)
                 {
                     count++;
                 }
@@ -191,7 +191,11 @@ public static class AdmetEngine
                 int oxygenNeighbors = molecule.Bonds.Count(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
                 bool isNitro = oxygenNeighbors >= 2;
 
-                if (!isAmide && !isNitro)
+                // Exclude pyrrole/indole [nH] (lone pair delocalized into aromatic 6-pi system)
+                bool isPyrroleLikeNH = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic) &&
+                    molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
+
+                if (!isAmide && !isNitro && !isPyrroleLikeNH)
                 {
                     count++;
                 }

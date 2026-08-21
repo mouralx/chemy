@@ -12,13 +12,14 @@ public static class SmilesParser
 
         var rawAtoms = new List<RawAtom>();
         var rawBonds = new List<(int Atom1, int Atom2, BondType Type)>();
-        var ringOpenings = new Dictionary<int, (int AtomIndex, BondType BondType)>();
+        var ringOpenings = new Dictionary<int, (int AtomIndex, BondType BondType, bool ExplicitBond)>();
         var branchStack = new Stack<int>();
 
         int currentAtomIndex = -1;
         int i = 0;
         int len = smiles.Length;
         BondType currentBondType = BondType.Single;
+        bool explicitBondSpecified = false;
 
         while (i < len)
         {
@@ -26,15 +27,17 @@ public static class SmilesParser
 
             if (ch == '(')
             {
-                if (currentAtomIndex >= 0) branchStack.Push(currentAtomIndex);
+                branchStack.Push(currentAtomIndex);
                 i++;
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
             }
             else if (ch == ')')
             {
                 if (branchStack.Count > 0) currentAtomIndex = branchStack.Pop();
                 i++;
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
             }
             else if (ch is '=' or '#' or ':' or '-')
             {
@@ -45,6 +48,7 @@ public static class SmilesParser
                     ':' => BondType.Aromatic,
                     _ => BondType.Single
                 };
+                explicitBondSpecified = true;
                 i++;
             }
             else if (char.IsDigit(ch))
@@ -53,18 +57,19 @@ public static class SmilesParser
                 if (ringOpenings.TryGetValue(ringId, out var open))
                 {
                     bool bothAromatic = rawAtoms[currentAtomIndex].IsAromatic && rawAtoms[open.AtomIndex].IsAromatic;
-                    var ringBondType = open.BondType != BondType.Single 
+                    var ringBondType = open.ExplicitBond
                         ? open.BondType 
-                        : (currentBondType != BondType.Single ? currentBondType : (bothAromatic ? BondType.Aromatic : BondType.Single));
+                        : (explicitBondSpecified ? currentBondType : (bothAromatic ? BondType.Aromatic : BondType.Single));
                     rawBonds.Add((open.AtomIndex, currentAtomIndex, ringBondType));
                     ringOpenings.Remove(ringId);
                 }
                 else
                 {
-                    ringOpenings[ringId] = (currentAtomIndex, currentBondType);
+                    ringOpenings[ringId] = (currentAtomIndex, currentBondType, explicitBondSpecified);
                 }
                 i++;
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
             }
             else if (ch == '[')
             {
@@ -75,23 +80,29 @@ public static class SmilesParser
                 string bracketContent = smiles[start..i];
                 i++; // skip ']'
 
-                var (element, charge, explicitH) = ParseBracketAtom(bracketContent);
-                rawAtoms.Add(new RawAtom(element, charge, explicitH, false));
+                var (element, charge, explicitH, isAromatic) = ParseBracketAtom(bracketContent);
+                rawAtoms.Add(new RawAtom(element, charge, explicitH, isAromatic));
                 int newIndex = rawAtoms.Count - 1;
 
                 if (currentAtomIndex >= 0)
                 {
-                    rawBonds.Add((currentAtomIndex, newIndex, currentBondType));
+                    bool bothAromatic = isAromatic && rawAtoms[currentAtomIndex].IsAromatic;
+                    var bondType = explicitBondSpecified
+                        ? currentBondType
+                        : (bothAromatic ? BondType.Aromatic : BondType.Single);
+                    rawBonds.Add((currentAtomIndex, newIndex, bondType));
                 }
 
                 currentAtomIndex = newIndex;
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
             }
             else if (ch == '.')
             {
                 currentAtomIndex = -1;
                 branchStack.Clear();
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
                 i++;
             }
             else if (char.IsLetter(ch))
@@ -118,7 +129,7 @@ public static class SmilesParser
                 if (currentAtomIndex >= 0)
                 {
                     bool bothAromatic = isAromatic && rawAtoms[currentAtomIndex].IsAromatic;
-                    var bondType = currentBondType != BondType.Single 
+                    var bondType = explicitBondSpecified
                         ? currentBondType 
                         : (bothAromatic ? BondType.Aromatic : BondType.Single);
                     rawBonds.Add((currentAtomIndex, newIndex, bondType));
@@ -126,6 +137,7 @@ public static class SmilesParser
 
                 currentAtomIndex = newIndex;
                 currentBondType = BondType.Single;
+                explicitBondSpecified = false;
                 i++;
             }
             else if (ch is '@' or '/' or '\\' or '%')
@@ -180,7 +192,7 @@ public static class SmilesParser
                     }
                 }
 
-                int defaultValence = GetDefaultValence(raw.Element.Symbol, currentBondOrder);
+                int defaultValence = GetDefaultValence(raw.Element.Symbol, currentBondOrder, raw.IsAromatic);
                 hCount = Math.Max(0, (int)Math.Round(defaultValence - currentBondOrder));
             }
 
@@ -196,7 +208,7 @@ public static class SmilesParser
         return new Molecule(name ?? smiles, finalAtoms, finalBonds);
     }
 
-    private static (Element Element, int Charge, int ExplicitH) ParseBracketAtom(string content)
+    private static (Element Element, int Charge, int ExplicitH, bool IsAromatic) ParseBracketAtom(string content)
     {
         if (content.Contains('@') || content.Contains('/') || content.Contains('\\'))
         {
@@ -209,6 +221,7 @@ public static class SmilesParser
         while (i < len && !char.IsLetter(content[i])) i++;
 
         int startSymbol = i;
+        bool isAromatic = false;
         if (i < len && char.IsUpper(content[i]))
         {
             i++;
@@ -216,6 +229,7 @@ public static class SmilesParser
         }
         else if (i < len && char.IsLower(content[i]))
         {
+            isAromatic = true;
             i++;
         }
 
@@ -244,15 +258,15 @@ public static class SmilesParser
             charge = sign == '+' ? val : -val;
         }
 
-        return (element, charge, explicitH);
+        return (element, charge, explicitH, isAromatic);
     }
 
-    private static int GetDefaultValence(string symbol, double currentBondOrder) => symbol switch
+    private static int GetDefaultValence(string symbol, double currentBondOrder, bool isAromatic) => symbol switch
     {
         "C" => 4,
         "N" => currentBondOrder > 3.0 ? 4 : 3,
         "O" => 2,
-        "S" => currentBondOrder > 4.0 ? 6 : (currentBondOrder > 2.0 ? 4 : 2),
+        "S" => isAromatic ? 3 : (currentBondOrder > 4.0 ? 6 : (currentBondOrder > 2.0 ? 4 : 2)),
         "P" => currentBondOrder > 3.0 ? 5 : 3,
         "F" or "Cl" or "Br" or "I" => 1,
         _ => 0

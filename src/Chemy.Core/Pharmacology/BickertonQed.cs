@@ -141,11 +141,11 @@ public static class BickertonQed
             if (a.Element.Symbol == "O")
             {
                 bool hasHydrogen = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
-                bool isCarboxylicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                bool isAcidicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol is "C" or "S" or "P" &&
                     molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
 
-                if (!isCarboxylicHydroxyl) count++;
+                if (!isAcidicHydroxyl) count++;
             }
             else if (a.Element.Symbol == "N")
             {
@@ -154,8 +154,10 @@ public static class BickertonQed
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
                 int oxygenNeighbors = molecule.Bonds.Count(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
                 bool isNitro = oxygenNeighbors >= 2;
+                bool isPyrroleLikeNH = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic) &&
+                    molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
 
-                if (!isAmide && !isNitro) count++;
+                if (!isAmide && !isNitro && !isPyrroleLikeNH) count++;
             }
         }
         return count;
