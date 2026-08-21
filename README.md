@@ -3,16 +3,16 @@
 <div align="center">
 
 ![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-114%20Passed%20(100%25)-brightgreen?logo=xunit)
+![Tests](https://img.shields.io/badge/Tests-130%20Passed-brightgreen?logo=xunit)
 ![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
-![Scientific Credibility](https://img.shields.io/badge/Scientific%20Credibility-100%25%20Verified-blue)
+![Scientific Rigor](https://img.shields.io/badge/Scientific%20Rigor-Peer--Reviewed%20Algorithms-blue)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Architecture](https://img.shields.io/badge/Architecture-Clean%20Microservice-orange)
 
-**Industrial-grade, zero-dependency computational chemistry, chemoinformatics, and lead optimization toolkit for .NET.**  
-*From exact mass/charge nullspace balancing and 4-term analytical molecular mechanics to multi-center 3D conformer embedding, flat 2D-in-3D planar diagram generation, Hückel molecular orbital quantum theory, atom-additive Crippen LogP, Ertl TPSA, true Benson group additivity, and rule-based bioisosteric lead optimization.*
+**High-performance, zero-dependency computational chemistry, chemoinformatics, and molecular analysis toolkit for .NET.**  
+*From exact mass/charge rational nullspace balancing and finite-difference molecular mechanics to multi-center 3D conformer embedding, Hückel molecular orbital quantum theory, atom-additive Crippen LogP, Ertl TPSA, NIST Shomate thermodynamics, Weisfeiler-Lehman topological graph symmetry, and Horton SSSR minimum cycle bases.*
 
-[🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [🧬 Societal Breakthroughs](#-societal-breakthroughs) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
+[🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
 
 </div>
 
@@ -21,7 +21,7 @@
 ## 🖼️ Visual Tour & Workstation UI
 
 ### 1. Interactive 3D Molecular Laboratory Workstation (`Chemy.Web`)
-*Explore rotatable 3D ball-and-stick conformations, real-time VSEPR geometries, 50+ curated reference compounds, and instantaneous ADMET safety scoring.*
+*Explore rotatable 3D ball-and-stick conformations, real-time VSEPR geometries, 50+ curated reference compounds, and chemoinformatics property profiles.*
 
 <div align="center">
 
@@ -55,20 +55,20 @@
 
 ## 💡 What is Chemy?
 
-**Chemy** is a modern, high-performance computational chemistry platform built for developers, scientists, students, and pharmaceutical researchers. 
+**Chemy** is a modern, high-performance computational chemistry platform built for developers, scientists, students, and computational chemists. 
 
 All algorithms in Chemy are **pure, mathematically rigorous, and deterministic C# implementations** without external Python, cloud AI, or black-box dependencies:
-- ⚛️ **Quantum Electronic Structure & Hückel Molecular Orbitals**: Solves the secular equation $\det|\mathbf{H} - E\mathbf{I}| = 0$ via exact Jacobi symmetric matrix diagonalization. Computes HOMO, LUMO, bandgaps, UV-Vis $\lambda_{\max}$, Dewar aromatic resonance energy, Coulson bond orders, and Fukui reactivity indices (`HuckelEngine`).
-- 🌿 **Chemical Graph Theory & Subgraph Isomorphism**: Implements subgraph matching (`SubgraphMatcher`) and topological graph rewriting (`GraphRewriter`) on immutable molecular graphs (`ChemicalGraph`).
-- ⚛️ **Multi-Term Molecular Mechanics Force Field**: 4-term analytical potential (Bond Stretching, Hybridization Angle Bending, Dihedral Torsions, 12-6 Lennard-Jones van der Waals) with **exact analytical gradients** ($-\nabla E$) and geometric energy relaxation (`ForceFieldEngine`).
-- 📐 **3D Multi-Center Conformer Embedding**: Generates physically valid 3D Cartesian coordinates for branched and cyclic molecules via topological coordinate propagation and VSEPR coordinate frames (`Geometry3DEngine`).
-- 🛡️ **Published Chemoinformatics & ADMET Standards**: Atom-additive Wildman-Crippen $\log P$, 43-fragment Ertl Topological Polar Surface Area (TPSA), Bickerton QED drug-likeness desirability functions, Lipinski Rule of 5, Veber Oral Bioavailability rules, and Ghose filters (`AdmetEngine`).
-- 🧬 **Bioisosteric Lead Optimization**: Evaluates lead candidates across generations optimizing QED and $\log P$ while replacing metabolic liabilities via bioisosteric graph mutation operators (`MolecularEvolverEngine`).
-- ⚖️ **Exact Mass & Redox Charge Balancer**: Solves chemical equations using exact rational Gaussian elimination nullspace matrix algebra ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with dedicated net electrostatic charge conservation (`Reaction`).
+- ⚛️ **Quantum Electronic Structure & Hückel Molecular Orbitals**: Solves the secular equation $\det|\mathbf{H} - E\mathbf{I}| = 0$ via Jacobi symmetric matrix eigensolver. Computes HOMO, LUMO, bandgaps, UV-Vis $\lambda_{\max}$, Dewar aromatic resonance energy, Coulson bond orders, and Fukui reactivity indices (`HuckelEngine`).
+- 🌿 **Chemical Graph Theory & Ring Perception**: Implements Horton Minimum Cycle Basis (SSSR, `CycleBasis`), 1D Weisfeiler-Lehman topological symmetry partitioning (`WeisfeilerLehman`), and subgraph isomorphism (`SubgraphMatcher`).
+- ⚛️ **Multi-Term Molecular Mechanics Force Field**: 4-term potential (Bond Stretching, Hybridization Angle Bending, Dihedral Torsions, 12-6 Lennard-Jones van der Waals with soft-core clash buffering) with verified central finite-difference gradients and line-search optimization (`ForceFieldEngine`).
+- 📐 **3D Multi-Center Conformer Embedding**: Generates 3D Cartesian coordinates for branched and cyclic molecules via topological coordinate propagation and VSEPR coordinate frames (`Geometry3DEngine`).
+- 🛡️ **Published Chemoinformatics Descriptors**: Atom-additive Wildman-Crippen $\log P$, 43-fragment Ertl Topological Polar Surface Area (TPSA), Bickerton QED drug-likeness desirability functions, Lipinski Rule of 5, Veber Oral Bioavailability rules, and Ghose filters (`AdmetEngine`).
+- 🧬 **Multi-Objective Lead Candidate Evolver**: Explores candidate mutations across generations optimizing QED and $\log P$ via bioisosteric graph mutation operators (`MolecularEvolverEngine`).
+- ⚖️ **Exact Mass & Redox Charge Balancer**: Solves chemical equations using exact rational Gaussian elimination nullspace matrix algebra ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger` and charge conservation (`Reaction`).
 - 💧 **Exact Weak Electrolyte Cubic Equilibria**: Solves exact polynomial equilibrium equations ($[\text{H}^+]^3 + K_a [\text{H}^+]^2 - (K_w + K_a C)[\text{H}^+] - K_a K_w = 0$) via Halley's method across arbitrary dilution regimes (`SolutionsEngine`).
-- 🔥 **True Benson Group Additivity**: Graph-based Benson group increment estimation for standard enthalpy ($\Delta H_f^\circ$), entropy ($S^\circ$), and Gibbs free energy ($\Delta G^\circ$) with ring strain corrections (`ThermodynamicsEngine`).
-- ♻️ **EcoClean PFAS & Plastic Degradation Pathways**: Models topological Bond Dissociation Energies ($\text{BDE}$) and constructs enzymatic/electrochemical catalytic degradation cascades for persistent pollutants (`EcoCleanEngine`).
-- 📉 **Empirical Spectroscopy Predictor**: Predicts $^1\text{H}$-NMR, $^{13}\text{C}$-NMR chemical shifts, and IR vibrational absorption bands across 12+ organic functional group classes (`SpectroscopyEngine`).
+- 🔥 **NIST Shomate Thermodynamics**: Evaluates analytical temperature-dependent enthalpy ($\Delta H^\circ$), entropy ($S^\circ$), heat capacity ($C_p^\circ$), and Gibbs free energy ($\Delta G^\circ$) across 298.15 K to 2000 K with defined physical phases (`ShomateThermodynamics`).
+- ♻️ **EcoClean Qualitative Degradation Cascades**: Models topological Bond Dissociation Energies ($\text{BDE}$) and constructs enzymatic/electrochemical catalytic degradation cascades for persistent pollutants (`EcoCleanEngine`).
+- 📉 **Empirical Spectroscopy Predictor**: Predicts $^1\text{H}$-NMR and $^{13}\text{C}$-NMR chemical shifts with Weisfeiler-Lehman peak integration and IR vibrational absorption bands (`SpectroscopyEngine`).
 - ⏱️ **Arbitrary Reaction Network RK4 Solver**: 4th-Order Runge-Kutta numerical differential integrator for multi-species chemical kinetics networks (`ReactionNetworkEngine`).
 - 📁 **Standard Chemical File Exporter**: Full support for MDL Molfile (V2000), Structure-Data Files (SDF), Protein Data Bank (PDB), and XYZ formats (`MolfileExporter`).
 - 🌐 **NCBI PubChem Integrator**: Live REST query client for 110M+ real compounds.
@@ -79,17 +79,17 @@ All algorithms in Chemy are **pure, mathematically rigorous, and deterministic C
 
 | Feature | What It Does (In Plain English) | Exact Scientific Implementation |
 | :--- | :--- | :--- |
-| **⚛️ Hückel Quantum Molecular Orbitals** | Computes electron orbitals, HOMO/LUMO bandgap, UV-Vis color absorption, and aromaticity. | Secular determinant $\det\|\mathbf{H} - E\mathbf{I}\| = 0$ via exact Jacobi symmetric matrix eigensolver (`HuckelEngine`). |
-| **🌿 Graph Substructure Matcher** | Finds specific chemical motifs (acids, esters, rings) inside any molecular graph. | Topological graph isomorphism pattern matching with adjacency index tables (`SubgraphMatcher`). |
-| **⚛️ Molecular Mechanics Force Field** | Relaxes atoms in 3D Euclidean space to relieve steric and angle strain. | 4-term analytical potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with analytical force gradients (`ForceFieldEngine`). |
-| **🛡️ Ertl TPSA & ADMET Shield** | Evaluates whether a molecule can safely act as an oral medicine. | Standard Ertl atomic polar surface area fragments, Wildman-Crippen $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
-| **🧬 Bioisosteric Graph Evolver** | Mutates a baseline compound to produce optimized lead candidates. | Bioisosteric graph mutation operators optimizing QED and physicochemical parameters (`MolecularEvolverEngine`). |
+| **⚛️ Hückel Quantum Molecular Orbitals** | Computes electron orbitals, HOMO/LUMO bandgap, UV-Vis color absorption, and aromaticity. | Secular determinant $\det\|\mathbf{H} - E\mathbf{I}\| = 0$ via Jacobi symmetric matrix eigensolver (`HuckelEngine`). |
+| **🌿 Graph Cycle Basis & Symmetry** | Computes shortest cycle bases and identifies topologically equivalent atoms. | Horton minimum cycle basis over $\text{GF}(2)$ (`CycleBasis`) and 1D Weisfeiler-Lehman color refinement (`WeisfeilerLehman`). |
+| **⚛️ Molecular Mechanics Force Field** | Relaxes atoms in 3D Euclidean space to relieve steric and angle strain. | 4-term potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with central finite-difference gradients (`ForceFieldEngine`). |
+| **🛡️ Ertl TPSA & Drug-Likeness** | Computes topological polar surface area and physicochemical filters. | Standard Ertl atomic polar surface area fragments, Wildman-Crippen $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
+| **🧬 Bioisosteric Graph Evolver** | Explores candidate mutations across objective functions. | Bioisosteric graph mutation operators optimizing QED and physicochemical parameters (`MolecularEvolverEngine`). |
 | **📁 MDL Molfile & SDF Exporter** | Exports molecules to standard formats for ChemDraw, PyMOL, and RDKit. | ISO/IUPAC-compliant MDL Molfile V2000 and multi-record SDF serializer (`MolfileExporter`). |
-| **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with charge conservation. |
+| **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger`. |
 | **📐 3D Multi-Center Builder** | Converts formulas and SMILES codes into accurate 3D atomic coordinates. | Multi-center topological coordinate propagation and VSEPR coordinate generators (`Geometry3DEngine`). |
-| **📉 NMR & IR Spectroscopy** | Predicts chemical shifts and Infrared absorption frequencies. | Empirical functional group correlation tables for $^1\text{H}$, $^{13}\text{C}$ and IR vibrational modes (`SpectroscopyEngine`). |
+| **📉 NMR & IR Spectroscopy** | Predicts chemical shifts and Infrared absorption frequencies. | Weisfeiler-Lehman topological symmetry grouping with additive shift correlation tables (`SpectroscopyEngine`). |
 | **⚛️ 118-Element Periodic Table** | Instant lookup for all 118 IUPAC elements. | $O(1)$ constant-time lookup backed by .NET `FrozenDictionary`. |
-| **🔥 Thermodynamics & Feasibility** | Predicts if a reaction is exothermic ($\Delta H$) or spontaneous ($\Delta G$). | Hess's Law using NIST reference tables with Benson Group Additivity for arbitrary organics (`ThermodynamicsEngine`). |
+| **🔥 Thermodynamics & Feasibility** | Evaluates heat capacity ($C_p$), enthalpy ($H^\circ$), and entropy ($S^\circ$). | Analytical NIST-JANAF Shomate polynomial integrals and Hess's Law (`ShomateThermodynamics`). |
 | **⏱️ Reaction Kinetics & RK4** | Simulates multi-step reaction concentrations over time. | 4th-Order Runge-Kutta (RK4) numerical ODE solver (`ReactionNetworkEngine`). |
 | **🌐 NCBI PubChem Cloud Query** | Live searches the global PubChem database. | Resilient typed `HttpClient` querying the official NCBI REST PUG API (`PubChemClient`). |
 

@@ -41,8 +41,8 @@ public class UniversalEngineTests
 
         Assert.NotNull(cascade);
         Assert.NotEmpty(cascade.DegradationCascade);
-        Assert.True(cascade.TotalMineralizationEfficiencyPercent >= 90.0);
-        Assert.False(string.IsNullOrWhiteSpace(cascade.MineralizedEndProducts));
+        Assert.False(string.IsNullOrWhiteSpace(cascade.TheoreticalMineralizationProducts));
+        Assert.NotEmpty(cascade.MethodInfo.Warnings);
     }
 
     [Theory]

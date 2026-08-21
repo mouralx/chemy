@@ -171,9 +171,9 @@ public static class ErtlTpsa
                 {
                     return hCount switch
                     {
-                        >= 2 => ("-CONH2 (Primary amide nitrogen)", 43.09),
-                        1 => ("-CONHR (Secondary amide nitrogen)", 29.10),
-                        _ => ("-CONR2 (Tertiary amide nitrogen)", 20.31)
+                        >= 2 => ("-CONH2 (Primary amide nitrogen)", 26.02),
+                        1 => ("-CONHR (Secondary amide nitrogen)", 12.03),
+                        _ => ("-CONR2 (Tertiary amide nitrogen)", 3.24)
                     };
                 }
 

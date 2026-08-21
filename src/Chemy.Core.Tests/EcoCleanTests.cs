@@ -13,6 +13,7 @@ public class EcoCleanTests
         Assert.NotNull(result);
         Assert.NotEmpty(result.DegradationCascade);
         Assert.Contains("PFAS", result.PollutantClass);
-        Assert.True(result.TotalMineralizationEfficiencyPercent > 90.0);
+        Assert.NotEmpty(result.TheoreticalMineralizationProducts);
+        Assert.NotEmpty(result.MethodInfo.Warnings);
     }
 }

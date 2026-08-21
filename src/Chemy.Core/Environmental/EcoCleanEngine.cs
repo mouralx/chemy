@@ -1,16 +1,17 @@
-using Chemy.Core.Structure;
-
 namespace Chemy.Core.Environmental;
+
+using Chemy.Core.Scientific;
+using Chemy.Core.Structure;
 
 /// <summary>
 /// Represents a single catalytic or enzymatic bond-cleavage step in an environmental degradation cascade.
 /// </summary>
 /// <param name="StepNumber">Sequential position in the cleavage cascade.</param>
 /// <param name="TargetBond">Specific covalent bond undergoing cleavage.</param>
-/// <param name="BondDissociationEnergyKcalPerMol">Bond dissociation energy (BDE) in kcal/mol.</param>
-/// <param name="EnzymeOrCatalyst">Recommended biocatalyst, enzyme, or electrochemical oxidation system.</param>
+/// <param name="BondDissociationEnergyKcalPerMol">Estimated Bond Dissociation Energy (BDE) in kcal/mol.</param>
+/// <param name="EnzymeOrCatalyst">Candidate biocatalyst, enzyme family, or advanced oxidation process (AOP).</param>
 /// <param name="IntermediateProduct">Chemical intermediate produced after cleavage.</param>
-/// <param name="CleavageMechanism">Detailed reaction mechanism for the bond-breaking process.</param>
+/// <param name="CleavageMechanism">Proposed chemical mechanism for the bond-cleavage step.</param>
 public record CleavageStep(
     int StepNumber,
     string TargetBond,
@@ -21,35 +22,60 @@ public record CleavageStep(
 );
 
 /// <summary>
-/// Encapsulates the complete catalytic mineralization pathway for a persistent environmental pollutant.
+/// Encapsulates the qualitative catalytic mineralization pathway for an environmental pollutant.
 /// </summary>
-/// <param name="PollutantFormula">Input chemical formula or identifier of the toxin.</param>
-/// <param name="PollutantClass">Classification category (e.g. PFAS Forever Chemical, Synthetic Polyester).</param>
-/// <param name="PersistenceHalfLifeYears">Natural environmental half-life in years.</param>
-/// <param name="TotalMineralizationEfficiencyPercent">Predicted complete catalytic mineralization efficiency percentage.</param>
+/// <param name="PollutantFormula">Chemical formula of the target compound.</param>
+/// <param name="PollutantClass">Classification category (e.g. PFAS, Organohalide, Polyester).</param>
 /// <param name="DegradationCascade">Sequential step-by-step catalytic cleavage cascade.</param>
-/// <param name="MineralizedEndProducts">Harmless inorganic minerals produced (e.g. F⁻, CO₂, H₂O).</param>
+/// <param name="TheoreticalMineralizationProducts">Stoichiometric inorganic mineral end-products.</param>
+/// <param name="MethodInfo">Scientific method provenance, evidence level, and caveats.</param>
 public record EcoCleanDegradationResult(
     string PollutantFormula,
     string PollutantClass,
-    double PersistenceHalfLifeYears,
-    double TotalMineralizationEfficiencyPercent,
     IReadOnlyList<CleavageStep> DegradationCascade,
-    string MineralizedEndProducts
-);
+    string TheoreticalMineralizationProducts,
+    ScientificMethodInfo MethodInfo
+)
+{
+    /// <summary>
+    /// Backwards-compatible legacy property (always returns 0.0 with warning in MethodInfo).
+    /// </summary>
+    [Obsolete("Quantitative mineralization efficiency requires empirical reactor kinetics and is deprecated.")]
+    public double TotalMineralizationEfficiencyPercent => 0.0;
+
+    /// <summary>
+    /// Backwards-compatible legacy property (always returns 0.0 with warning in MethodInfo).
+    /// </summary>
+    [Obsolete("Natural environmental persistence half-life requires environmental field calibration.")]
+    public double PersistenceHalfLifeYears => 0.0;
+
+    /// <summary>
+    /// Backwards-compatible alias for TheoreticalMineralizationProducts.
+    /// </summary>
+    public string MineralizedEndProducts => TheoreticalMineralizationProducts;
+}
 
 /// <summary>
-/// EcoClean Environmental Biocleavage &amp; Mineralization Knowledge Engine.
-/// Traverses the molecular graph of target pollutants, retrieves topological Bond Dissociation
-/// Energies (BDE), and constructs standard enzymatic and electrochemical catalytic mineralization pathways.
+/// EcoClean Environmental Biocleavage &amp; Degradation Cascade Engine.
+/// Analyzes the molecular graph of target pollutants, identifies weakest bonds based on Bond Dissociation
+/// Energies (BDE), and generates qualitative enzymatic and advanced oxidation pathways.
 /// </summary>
 public static class EcoCleanEngine
 {
+    private static readonly ScientificMethodInfo EcoCleanMethodInfo = new(
+        "EcoClean Qualitative BDE Degradation Cascade",
+        "2026.1",
+        EvidenceLevel.Heuristic,
+        "Organic xenobiotics, halogenated pollutants, and synthetic polymers.",
+        [
+            "Qualitative mechanistic hypothesis based on bond dissociation energies and literature enzyme pathways.",
+            "Does NOT compute quantitative mineralization kinetics, residence times, or reactor mass balances."
+        ]
+    );
+
     /// <summary>
-    /// Computes the complete dynamic catalytic biocleavage and mineralization cascade for any target compound.
+    /// Generates the qualitative catalytic biocleavage and mineralization cascade for a target compound.
     /// </summary>
-    /// <param name="input">Pollutant formula, common acronym, or SMILES string.</param>
-    /// <returns>Step-by-step degradation cascade and predicted mineralization efficiency.</returns>
     public static EcoCleanDegradationResult SolveDegradationCascade(string input)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(input);
@@ -63,9 +89,8 @@ public static class EcoCleanEngine
         }
         else
         {
-            // Check parts (e.g. "PFOA C8HF15O2")
-            Molecule? foundMol = null;
             var parts = trimmed.Split([' ', ',', ';'], StringSplitOptions.RemoveEmptyEntries);
+            Molecule? foundMol = null;
             foreach (var part in parts)
             {
                 if (Molecule.TryParse(part, part, out var pMol) || Molecule.TryParseSmiles(part, part, out pMol))
@@ -81,11 +106,8 @@ public static class EcoCleanEngine
         }
 
         var elements = molecule.Atoms.Select(a => a.Element.Symbol).Distinct().ToHashSet();
-        var fgs = molecule.GetFunctionalGroups().Select(f => f.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var steps = new List<CleavageStep>();
-
         string pollutantClass;
-        double halfLife;
 
         // Calculate dynamic Bond Dissociation Energy (BDE) from molecular graph bonds
         double primaryBde = 85.0;
@@ -117,7 +139,6 @@ public static class EcoCleanEngine
         if (elements.Contains("F") || input.Contains("PFOA", StringComparison.OrdinalIgnoreCase) || input.Contains("PFAS", StringComparison.OrdinalIgnoreCase))
         {
             pollutantClass = "PFAS 'Forever Chemical' (Perfluoroalkyl Substance)";
-            halfLife = 1000.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -143,72 +164,60 @@ public static class EcoCleanEngine
                 105.0,
                 "Engineered Pseudomonas / Rhodococcus Biocatalyst",
                 "Short-chain carboxylates (TFA / Formate)",
-                "Sequential one-carbon iterative trimming down to inorganic CO₂ and benign F⁻ salts."
+                "Sequential one-carbon iterative trimming down to inorganic CO₂ and F⁻ salts."
             ));
         }
         // 2. Chlorinated / Brominated Xenobiotics (Pesticides, Organochlorides, PCBs, DDT)
         else if (elements.Contains("Cl") || elements.Contains("Br"))
         {
-            string halogen = elements.Contains("Cl") ? "Chlorine (Cl)" : "Bromine (Br)";
-            pollutantClass = $"Halogenated Persistent Organopollutant ({halogen})";
-            halfLife = 120.0;
+            pollutantClass = "Halogenated Xenobiotic / Organohalide";
 
             steps.Add(new CleavageStep(
                 1,
-                $"Reductive Dehalogenation (C-{(elements.Contains("Cl") ? "Cl" : "Br")})",
+                "Reductive / Oxidative Dehalogenation (C-X Cleavage)",
                 Math.Round(primaryBde, 1),
-                "Anaerobic Dehalococcoides mccartyi / Vitamin B12 Catalysis",
-                "Dehalogenated Alkane / Aromatic Intermediate",
-                "Cobalamin-mediated electron transfer reduces carbon-halogen bond to halide anion."
+                "Reductive Dehalogenase / Zero-Valent Iron (Fe⁰)",
+                "Dehalogenated Hydrocarbon Skeleton + Halide (X⁻)",
+                "Electron transfer reduces carbon-halogen bond, releasing halide ion."
             ));
 
             steps.Add(new CleavageStep(
                 2,
-                "Aerobic Dioxygenase Ring Fission",
-                74.0,
-                "Catechol 1,2-Dioxygenase Biocatalyst",
-                "cis,cis-Muconate Derivative",
-                "Intradiol oxygen insertion breaks aromatic hydrocarbon scaffold."
+                "Aromatic Hydroxylation & Ring Fission",
+                Math.Round(secondaryBde, 1),
+                "Toluene Dioxygenase / Fenton Reagent (Fe²⁺/H₂O₂)",
+                "Catecholic Intermediate -> cis,cis-Muconate",
+                "Ortho-cleavage of benzene ring via dioxygenase into Krebs cycle intermediates."
             ));
         }
-        // 3. Esters, Polymers & Microplastics (PET, PLA, Polyurethanes)
-        else if (fgs.Contains("Ester") || input.Contains("PET", StringComparison.OrdinalIgnoreCase) || input.Contains("Plastic", StringComparison.OrdinalIgnoreCase))
+        // 3. Synthetic Esters & Plastics (PET Microplastics)
+        else if (elements.Contains("O") && molecule.Bonds.Any(b => b.Type == BondType.Double &&
+            (molecule.Atoms[b.Atom1Index].Element.Symbol == "O" || molecule.Atoms[b.Atom2Index].Element.Symbol == "O")))
         {
-            pollutantClass = "Microplastic / Synthetic Polyester Polymer (PET / PLA)";
-            halfLife = 450.0;
+            pollutantClass = "Synthetic Polyester / Microplastic";
 
             steps.Add(new CleavageStep(
                 1,
-                "Ester Backbone Hydrolysis (C(=O)-O)",
+                "Ester Bond Hydrolysis (C(=O)-O Cleavage)",
                 Math.Round(primaryBde, 1),
-                "Engineered PETase / Cutinase Enzyme (FAST-PETase)",
-                "Mono-(2-hydroxyethyl) terephthalate (MHET)",
-                "Active-site Serine nucleophilic attack hydrolyzes ester bond at ambient 30°C."
+                "PETase / Cutinase Hydrolase (Ideonella sakaiensis)",
+                "Monomeric Terephthalic Acid + Ethylene Glycol",
+                "Catalytic Ser-His-Asp triad performs nucleophilic attack on ester carbonyl."
             ));
 
             steps.Add(new CleavageStep(
                 2,
-                "Secondary Monomer Hydrolysis (MHETase)",
-                65.0,
-                "MHETase Enzyme",
-                "Terephthalic Acid (TPA) + Ethylene Glycol",
-                "Hydrolyzes monomer into recyclable raw building blocks."
-            ));
-
-            steps.Add(new CleavageStep(
-                3,
-                "Cellular Assimilation into Biopolymer",
+                "Cellular Assimilation into Biomass",
                 52.0,
                 "Comamonas testosteroni / E. coli biocatalyst",
                 "Cellular ATP, CO₂, and H₂O",
-                "Complete enzymatic conversion into biodegradable PHA bioplastics."
+                "Enzymatic assimilation into biomass."
             ));
         }
-        // 4. Organophosphates & Sulfur Contaminants (Nerve Agents, Pesticides)
+        // 4. Organophosphates & Sulfur Contaminants (Pesticides)
         else if (elements.Contains("P") || elements.Contains("S"))
         {
             pollutantClass = "Organophosphorus / Sulfur Contaminant";
-            halfLife = 15.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -228,11 +237,10 @@ public static class EcoCleanEngine
                 "Cleaves remaining alkyl chains yielding non-toxic inorganic phosphate salts."
             ));
         }
-        // 5. General Organic Synthetic Pollutants & Hydrocarbons
+        // 5. General Hydrocarbons
         else
         {
             pollutantClass = "Synthetic Hydrocarbon / Xenobiotic";
-            halfLife = 20.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -253,7 +261,7 @@ public static class EcoCleanEngine
             ));
         }
 
-        // Build inorganic stoichiometric mass-conserved end products
+        // Build stoichiometric mineral end products
         var productList = new List<string>();
         if (elements.Contains("F")) productList.Add("Fluoride (F⁻)");
         if (elements.Contains("Cl")) productList.Add("Chloride (Cl⁻)");
@@ -264,16 +272,14 @@ public static class EcoCleanEngine
         productList.Add("CO₂");
         productList.Add("H₂O");
 
-        string endProducts = string.Join(" + ", productList) + " (100% Mineralized)";
-        double efficiency = Math.Round(99.0 + Math.Clamp(10.0 / secondaryBde, 0.2, 0.8), 1);
+        string endProducts = string.Join(" + ", productList);
 
         return new EcoCleanDegradationResult(
             molecule.ChemicalFormula,
             pollutantClass,
-            halfLife,
-            efficiency,
             steps,
-            endProducts
+            endProducts,
+            EcoCleanMethodInfo
         );
     }
 }

@@ -110,16 +110,86 @@ public record Reaction
             }
         }
 
-        var coefficients = MatrixSolver.SolveNullspaceIntegerVector(matrix);
-        if (coefficients == null || coefficients.Length != cols)
+        var basis = MatrixSolver.SolveNullspaceBasis(matrix);
+        if (basis.Count == 0)
         {
-            throw new InvalidOperationException("Could not balance reaction automatically.");
+            throw new InvalidOperationException("Could not balance reaction automatically: no valid non-trivial stoichiometric solution exists.");
         }
 
+        if (basis.Count > 1)
+        {
+            throw new InvalidOperationException($"The chemical reaction is underdetermined with {basis.Count} independent fundamental reaction pathways (nullspace dimension = {basis.Count}). Call BalanceIndependentPathways() to obtain each independent stoichiometric reaction.");
+        }
+
+        var coefficients = basis[0];
         var balancedReactants = Reactants.Select((c, i) => new ReactionComponent(c.Molecule, coefficients[i]));
         var balancedProducts = Products.Select((c, i) => new ReactionComponent(c.Molecule, coefficients[Reactants.Count + i]));
 
         return new Reaction(balancedReactants, balancedProducts);
+    }
+
+    /// <summary>
+    /// Decomposes an underdetermined chemical system into its complete basis of independent, balanced fundamental reactions.
+    /// </summary>
+    public IReadOnlyList<Reaction> BalanceIndependentPathways()
+    {
+        var allComponents = Reactants.Concat(Products).ToList();
+        var allElements = allComponents
+            .SelectMany(c => c.Molecule.Atoms.Select(a => a.Element))
+            .Distinct()
+            .ToList();
+
+        bool hasCharges = allComponents.Any(c => c.Molecule.NetCharge != 0);
+        int rows = allElements.Count + (hasCharges ? 1 : 0);
+        int cols = allComponents.Count;
+        int[,] matrix = new int[rows, cols];
+
+        for (int r = 0; r < allElements.Count; r++)
+        {
+            var elem = allElements[r];
+            for (int c = 0; c < cols; c++)
+            {
+                int atomCount = allComponents[c].Molecule.Atoms.Count(a => a.Element == elem);
+                matrix[r, c] = c < Reactants.Count ? atomCount : -atomCount;
+            }
+        }
+
+        if (hasCharges)
+        {
+            int chargeRow = allElements.Count;
+            for (int c = 0; c < cols; c++)
+            {
+                int charge = allComponents[c].Molecule.NetCharge;
+                matrix[chargeRow, c] = c < Reactants.Count ? charge : -charge;
+            }
+        }
+
+        var basis = MatrixSolver.SolveNullspaceBasis(matrix);
+        var pathways = new List<Reaction>();
+
+        foreach (var vec in basis)
+        {
+            var balancedReactants = new List<ReactionComponent>();
+            for (int i = 0; i < Reactants.Count; i++)
+            {
+                int coeff = Math.Abs(vec[i]);
+                if (coeff > 0) balancedReactants.Add(new ReactionComponent(Reactants[i].Molecule, coeff));
+            }
+
+            var balancedProducts = new List<ReactionComponent>();
+            for (int i = 0; i < Products.Count; i++)
+            {
+                int coeff = Math.Abs(vec[Reactants.Count + i]);
+                if (coeff > 0) balancedProducts.Add(new ReactionComponent(Products[i].Molecule, coeff));
+            }
+
+            if (balancedReactants.Count > 0 && balancedProducts.Count > 0)
+            {
+                pathways.Add(new Reaction(balancedReactants, balancedProducts));
+            }
+        }
+
+        return pathways;
     }
 
     /// <summary>

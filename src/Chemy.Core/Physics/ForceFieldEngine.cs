@@ -176,8 +176,7 @@ public static class ForceFieldEngine
             }
         }
 
-        bool converged = reason is MinimizationTerminationReason.GradientToleranceReached or MinimizationTerminationReason.EnergyConvergenceReached
-            || (currentEnergy <= initialEnergy && iter >= 10);
+        bool converged = reason is MinimizationTerminationReason.GradientToleranceReached or MinimizationTerminationReason.EnergyConvergenceReached;
 
         var minimizedAtoms = molecule3D.Atoms
             .Select((a, idx) => new Atom3D(a.Atom, currentPositions[idx]))
@@ -196,7 +195,7 @@ public static class ForceFieldEngine
             molecule3D.ChemicalFormula,
             Math.Round(initialEnergy, 4),
             Math.Round(currentEnergy, 4),
-            iter + 1,
+            iter,
             converged,
             reason,
             Math.Round(maxGrad, 6),

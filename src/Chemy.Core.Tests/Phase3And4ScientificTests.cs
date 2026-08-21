@@ -36,9 +36,6 @@ public class Phase3And4ScientificTests
     public void MatrixSolver_UnderdeterminedCarbonCombustion_ReturnsNullspaceBasisOfDimensionTwo()
     {
         // Reaction: C + O2 -> CO + CO2
-        // Matrix:
-        // C balance: [1, 0, -1, -1]
-        // O balance: [0, 2, -1, -2]
         int[,] matrix = new int[,]
         {
             { 1, 0, -1, -1 },
@@ -47,8 +44,24 @@ public class Phase3And4ScientificTests
 
         var basis = MatrixSolver.SolveNullspaceBasis(matrix);
 
-        // System has 4 columns and rank 2 -> nullspace dimension is 2
         Assert.Equal(2, basis.Count);
+    }
+
+    [Fact]
+    public void Reaction_BalanceIndependentPathways_DecomposesUnderdeterminedReaction()
+    {
+        var rxn = Reaction.Parse("C + O2 -> CO + CO2");
+        var pathways = rxn.BalanceIndependentPathways();
+
+        Assert.True(pathways.Count >= 2);
+    }
+
+    [Fact]
+    public void SmilesParser_UnsupportedStereochemistry_ThrowsNotSupportedException()
+    {
+        Assert.Throws<NotSupportedException>(() => SmilesParser.Parse("C@C"));
+        Assert.Throws<NotSupportedException>(() => SmilesParser.Parse("F[C@](Cl)(Br)I"));
+        Assert.Throws<NotSupportedException>(() => SmilesParser.Parse("C/C=C/C"));
     }
 
     [Fact]
@@ -67,6 +80,14 @@ public class Phase3And4ScientificTests
         var result1000 = ShomateThermodynamics.Evaluate("H2O(g)", 1000.0);
         Assert.NotNull(result1000);
         Assert.True(result1000.HeatCapacityCp > result298.HeatCapacityCp); // Cp increases with T
+    }
+
+    [Fact]
+    public void ShomateThermodynamics_OutOfRangeTemperature_ThrowsArgumentOutOfRangeException()
+    {
+        // Shomate database valid range is 298.15 K to 2000.0 K
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 100.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 3500.0));
     }
 
     [Fact]

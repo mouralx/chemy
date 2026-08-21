@@ -77,7 +77,13 @@ public static class ShomateThermodynamics
             return null;
         }
 
-        double t = Math.Clamp(temperatureKelvin, p.TMinKelvin, p.TMaxKelvin) / 1000.0; // t = T / 1000 K
+        if (temperatureKelvin < p.TMinKelvin || temperatureKelvin > p.TMaxKelvin)
+        {
+            throw new ArgumentOutOfRangeException(nameof(temperatureKelvin), 
+                $"Temperature {temperatureKelvin} K is outside valid NIST Shomate interval [{p.TMinKelvin} K, {p.TMaxKelvin} K] for {speciesKey}.");
+        }
+
+        double t = temperatureKelvin / 1000.0; // t = T / 1000 K
 
         // 1. Heat capacity: Cp = A + B*t + C*t^2 + D*t^3 + E/(t^2) [J/(mol*K)]
         double cp = p.A + p.B * t + p.C * t * t + p.D * t * t * t + p.E / (t * t);

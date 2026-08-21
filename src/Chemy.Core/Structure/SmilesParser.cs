@@ -128,9 +128,13 @@ public static class SmilesParser
                 currentBondType = BondType.Single;
                 i++;
             }
+            else if (ch is '@' or '/' or '\\' or '%')
+            {
+                throw new NotSupportedException($"SMILES character '{ch}' at position {i} (stereochemistry or extended ring closure) is not supported in the 2D topological graph parser.");
+            }
             else
             {
-                i++;
+                throw new FormatException($"Invalid or unsupported character '{ch}' at position {i} in SMILES string '{smiles}'.");
             }
         }
 
@@ -194,6 +198,11 @@ public static class SmilesParser
 
     private static (Element Element, int Charge, int ExplicitH) ParseBracketAtom(string content)
     {
+        if (content.Contains('@') || content.Contains('/') || content.Contains('\\'))
+        {
+            throw new NotSupportedException($"Stereochemical descriptor in bracket atom '[{content}]' is not currently supported.");
+        }
+
         int i = 0;
         int len = content.Length;
 

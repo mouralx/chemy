@@ -28,7 +28,7 @@ public class PharmacologyTests
         Assert.NotNull(admet);
         Assert.True(admet.MolecularWeight > 145.0 && admet.MolecularWeight < 155.0);
         Assert.True(admet.HydrogenBondDonors == 2); // -OH and -NH-
-        Assert.True(admet.TpsaAngstrom2 >= 60.0 && admet.TpsaAngstrom2 <= 70.0); // Exact Ertl: 66.4 Å² (C=O: 17.07 + CONH: 29.10 + OH: 20.23)
+        Assert.Equal(49.3, admet.TpsaAngstrom2); // Published Ertl reference: 49.33 Å² (C=O: 17.07 + CONH: 12.03 + OH: 20.23)
         Assert.True(admet.QedDrugLikenessScore > 0.5);
     }
 

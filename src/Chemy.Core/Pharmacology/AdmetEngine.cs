@@ -297,13 +297,11 @@ public static class AdmetEngine
 
     private static int CountAromaticRings(Molecule molecule)
     {
-        var graph = Graph.ChemicalGraph.FromMolecule(molecule);
-        var rings = graph.FindRings();
+        var sssr = Graph.CycleBasis.ComputeSssr(molecule);
         int count = 0;
-        foreach (var ring in rings)
+        foreach (var ring in sssr.Rings)
         {
-            bool hasAromatic = ring.Any(nodeId => graph.GetIncidentEdges(nodeId).Any(e => e.IsAromatic || e.BondType == BondType.Aromatic));
-            if (hasAromatic && ring.Count is 5 or 6)
+            if (ring.Count is 5 or 6 && ring.All(atomIdx => molecule.Bonds.Any(b => b.Connects(atomIdx) && b.Type == BondType.Aromatic)))
             {
                 count++;
             }

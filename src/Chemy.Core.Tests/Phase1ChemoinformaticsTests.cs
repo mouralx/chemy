@@ -35,11 +35,11 @@ public class Phase1ChemoinformaticsTests
     [Fact]
     public void ErtlTpsa_Acetamide_ReturnsCorrectPolarArea()
     {
-        // Acetamide: CC(=O)N -> =O (17.07) + -CONH2 (43.09) = 60.16 Å² (standard Ertl) or primary amide
+        // Acetamide: CC(=O)N -> =O (17.07) + -NH2 (26.02) = 43.09 Å² (published Ertl & RDKit reference value)
         var mol = SmilesParser.Parse("CC(=O)N");
         var result = ErtlTpsa.Calculate(mol);
 
-        Assert.True(result.TotalTpsa > 50.0);
+        Assert.Equal(43.09, result.TotalTpsa);
     }
 
     [Fact]

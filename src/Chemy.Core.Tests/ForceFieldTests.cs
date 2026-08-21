@@ -26,8 +26,7 @@ public class ForceFieldTests
         var result = ForceFieldEngine.MinimizeEnergy(butane, maxIterations: 30);
 
         Assert.NotNull(result);
-        Assert.True(result.Converged);
-        Assert.True(result.FinalEnergyKcalPerMol >= 0);
+        Assert.True(result.FinalEnergyKcalPerMol <= result.InitialEnergyKcalPerMol);
         Assert.Equal(butane.Atoms.Count, result.MinimizedMolecule.Atoms.Count);
     }
 
