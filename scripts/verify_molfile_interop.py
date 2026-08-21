@@ -105,7 +105,7 @@ def generate_rdkit_fixtures(output_dir: str) -> None:
 
 
 def verify_chemy_exports(input_dir: str) -> bool:
-    """Validate Chemy-exported files using RDKit 2025.09.2."""
+    """Validate Chemy-exported files using RDKit 2025.09.2 with fail-closed integrity checks."""
     candidate_dirs = [
         input_dir,
         "src/Chemy.Core.Tests/bin/Release/net10.0/ValidationData/interop_fixtures/chemy_exported",
@@ -119,12 +119,12 @@ def verify_chemy_exports(input_dir: str) -> bool:
             actual_dir = d
             break
 
+    print(f"=== [DIRECTION 1: CHEMY -> RDKIT] Verifying Chemy Exports ===")
     if actual_dir is None:
-        print(f"=== [DIRECTION 1: CHEMY -> RDKIT] Verifying Chemy Exports ===")
-        print(f"  Note: Chemy export directory not found in candidate paths. Run `dotnet test` first.")
-        return True
+        print(f"  FAIL: Chemy export directory not found in candidate paths. Run `dotnet test` first.", file=sys.stderr)
+        return False
 
-    print(f"=== [DIRECTION 1: CHEMY -> RDKIT] Verifying Chemy Exports in '{actual_dir}' ===")
+    print(f"  Using Chemy export directory: '{actual_dir}'")
 
     all_passed = True
     for item in FALLBACK_STRUCTURES:
@@ -137,11 +137,25 @@ def verify_chemy_exports(input_dir: str) -> bool:
 
         filepath = os.path.join(actual_dir, filename)
         if not os.path.exists(filepath):
-            print(f"  WARN: File '{filepath}' not found, skipping live check.", file=sys.stderr)
+            print(f"  FAIL: Required export file '{filepath}' is missing!", file=sys.stderr)
+            all_passed = False
             continue
 
         with open(filepath) as f:
             molfile = f.read()
+
+        # Check dimensional header
+        lines = molfile.splitlines()
+        if len(lines) >= 2:
+            header_line2 = lines[1]
+            if "3D" in header_line2:
+                header_dim = "3D"
+            elif "2D" in header_line2:
+                header_dim = "2D"
+            else:
+                header_dim = "Unknown"
+        else:
+            header_dim = "Unknown"
 
         mol = Chem.MolFromMolBlock(molfile)
         if mol is None:
@@ -181,14 +195,27 @@ def verify_chemy_exports(input_dir: str) -> bool:
             all_passed = False
             continue
 
-        print(f"  PASS: Chemy-exported '{name}' verified by RDKit: formula={actual_formula}, charge={actual_charge}, atoms={actual_atoms}")
+        print(f"  PASS: Chemy-exported '{name}' verified by RDKit: formula={actual_formula}, charge={actual_charge}, atoms={actual_atoms}, header={header_dim}")
 
-    # Check SDF if exists
-    sdf_path = os.path.join(input_dir, "multi_compound.sdf")
-    if os.path.exists(sdf_path):
+    # Check SDF in actual_dir
+    sdf_path = os.path.join(actual_dir, "multi_compound.sdf")
+    if not os.path.exists(sdf_path):
+        print(f"  FAIL: Required multi-compound SDF '{sdf_path}' not found!", file=sys.stderr)
+        all_passed = False
+    else:
         suppl = Chem.SDMolSupplier(sdf_path)
         mols = [m for m in suppl if m is not None]
-        print(f"  PASS: Chemy-exported SDF parsed {len(mols)} valid records by RDKit SDMolSupplier.")
+        if len(mols) != 3:
+            print(f"  FAIL: Expected 3 valid SDF records, got {len(mols)}", file=sys.stderr)
+            all_passed = False
+        else:
+            formulas = [rdMolDescriptors.CalcMolFormula(m) for m in mols]
+            expected_formulas = ["C9H8O4", "C2H6O", "C6H6"]
+            if formulas != expected_formulas:
+                print(f"  FAIL: SDF record formulas mismatch: expected {expected_formulas}, got {formulas}", file=sys.stderr)
+                all_passed = False
+            else:
+                print(f"  PASS: Chemy-exported SDF verified: 3/3 records parsed with formulas {formulas}")
 
     return all_passed
 

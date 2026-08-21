@@ -25,7 +25,9 @@ public static class MolfileExporter
 
         // Header Block (3 lines)
         sb.AppendLine(molecule3D.Name);
-        sb.AppendLine("  Chemy10 08202600002D 1   1.00000     0.00000     0");
+        bool is3D = molecule3D.Atoms.Any(a => Math.Abs(a.Position.Z) > 1e-4);
+        string dimCode = is3D ? "3D" : "2D";
+        sb.AppendLine($"  Chemy10 0820260000{dimCode} 1   1.00000     0.00000     0");
         sb.AppendLine("Computational Chemistry Studio V2000");
 
         int atomCount = molecule3D.Atoms.Count;

@@ -1,1 +1,8 @@
 .DS_Store
+[Bb]in/
+[Oo]bj/
+TestResults/
+*.log
+codex-session-*.md
+.vscode/
+.idea/

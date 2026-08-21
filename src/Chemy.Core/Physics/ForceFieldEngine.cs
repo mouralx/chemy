@@ -296,16 +296,36 @@ public static class ForceFieldEngine
 
             int nPairs = jNeighbors.Count * kNeighbors.Count;
             if (nPairs == 0) continue;
-            double vPerPair = 2.5 / nPairs;
 
-            foreach (var i in jNeighbors)
+            if (centralBond.Type == BondType.Double)
             {
-                foreach (var l in kNeighbors)
+                // UFF sp2=sp2 double bond: 2-fold torsional barrier with minima at planar configurations (0° and 180°)
+                double vDouble = 45.0 / nPairs;
+                foreach (var i in jNeighbors)
                 {
-                    if (i != l && i < nAtoms && l < nAtoms)
+                    foreach (var l in kNeighbors)
                     {
-                        double phiRad = CalculateDihedralAngleRad(positions[i], positions[j], positions[k], positions[l]);
-                        eTorsion += 0.5 * vPerPair * (1.0 + Math.Cos(3.0 * phiRad));
+                        if (i != l && i < nAtoms && l < nAtoms)
+                        {
+                            double phiRad = CalculateDihedralAngleRad(positions[i], positions[j], positions[k], positions[l]);
+                            eTorsion += 0.5 * vDouble * (1.0 - Math.Cos(2.0 * phiRad));
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // UFF sp3–sp3 single bond: 3-fold torsional barrier with minima at staggered conformers (60°, 180°, 300°)
+                double vPerPair = 2.5 / nPairs;
+                foreach (var i in jNeighbors)
+                {
+                    foreach (var l in kNeighbors)
+                    {
+                        if (i != l && i < nAtoms && l < nAtoms)
+                        {
+                            double phiRad = CalculateDihedralAngleRad(positions[i], positions[j], positions[k], positions[l]);
+                            eTorsion += 0.5 * vPerPair * (1.0 + Math.Cos(3.0 * phiRad));
+                        }
                     }
                 }
             }

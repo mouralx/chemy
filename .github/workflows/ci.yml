@@ -30,7 +30,7 @@ jobs:
       run: |
         python3 scripts/generate_reference_dataset.py --verify src/Chemy.Core.Tests/ValidationData/reference_compounds.json
 
-    - name: Verify Pinned RDKit UFF Butane Reference Energies (4 Conformers)
+    - name: Verify Pinned RDKit UFF Diverse Molecules & Butane Reference Energies
       run: |
         python3 scripts/generate_uff_reference.py --verify src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json
 

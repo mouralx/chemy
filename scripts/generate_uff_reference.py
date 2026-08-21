@@ -74,8 +74,75 @@ def _build_rdkit_mol(phi_deg: float) -> Chem.Mol:
     return mol
 
 
+def _build_methane() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("C"))
+    s = 1.09 / math.sqrt(3)
+    coords = [
+        (0.0, 0.0, 0.0),
+        (s, s, s),
+        (s, -s, -s),
+        (-s, s, -s),
+        (-s, -s, s)
+    ]
+    conf = Chem.Conformer(5)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
+def _build_ethane() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("CC"))
+    coords = [
+        (0.0, 0.0, 0.0),
+        (1.53, 0.0, 0.0),
+        (-0.36, 1.02, 0.0),
+        (-0.36, -0.51, 0.89),
+        (-0.36, -0.51, -0.89),
+        (1.89, -1.02, 0.0),
+        (1.89, 0.51, 0.89),
+        (1.89, 0.51, -0.89)
+    ]
+    conf = Chem.Conformer(8)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
+def _build_ethylene() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("C=C"))
+    coords = [
+        (0.0, 0.0, 0.0),
+        (1.34, 0.0, 0.0),
+        (-0.55, 0.94, 0.0),
+        (-0.55, -0.94, 0.0),
+        (1.89, 0.94, 0.0),
+        (1.89, -0.94, 0.0)
+    ]
+    conf = Chem.Conformer(6)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
+def _build_water() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("O"))
+    coords = [
+        (0.0, 0.0, 0.0),
+        (0.76, 0.59, 0.0),
+        (-0.76, 0.59, 0.0)
+    ]
+    conf = Chem.Conformer(3)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
 def generate_reference() -> dict:
-    """Calculate UFF energies for all four conformers and return structured data."""
+    """Calculate UFF energies for butane conformers and diverse standard molecules."""
     assert rdkit.__version__ == RDKIT_VERSION, (
         f"RDKit version mismatch: expected {RDKIT_VERSION}, got {rdkit.__version__}"
     )
@@ -84,15 +151,14 @@ def generate_reference() -> dict:
         "metadata": {
             "rdkit_version": RDKIT_VERSION,
             "force_field": "UFF",
-            "molecule": "butane (C4H10)",
-            "atom_count": 14,
-            "coordinate_source": "Chemy BuildButaneConformer (hardcoded tetrahedral geometry)",
-            "note": "Total energies are absolute UFF totals, not relative. "
-                    "Compare relative energies (delta_E vs anti) for conformational analysis.",
+            "coordinate_source": "Chemy exact geometry builders",
+            "note": "Total energies are absolute UFF totals in kcal/mol.",
         },
-        "conformers": {},
+        "butane_conformers": {},
+        "diverse_molecules": {},
     }
 
+    # 1. Butane Conformers
     anti_energy = None
     for name, phi in zip(CONFORMER_NAMES, DIHEDRAL_ANGLES):
         mol = _build_rdkit_mol(phi)
@@ -103,10 +169,28 @@ def generate_reference() -> dict:
         if phi == 180.0:
             anti_energy = energy
 
-        results["conformers"][name] = {
+        results["butane_conformers"][name] = {
             "dihedral_deg": phi,
             "uff_total_kcal_mol": round(energy, 4),
             "delta_vs_anti_kcal_mol": round(energy - anti_energy, 4) if anti_energy is not None else 0.0,
+        }
+
+    # 2. Diverse Molecules (hybridizations & elements)
+    diverse_builders = [
+        ("methane", "C", _build_methane()),
+        ("ethane", "CC", _build_ethane()),
+        ("ethylene", "C=C", _build_ethylene()),
+        ("water", "O", _build_water()),
+    ]
+
+    for name, smiles, mol in diverse_builders:
+        ff = rdForceFieldHelpers.UFFGetMoleculeForceField(mol)
+        assert ff is not None, f"UFF parameterization failed for {name}"
+        energy = ff.CalcEnergy()
+        results["diverse_molecules"][name] = {
+            "smiles": smiles,
+            "atom_count": mol.GetNumAtoms(),
+            "uff_total_kcal_mol": round(energy, 4),
         }
 
     return results
@@ -137,15 +221,23 @@ def main() -> None:
             print(f"FAIL: stored hash {existing_hash} != recomputed {recomputed_hash}", file=sys.stderr)
             sys.exit(1)
 
-        # Compare energies
+        # Compare butane energies
         for name in CONFORMER_NAMES:
-            stored = existing["conformers"][name]["uff_total_kcal_mol"]
-            fresh = ref["conformers"][name]["uff_total_kcal_mol"]
+            stored = existing["butane_conformers"][name]["uff_total_kcal_mol"]
+            fresh = ref["butane_conformers"][name]["uff_total_kcal_mol"]
             if abs(stored - fresh) > 1e-3:
                 print(f"FAIL: {name} energy mismatch: stored={stored}, fresh={fresh}", file=sys.stderr)
                 sys.exit(1)
 
-        print(f"PASS: All {len(CONFORMER_NAMES)} conformer energies verified against RDKit {RDKIT_VERSION} UFF")
+        # Compare diverse molecule energies
+        for name in ["methane", "ethane", "ethylene", "water"]:
+            stored = existing["diverse_molecules"][name]["uff_total_kcal_mol"]
+            fresh = ref["diverse_molecules"][name]["uff_total_kcal_mol"]
+            if abs(stored - fresh) > 1e-3:
+                print(f"FAIL: {name} energy mismatch: stored={stored}, fresh={fresh}", file=sys.stderr)
+                sys.exit(1)
+
+        print(f"PASS: All 4 butane conformers and 4 diverse molecules verified against RDKit {RDKIT_VERSION} UFF")
         print(f"  SHA-256: {existing_hash}")
         return
 

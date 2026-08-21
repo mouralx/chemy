@@ -43,35 +43,38 @@ def verify_coverage(report_pattern: str):
         fallback_branches_covered += int(root.attrib.get("branches-covered", 0))
         fallback_branches_valid += int(root.attrib.get("branches-valid", 0))
 
-        # Iterate over all classes to extract line details and deduplicate by filename + line number
-        for cls in root.findall(".//class"):
-            filename = cls.attrib.get("filename", "")
-            for line in cls.findall(".//line"):
-                has_line_detail = True
-                number = line.attrib.get("number")
-                if not number:
-                    continue
-                
-                line_id = (filename, number)
-                hits = int(line.attrib.get("hits", "0"))
-                valid_lines.add(line_id)
-                
-                if hits > 0:
-                    covered_lines.add(line_id)
+        # Iterate over all packages and classes to extract line details and deduplicate by (pkg_name, norm_filename, line_number)
+        for pkg in root.findall(".//package"):
+            pkg_name = pkg.attrib.get("name", "")
+            for cls in pkg.findall(".//class"):
+                filename = cls.attrib.get("filename", "")
+                norm_filename = os.path.normpath(filename) if filename else cls.attrib.get("name", "")
+                for line in cls.findall(".//line"):
+                    has_line_detail = True
+                    number = line.attrib.get("number")
+                    if not number:
+                        continue
                     
-                is_branch = line.attrib.get("branch", "false").lower() == "true"
-                if is_branch:
-                    cond_cov = line.attrib.get("condition-coverage", "")
-                    m = re.search(r'\((\d+)/(\d+)\)', cond_cov)
-                    if m:
-                        cov = int(m.group(1))
-                        val = int(m.group(2))
-                        if line_id not in branch_info:
-                            branch_info[line_id] = [cov, val]
-                        else:
-                            # Merge branch coverage by taking the max covered branches seen for this line
-                            branch_info[line_id][0] = max(branch_info[line_id][0], cov)
-                            branch_info[line_id][1] = val
+                    line_id = (pkg_name, norm_filename, number)
+                    hits = int(line.attrib.get("hits", "0"))
+                    valid_lines.add(line_id)
+                    
+                    if hits > 0:
+                        covered_lines.add(line_id)
+                        
+                    is_branch = line.attrib.get("branch", "false").lower() == "true"
+                    if is_branch:
+                        cond_cov = line.attrib.get("condition-coverage", "")
+                        m = re.search(r'\((\d+)/(\d+)\)', cond_cov)
+                        if m:
+                            cov = int(m.group(1))
+                            val = int(m.group(2))
+                            if line_id not in branch_info:
+                                branch_info[line_id] = [cov, val]
+                            else:
+                                # Merge branch coverage by taking the max covered branches seen for this line
+                                branch_info[line_id][0] = max(branch_info[line_id][0], cov)
+                                branch_info[line_id][1] = max(branch_info[line_id][1], val)
 
     if has_line_detail:
         total_lines_valid = len(valid_lines)
