@@ -455,7 +455,12 @@ public static class ForceFieldEngine
     {
         >= 4 => 109.4712, // Tetrahedral sp3
         3 => 120.0,       // Trigonal planar sp2
-        2 => elem.Symbol is "O" or "S" ? 104.5 : 180.0, // Bent vs Linear
+        2 => elem.Symbol switch
+        {
+            "O" => 104.51,
+            "S" => 92.10,
+            _ => 180.0
+        },
         _ => 109.4712
     };
 

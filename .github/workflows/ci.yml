@@ -34,9 +34,9 @@ jobs:
       run: |
         python3 scripts/generate_uff_reference.py --verify src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json
 
-    - name: Generate Initial RDKit Interop Fixtures
+    - name: Generate Initial RDKit Interop Fixtures (Direction 2)
       run: |
-        python3 scripts/verify_molfile_interop.py
+        python3 scripts/verify_molfile_interop.py --generate-rdkit
 
     - name: Setup .NET 10 SDK
       uses: actions/setup-dotnet@39504859a4d33458efecad9d9eb933e49dcadfa7 # v4.3.0
@@ -52,9 +52,9 @@ jobs:
     - name: Run Scientific Test Suite with Coverage
       run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
-    - name: Verify Live Chemy-Exported Molfiles & SDF with RDKit 2025.09.2
+    - name: Verify Live Chemy-Exported Molfiles & SDF with RDKit 2025.09.2 (Direction 1)
       run: |
-        python3 scripts/verify_molfile_interop.py
+        python3 scripts/verify_molfile_interop.py --verify-chemy
 
     - name: Enforce Scientific Line & Branch Coverage Floors
       run: |

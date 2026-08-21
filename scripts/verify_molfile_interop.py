@@ -32,6 +32,7 @@ FALLBACK_STRUCTURES = [
         "expected_charge": 0,
         "expected_atoms": 21,
         "expected_bonds": 21,
+        "expected_dim": "3D",
         "smiles": "CC(=O)Oc1ccccc1C(=O)O",
     },
     {
@@ -41,6 +42,7 @@ FALLBACK_STRUCTURES = [
         "expected_charge": -1,
         "expected_atoms": 7,
         "expected_bonds": 6,
+        "expected_dim": "2D",
         "smiles": "CC(=O)[O-]",
     },
     {
@@ -50,6 +52,7 @@ FALLBACK_STRUCTURES = [
         "expected_charge": 1,
         "expected_atoms": 12,
         "expected_bonds": 12,
+        "expected_dim": "2D",
         "smiles": "[nH+]1ccccc1",
     },
     {
@@ -59,6 +62,7 @@ FALLBACK_STRUCTURES = [
         "expected_charge": 0,
         "expected_atoms": 10,
         "expected_bonds": 9,
+        "expected_dim": "2D",
         "smiles": "[NH3+]CC([O-])=O",
     },
 ]
@@ -73,8 +77,8 @@ def generate_rdkit_fixtures(output_dir: str) -> None:
 
     for item in FALLBACK_STRUCTURES:
         name = item["name"]
-        smiles = item["smiles"]
         filename = item["filename"]
+        smiles = item["smiles"]
         out_path = os.path.join(output_dir, filename)
 
         mol = Chem.MolFromSmiles(smiles)
@@ -108,9 +112,9 @@ def verify_chemy_exports(input_dir: str) -> bool:
     """Validate Chemy-exported files using RDKit 2025.09.2 with fail-closed integrity checks."""
     candidate_dirs = [
         input_dir,
+        "src/Chemy.Core.Tests/ValidationData/interop_fixtures/chemy_exported",
         "src/Chemy.Core.Tests/bin/Release/net10.0/ValidationData/interop_fixtures/chemy_exported",
         "src/Chemy.Core.Tests/bin/Debug/net10.0/ValidationData/interop_fixtures/chemy_exported",
-        "src/Chemy.Core.Tests/ValidationData/interop_fixtures/chemy_exported",
     ]
 
     actual_dir = None
@@ -134,6 +138,7 @@ def verify_chemy_exports(input_dir: str) -> bool:
         expected_charge = item["expected_charge"]
         expected_atoms = item["expected_atoms"]
         expected_bonds = item["expected_bonds"]
+        expected_dim = item.get("expected_dim", "3D")
 
         filepath = os.path.join(actual_dir, filename)
         if not os.path.exists(filepath):
@@ -156,6 +161,10 @@ def verify_chemy_exports(input_dir: str) -> bool:
                 header_dim = "Unknown"
         else:
             header_dim = "Unknown"
+
+        if header_dim != expected_dim:
+            print(f"  FAIL: Dimensional header mismatch for '{name}': expected {expected_dim}, got {header_dim}", file=sys.stderr)
+            all_passed = False
 
         mol = Chem.MolFromMolBlock(molfile)
         if mol is None:
@@ -222,19 +231,24 @@ def verify_chemy_exports(input_dir: str) -> bool:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Bidirectional Chemy <-> RDKit Molfile/SDF Interoperability Suite")
-    parser.add_argument("--export-rdkit", metavar="DIR", default=RDKIT_EXPORT_DIR, help="Directory to export RDKit fixtures")
-    parser.add_argument("--verify-chemy", metavar="DIR", default=CHEM_EXPORT_DIR, help="Directory containing Chemy exports to verify")
+    parser.add_argument("--generate-rdkit", action="store_true", help="Generate RDKit fixtures only (Direction 2)")
+    parser.add_argument("--verify-chemy", action="store_true", help="Verify Chemy exports only (Direction 1)")
+    parser.add_argument("--rdkit-dir", metavar="DIR", default=RDKIT_EXPORT_DIR, help="Directory for RDKit fixtures")
+    parser.add_argument("--chemy-dir", metavar="DIR", default=CHEM_EXPORT_DIR, help="Directory for Chemy exports")
     args = parser.parse_args()
 
-    # Step 1: Export RDKit fixtures for Chemy to parse
-    generate_rdkit_fixtures(args.export_rdkit)
+    run_generate = args.generate_rdkit or (not args.generate_rdkit and not args.verify_chemy)
+    run_verify = args.verify_chemy or (not args.generate_rdkit and not args.verify_chemy)
 
-    # Step 2: Verify Chemy live exports
-    success = verify_chemy_exports(args.verify_chemy)
-    if not success:
-        sys.exit(1)
+    if run_generate:
+        generate_rdkit_fixtures(args.rdkit_dir)
 
-    print("\nSUCCESS: Chemy <-> RDKit bidirectional Molfile/SDF verification completed.")
+    if run_verify:
+        success = verify_chemy_exports(args.chemy_dir)
+        if not success:
+            sys.exit(1)
+
+    print("\nSUCCESS: Molfile/SDF interoperability task completed.")
 
 
 if __name__ == "__main__":

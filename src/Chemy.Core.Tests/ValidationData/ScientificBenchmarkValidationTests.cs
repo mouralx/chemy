@@ -268,9 +268,22 @@ public class ScientificBenchmarkValidationTests
                 double bias = errors.Average();
                 double p50 = absErrors[(int)(absErrors.Count * 0.50)];
                 double p90 = absErrors[Math.Min(absErrors.Count - 1, (int)(absErrors.Count * 0.90))];
-                double variance = errors.Select(e => Math.Pow(Math.Abs(e) - mae, 2)).Average();
-                double stdDev = Math.Sqrt(variance);
-                double ci95 = 1.96 * (stdDev / Math.Sqrt(errors.Count));
+                
+                // Sample standard deviation: s = sqrt(sum((x - mean)^2) / (N - 1))
+                double sampleVariance = errors.Count > 1
+                    ? errors.Select(e => Math.Pow(Math.Abs(e) - mae, 2)).Sum() / (errors.Count - 1)
+                    : 0.0;
+                double sampleStdDev = Math.Sqrt(sampleVariance);
+                
+                // Two-tailed Student's t critical value for 95% confidence (t_0.025)
+                double tCrit = errors.Count switch
+                {
+                    16 => 2.131, // df = 15
+                    32 => 2.040, // df = 31
+                    48 => 2.012, // df = 47
+                    _ => 1.960
+                };
+                double ci95 = tCrit * (sampleStdDev / Math.Sqrt(errors.Count));
                 return (mae, rmse, max, bias, p50, p90, ci95);
             }
 
@@ -487,28 +500,68 @@ public class ScientificBenchmarkValidationTests
             new Atom3D(waterMol.Atoms[2], new Vector3D(-0.76, 0.59, 0.0))
         ], waterMol);
 
+        // 5. Hydrogen Sulfide (H2S, bent sp3 sulfur)
+        var h2sMol = Molecule.FromSmiles("S", "HydrogenSulfide");
+        var h2s3D = new Molecule3D("HydrogenSulfide", "H2S", "Bent", 92.1, [
+            new Atom3D(h2sMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(h2sMol.Atoms[1], new Vector3D(0.963, 0.930, 0.0)),
+            new Atom3D(h2sMol.Atoms[2], new Vector3D(-0.963, 0.930, 0.0))
+        ], h2sMol);
+
+        // 6. Chloromethane (CH3Cl, halogen Cl)
+        var ch3clMol = Molecule.FromSmiles("CCl", "Chloromethane");
+        var ch3cl3D = new Molecule3D("Chloromethane", "CH3Cl", "Tetrahedral", 109.47, [
+            new Atom3D(ch3clMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(ch3clMol.Atoms[1], new Vector3D(1.78, 0.0, 0.0)),
+            new Atom3D(ch3clMol.Atoms[2], new Vector3D(-0.36, 1.02, 0.0)),
+            new Atom3D(ch3clMol.Atoms[3], new Vector3D(-0.36, -0.51, 0.89)),
+            new Atom3D(ch3clMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
+        ], ch3clMol);
+
+        // 7. Fluoromethane (CH3F, halogen F)
+        var ch3fMol = Molecule.FromSmiles("CF", "Fluoromethane");
+        var ch3f3D = new Molecule3D("Fluoromethane", "CH3F", "Tetrahedral", 109.47, [
+            new Atom3D(ch3fMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(ch3fMol.Atoms[1], new Vector3D(1.39, 0.0, 0.0)),
+            new Atom3D(ch3fMol.Atoms[2], new Vector3D(-0.36, 1.02, 0.0)),
+            new Atom3D(ch3fMol.Atoms[3], new Vector3D(-0.36, -0.51, 0.89)),
+            new Atom3D(ch3fMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
+        ], ch3fMol);
+
         double eMethane = ForceFieldEngine.CalculateTotalEnergy(methane3D);
         double eEthane = ForceFieldEngine.CalculateTotalEnergy(ethane3D);
         double eEthylene = ForceFieldEngine.CalculateTotalEnergy(ethylene3D);
         double eWater = ForceFieldEngine.CalculateTotalEnergy(water3D);
+        double eH2S = ForceFieldEngine.CalculateTotalEnergy(h2s3D);
+        double eCH3Cl = ForceFieldEngine.CalculateTotalEnergy(ch3cl3D);
+        double eCH3F = ForceFieldEngine.CalculateTotalEnergy(ch3f3D);
 
         // Pinned RDKit 2025.09.2 UFF reference energies (kcal/mol):
         const double rdkitUffMethane = 0.4984;
         const double rdkitUffEthane = 1.4965;
         const double rdkitUffEthylene = 0.2112;
         const double rdkitUffWater = 0.8861;
+        const double rdkitUffH2S = 2.1564;
+        const double rdkitUffCH3Cl = 0.5877;
+        const double rdkitUffCH3F = 0.6168;
 
-        _output.WriteLine("\n=== DIVERSE HYBRIDIZATION UFF FORCE FIELD BENCHMARKS ===");
-        _output.WriteLine($"Methane  (sp3 C,   N=5): Chemy = {eMethane:F4} kcal/mol, RDKit Ref = {rdkitUffMethane:F4} kcal/mol, Diff = {Math.Abs(eMethane - rdkitUffMethane):F4}");
-        _output.WriteLine($"Ethane   (sp3 C-C, N=8): Chemy = {eEthane:F4} kcal/mol, RDKit Ref = {rdkitUffEthane:F4} kcal/mol, Diff = {Math.Abs(eEthane - rdkitUffEthane):F4}");
-        _output.WriteLine($"Ethylene (sp2 C=C, N=6): Chemy = {eEthylene:F4} kcal/mol, RDKit Ref = {rdkitUffEthylene:F4} kcal/mol, Diff = {Math.Abs(eEthylene - rdkitUffEthylene):F4}");
-        _output.WriteLine($"Water    (sp3 O,   N=3): Chemy = {eWater:F4} kcal/mol, RDKit Ref = {rdkitUffWater:F4} kcal/mol, Diff = {Math.Abs(eWater - rdkitUffWater):F4}");
+        _output.WriteLine("\n=== DIVERSE HYBRIDIZATION & HETEROATOM UFF FORCE FIELD BENCHMARKS ===");
+        _output.WriteLine($"Methane       (sp3 C,   N=5): Chemy = {eMethane:F4} kcal/mol, RDKit Ref = {rdkitUffMethane:F4} kcal/mol, Diff = {Math.Abs(eMethane - rdkitUffMethane):F4}");
+        _output.WriteLine($"Ethane        (sp3 C-C, N=8): Chemy = {eEthane:F4} kcal/mol, RDKit Ref = {rdkitUffEthane:F4} kcal/mol, Diff = {Math.Abs(eEthane - rdkitUffEthane):F4}");
+        _output.WriteLine($"Ethylene      (sp2 C=C, N=6): Chemy = {eEthylene:F4} kcal/mol, RDKit Ref = {rdkitUffEthylene:F4} kcal/mol, Diff = {Math.Abs(eEthylene - rdkitUffEthylene):F4}");
+        _output.WriteLine($"Water         (sp3 O,   N=3): Chemy = {eWater:F4} kcal/mol, RDKit Ref = {rdkitUffWater:F4} kcal/mol, Diff = {Math.Abs(eWater - rdkitUffWater):F4}");
+        _output.WriteLine($"H2S           (sp3 S,   N=3): Chemy = {eH2S:F4} kcal/mol, RDKit Ref = {rdkitUffH2S:F4} kcal/mol, Diff = {Math.Abs(eH2S - rdkitUffH2S):F4}");
+        _output.WriteLine($"Chloromethane (sp3 Cl,  N=5): Chemy = {eCH3Cl:F4} kcal/mol, RDKit Ref = {rdkitUffCH3Cl:F4} kcal/mol, Diff = {Math.Abs(eCH3Cl - rdkitUffCH3Cl):F4}");
+        _output.WriteLine($"Fluoromethane (sp3 F,   N=5): Chemy = {eCH3F:F4} kcal/mol, RDKit Ref = {rdkitUffCH3F:F4} kcal/mol, Diff = {Math.Abs(eCH3F - rdkitUffCH3F):F4}");
 
         // Validate within 1.20 kcal/mol tolerance across all distinct atom types & hybridizations
         Assert.InRange(Math.Abs(eMethane - rdkitUffMethane), 0.0, 1.20);
         Assert.InRange(Math.Abs(eEthane - rdkitUffEthane), 0.0, 1.20);
         Assert.InRange(Math.Abs(eEthylene - rdkitUffEthylene), 0.0, 1.20);
         Assert.InRange(Math.Abs(eWater - rdkitUffWater), 0.0, 1.20);
+        Assert.InRange(Math.Abs(eH2S - rdkitUffH2S), 0.0, 1.20);
+        Assert.InRange(Math.Abs(eCH3Cl - rdkitUffCH3Cl), 0.0, 1.20);
+        Assert.InRange(Math.Abs(eCH3F - rdkitUffCH3F), 0.0, 1.20);
     }
 
     [Fact]
@@ -685,6 +738,7 @@ public class ScientificBenchmarkValidationTests
         var asp = MolfileParser.FromMolfileV2000(File.ReadAllText(aspPath));
         Assert.NotNull(asp);
         Assert.Equal(21, asp.Atoms.Count); // 9 C + 4 O + 8 H
+        Assert.Equal(21, asp.SourceMolecule.Bonds.Count);
         Assert.Equal("C9H8O4", asp.ChemicalFormula);
         Assert.Equal(0, asp.Atoms.Sum(a => a.Atom.NetCharge));
         Assert.True(asp.Atoms.Any(a => Math.Abs(a.Position.Z) > 1e-4), "RDKit 3D conformer should have non-zero Z coordinates.");
@@ -695,8 +749,10 @@ public class ScientificBenchmarkValidationTests
         var ace = MolfileParser.FromMolfileV2000(File.ReadAllText(acePath));
         Assert.NotNull(ace);
         Assert.Equal(7, ace.Atoms.Count);
+        Assert.Equal(6, ace.SourceMolecule.Bonds.Count);
         Assert.Equal("C2H3O2-", ace.ChemicalFormula);
         Assert.Equal(-1, ace.Atoms.Sum(a => a.Atom.NetCharge));
+        Assert.Contains(ace.Atoms, a => a.Atom.Element == Elements.Oxygen && a.Atom.NetCharge == -1);
 
         // 3. Parse Pyridinium cation from RDKit
         string pyPath = Path.Combine(rdkitExportDir, "pyridinium_cation.mol");
@@ -704,8 +760,10 @@ public class ScientificBenchmarkValidationTests
         var py = MolfileParser.FromMolfileV2000(File.ReadAllText(pyPath));
         Assert.NotNull(py);
         Assert.Equal(12, py.Atoms.Count);
+        Assert.Equal(12, py.SourceMolecule.Bonds.Count);
         Assert.Equal("C5H6N+", py.ChemicalFormula);
         Assert.Equal(1, py.Atoms.Sum(a => a.Atom.NetCharge));
+        Assert.Contains(py.Atoms, a => a.Atom.Element == Elements.Nitrogen && a.Atom.NetCharge == 1);
 
         // 4. Parse Glycine Zwitterion from RDKit
         string glyPath = Path.Combine(rdkitExportDir, "glycine_zwitterion.mol");
@@ -713,8 +771,11 @@ public class ScientificBenchmarkValidationTests
         var gly = MolfileParser.FromMolfileV2000(File.ReadAllText(glyPath));
         Assert.NotNull(gly);
         Assert.Equal(10, gly.Atoms.Count);
+        Assert.Equal(9, gly.SourceMolecule.Bonds.Count);
         Assert.Equal("C2H5NO2", gly.ChemicalFormula);
         Assert.Equal(0, gly.Atoms.Sum(a => a.Atom.NetCharge));
+        Assert.Contains(gly.Atoms, a => a.Atom.Element == Elements.Nitrogen && a.Atom.NetCharge == 1);
+        Assert.Contains(gly.Atoms, a => a.Atom.Element == Elements.Oxygen && a.Atom.NetCharge == -1);
 
         // 5. Parse Multi-record SDF from RDKit
         string sdfPath = Path.Combine(rdkitExportDir, "rdkit_compounds.sdf");
@@ -828,28 +889,33 @@ public class ScientificBenchmarkValidationTests
             ("Fe(2+)/Fe",    -0.440, 2),
             ("2H(+)/H2",      0.000, 2), // Standard Hydrogen Electrode reference
             ("Cu(2+)/Cu",    +0.340, 2),
-            ("Ag(+)/Ag",     +0.799, 1),
+            ("Ag(+)/Ag",     +0.7996, 1),
             ("Cl2/2Cl(-)",   +1.358, 2),
-            ("MnO4(-)/Mn(2+)",+1.507, 5)
+            ("MnO4(-)+8H(+)/Mn(2+)", +1.507, 5)
         };
 
         _output.WriteLine("\n=== ELECTROCHEMISTRY STANDARD REDUCTION POTENTIALS BENCHMARK ===");
-        _output.WriteLine("| Redox Couple | E° (V vs SHE) | n (e⁻) | Status |");
-        _output.WriteLine("| :--- | :---: | :---: | :---: |");
+        _output.WriteLine("| Redox Couple | Queried Chemy E° | CRC/IUPAC Ref E° | Diff | Status |");
+        _output.WriteLine("| :--- | :---: | :---: | :---: | :---: |");
 
         foreach (var (couple, expE0, n) in standardRedoxCouples)
         {
-            _output.WriteLine($"| {couple} | {expE0:+0.000;-0.000;0.000} V | {n} | Verified ✅ |");
+            double chemyE0 = ElectrochemistryEngine.GetStandardReductionPotential(couple);
+            double diff = Math.Abs(chemyE0 - expE0);
+            _output.WriteLine($"| {couple} | {chemyE0:+0.0000;-0.0000;0.0000} V | {expE0:+0.0000;-0.0000;0.0000} V | {diff:F4} | Verified ✅ |");
+            Assert.InRange(diff, 0.0, 1e-3);
         }
 
         // Test non-standard Daniell Cell: Zn(s) + Cu(2+)(1.0 M) -> Zn(2+)(0.01 M) + Cu(s)
         // E°_cell = E°(Cu2+/Cu) - E°(Zn2+/Zn) = 0.340 - (-0.763) = 1.103 V
-        double e0Cell = 0.340 - (-0.763);
+        double standardCellPotential = ElectrochemistryEngine.CalculateStandardCellPotential("Cu(2+)/Cu", "Zn(2+)/Zn");
+        Assert.Equal(1.103, standardCellPotential, precision: 3);
+
         int nElectrons = 2;
         double q = 0.01 / 1.0; // [Zn2+]/[Cu2+]
         double temp = 298.15;
 
-        var nernst = ElectrochemistryEngine.CalculateNernstPotential(e0Cell, nElectrons, q, temp);
+        var nernst = ElectrochemistryEngine.CalculateNernstPotential(standardCellPotential, nElectrons, q, temp);
         Assert.NotNull(nernst);
         Assert.True(nernst.IsSpontaneousGalvanic);
 
@@ -863,45 +929,53 @@ public class ScientificBenchmarkValidationTests
     [Fact]
     public void Benchmark_Spectroscopy_H1NmrChemicalShifts_MatchesExperimentalReferences()
     {
-        // SDBS / NIST Experimental 1H-NMR Chemical Shifts (ppm, CDCl3/neat)
-        var referenceSpectra = new (string Name, string Smiles, (string Group, double ExpPpm, double TolPpm)[] ExpectedPeaks)[]
+        // SDBS / NIST Experimental 1H-NMR Chemical Shifts (ppm, CDCl3/neat, 400 MHz)
+        var referenceSpectra = new (string Name, string Smiles, string SdbsId, string Solvent, string Frequency, (string Group, double ExpPpm, string ExpectedMultiplet, int ExpectedIntegration, double TolPpm)[] ExpectedPeaks)[]
         {
-            ("Ethanol", "CCO", [
-                ("CH3", 1.22, 0.35),
-                ("CH2", 3.68, 0.35)
+            ("Ethanol", "CCO", "SDBS-412", "CDCl3", "400 MHz", [
+                ("CH3", 1.22, "Triplet", 3, 0.35),
+                ("CH2", 3.68, "Quartet", 2, 0.35)
             ]),
-            ("Acetone", "CC(=O)C", [
-                ("CH3", 2.16, 0.25)
+            ("Acetone", "CC(=O)C", "SDBS-396", "CDCl3", "400 MHz", [
+                ("CH3", 2.16, "Singlet", 6, 0.25)
             ]),
-            ("Benzene", "c1ccccc1", [
-                ("Aromatic CH", 7.27, 0.25)
+            ("Benzene", "c1ccccc1", "SDBS-187", "CDCl3", "400 MHz", [
+                ("Aromatic CH", 7.27, "Singlet", 6, 0.25)
             ]),
-            ("AceticAcid", "CC(=O)O", [
-                ("CH3", 2.08, 0.25)
+            ("AceticAcid", "CC(=O)O", "SDBS-305", "CDCl3", "400 MHz", [
+                ("CH3", 2.08, "Singlet", 3, 0.25)
             ])
         };
 
         var errors = new List<double>();
         _output.WriteLine("\n=== 1H-NMR SPECTROSCOPY EXPERIMENTAL CHEMICAL SHIFTS BENCHMARK ===");
-        _output.WriteLine("| Molecule | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Status |");
-        _output.WriteLine("| :--- | :--- | :---: | :---: | :---: | :---: |");
+        _output.WriteLine("| Molecule | SDBS ID | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Multiplicity | Integration |");
+        _output.WriteLine("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |");
 
-        foreach (var (name, smiles, expectedPeaks) in referenceSpectra)
+        foreach (var (name, smiles, sdbsId, solvent, freq, expectedPeaks) in referenceSpectra)
         {
             var mol = SmilesParser.Parse(smiles, name);
             var prediction = SpectroscopyEngine.Predict(mol);
             Assert.NotEmpty(prediction.H1NmrPeaks);
 
-            foreach (var (group, expPpm, tolPpm) in expectedPeaks)
-            {
-                // Find closest predicted peak
-                var closest = prediction.H1NmrPeaks.MinBy(p => Math.Abs(p.ChemicalShiftPpm - expPpm));
-                Assert.NotNull(closest);
+            var availablePredicted = prediction.H1NmrPeaks.ToList();
 
-                double diff = Math.Abs(closest.ChemicalShiftPpm - expPpm);
+            foreach (var (group, expPpm, expMultiplet, expIntegration, tolPpm) in expectedPeaks)
+            {
+                // Strict 1-to-1 matching: match with closest unused peak
+                Assert.NotEmpty(availablePredicted);
+                var matched = availablePredicted.MinBy(p => Math.Abs(p.ChemicalShiftPpm - expPpm));
+                Assert.NotNull(matched);
+
+                availablePredicted.Remove(matched);
+
+                double diff = Math.Abs(matched.ChemicalShiftPpm - expPpm);
                 errors.Add(diff);
 
-                _output.WriteLine($"| {name} | {group} | {closest.ChemicalShiftPpm:F2} | {expPpm:F2} | {diff:F2} | {closest.Multiplet} (Int={closest.HydrogenCount}) |");
+                _output.WriteLine($"| {name} | {sdbsId} ({solvent}) | {group} | {matched.ChemicalShiftPpm:F2} | {expPpm:F2} | {diff:F2} | {matched.Multiplet} (Exp: {expMultiplet}) | {matched.HydrogenCount}H (Exp: {expIntegration}H) |");
+                
+                Assert.Equal(expMultiplet, matched.Multiplet);
+                Assert.Equal(expIntegration, matched.HydrogenCount);
                 Assert.InRange(diff, 0.0, tolPpm);
             }
         }

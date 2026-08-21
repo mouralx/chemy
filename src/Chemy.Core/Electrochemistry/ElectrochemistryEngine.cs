@@ -35,6 +35,65 @@ public static class ElectrochemistryEngine
     private const double FaradayConstantF = 96485.33212;
 
     /// <summary>
+    /// IUPAC &amp; CRC Handbook of Chemistry and Physics (97th Edition) Standard Reduction Potentials E° at 298.15 K (V vs SHE).
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, double> StandardReductionPotentials = new Dictionary<string, double>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Li(+)/Li"] = -3.040,
+        ["K(+)/K"] = -2.931,
+        ["Ca(2+)/Ca"] = -2.868,
+        ["Na(+)/Na"] = -2.710,
+        ["Mg(2+)/Mg"] = -2.372,
+        ["Al(3+)/Al"] = -1.662,
+        ["Mn(2+)/Mn"] = -1.185,
+        ["Zn(2+)/Zn"] = -0.763,
+        ["Cr(3+)/Cr"] = -0.744,
+        ["Fe(2+)/Fe"] = -0.440,
+        ["Cd(2+)/Cd"] = -0.403,
+        ["Co(2+)/Co"] = -0.280,
+        ["Ni(2+)/Ni"] = -0.257,
+        ["Sn(2+)/Sn"] = -0.136,
+        ["Pb(2+)/Pb"] = -0.126,
+        ["2H(+)/H2"] = 0.000, // Standard Hydrogen Electrode reference
+        ["Cu(2+)/Cu"] = +0.340,
+        ["I2/2I(-)"] = +0.5355,
+        ["Fe(3+)/Fe(2+)"] = +0.771,
+        ["Ag(+)/Ag"] = +0.7996,
+        ["Hg2(2+)/2Hg"] = +0.7973,
+        ["Br2/2Br(-)"] = +1.066,
+        ["O2+4H(+)/2H2O"] = +1.229,
+        ["Cr2O7(2-)+14H(+)/2Cr(3+)"] = +1.330,
+        ["Cl2/2Cl(-)"] = +1.358,
+        ["PbO2+4H(+)+SO4(2-)/PbSO4"] = +1.685,
+        ["MnO4(-)+8H(+)/Mn(2+)"] = +1.507,
+        ["H2O2+2H(+)/2H2O"] = +1.776,
+        ["F2/2F(-)"] = +2.870
+    };
+
+    /// <summary>
+    /// Retrieves the standard reduction potential E° (V vs SHE) for a given redox half-reaction couple.
+    /// </summary>
+    public static double GetStandardReductionPotential(string halfReactionCouple)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(halfReactionCouple);
+        if (StandardReductionPotentials.TryGetValue(halfReactionCouple.Trim(), out double potential))
+        {
+            return potential;
+        }
+        throw new KeyNotFoundException($"Standard reduction potential for redox couple '{halfReactionCouple}' not found in database.");
+    }
+
+    /// <summary>
+    /// Calculates the standard galvanic cell potential E°_cell = E°(cathode) - E°(anode).
+    /// </summary>
+    public static double CalculateStandardCellPotential(string cathodeCouple, string anodeCouple)
+    {
+        double eCathode = GetStandardReductionPotential(cathodeCouple);
+        double eAnode = GetStandardReductionPotential(anodeCouple);
+        return eCathode - eAnode;
+    }
+
+    /// <summary>
     /// Calculates the non-standard electromotive cell potential (E_cell) via the Nernst equation:
     /// E = E° - (RT / nF) * ln(Q).
     /// </summary>
