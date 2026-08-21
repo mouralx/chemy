@@ -38,4 +38,9 @@ public readonly record struct Bond(int Atom1Index, int Atom2Index, BondType Type
     /// <param name="index">0-based atom index to test.</param>
     /// <returns>True if either vertex of the bond matches the index.</returns>
     public bool Connects(int index) => Atom1Index == index || Atom2Index == index;
+
+    /// <summary>
+    /// Checks whether this bond connects two specified atom indices.
+    /// </summary>
+    public bool Connects(int u, int v) => (Atom1Index == u && Atom2Index == v) || (Atom1Index == v && Atom2Index == u);
 }

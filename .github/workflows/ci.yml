@@ -1,0 +1,30 @@
+name: Chemy CI & Scientific Verification
+
+on:
+  push:
+    branches: [ main, fix/*, feat/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    name: Build, Audit & Test (.NET 10)
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 10 SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore src/Chemy.slnx
+
+    - name: Build with Warnings as Errors
+      run: dotnet build src/Chemy.slnx --configuration Release --no-restore
+
+    - name: Run Scientific Test Suite (xUnit)
+      run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal

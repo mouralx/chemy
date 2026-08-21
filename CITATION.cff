@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Chemy: High-Performance .NET Computational Chemistry & Chemoinformatics Engine"
+authors:
+  - family-names: "Moura"
+    given-names: "Alexandre"
+version: 1.0.0
+date-released: 2026-08-21
+license: MIT
+repository-code: "https://github.com/mouralx/chemy"
+keywords:
+  - computational-chemistry
+  - chemoinformatics
+  - molecular-mechanics
+  - quantum-chemistry
+  - open-smiles
+  - ertl-tpsa
+  - wildman-crippen
+  - bickerton-qed
+  - huckel-orbitals

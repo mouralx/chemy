@@ -1,23 +1,32 @@
 namespace Chemy.Core.Reactions;
 
+using System.Numerics;
+
 /// <summary>
-/// Exact Rational Matrix Solver for Chemical Equation Balancing.
-/// Solves the nullspace vector equation M * x = 0 over the rational field Q,
-/// using Gaussian elimination with partial pivoting and integer LCM scaling.
+/// Exact Rational Matrix Solver for Chemical Stoichiometry and Nullspace Basis Decomposition.
+/// Computes the complete nullspace basis of M * x = 0 over the rational field Q,
+/// transforming underdetermined multi-reaction systems into fundamental independent reaction pathways.
 /// </summary>
-internal static class MatrixSolver
+public static class MatrixSolver
 {
     /// <summary>
-    /// Computes the minimal strictly positive integer nullspace solution vector for matrix M.
+    /// Computes the minimal strictly positive integer nullspace solution vector for matrix M (if nullity = 1).
     /// </summary>
-    /// <param name="matrix">Stoichiometric element conservation matrix.</param>
-    /// <returns>Minimal integer coefficient vector, or null if unbalanceable.</returns>
     public static int[]? SolveNullspaceIntegerVector(int[,] matrix)
+    {
+        var basis = SolveNullspaceBasis(matrix);
+        return basis.Count == 1 ? basis[0] : null;
+    }
+
+    /// <summary>
+    /// Computes the complete basis of independent integer nullspace reaction vectors for matrix M.
+    /// </summary>
+    public static IReadOnlyList<int[]> SolveNullspaceBasis(int[,] matrix)
     {
         int rows = matrix.GetLength(0);
         int cols = matrix.GetLength(1);
 
-        // Convert integer matrix to exact rational matrix to prevent floating-point drift
+        // Convert integer matrix to exact rational matrix to prevent floating-point loss
         Rational[,] rMatrix = new Rational[rows, cols];
         for (int r = 0; r < rows; r++)
         {
@@ -31,7 +40,7 @@ internal static class MatrixSolver
         int[] pivotCols = new int[cols];
         Array.Fill(pivotCols, -1);
 
-        // Gaussian elimination with partial pivoting to compute Reduced Row Echelon Form (RREF)
+        // Compute Reduced Row Echelon Form (RREF)
         for (int c = 0; c < cols && pivotRow < rows; c++)
         {
             int sel = -1;
@@ -76,137 +85,134 @@ internal static class MatrixSolver
             pivotRow++;
         }
 
-        // Identify free variable column
-        int freeCol = -1;
-        for (int c = cols - 1; c >= 0; c--)
+        // Identify all free variable columns (nullspace basis dimension)
+        var freeCols = new List<int>();
+        for (int c = 0; c < cols; c++)
         {
             if (pivotCols[c] == -1)
             {
-                freeCol = c;
-                break;
+                freeCols.Add(c);
             }
         }
 
-        if (freeCol == -1) return null;
-
-        // Assign free variable unit rational value and back-substitute
-        Rational[] solution = new Rational[cols];
-        solution[freeCol] = new Rational(1);
-
-        for (int c = 0; c < cols; c++)
+        if (freeCols.Count == 0)
         {
-            if (pivotCols[c] != -1)
-            {
-                int r = pivotCols[c];
-                solution[c] = -rMatrix[r, freeCol];
-            }
+            return Array.Empty<int[]>();
         }
 
-        // Compute Least Common Multiple (LCM) of denominators to clear fractions
-        long lcm = 1;
-        foreach (var rat in solution)
-        {
-            if (rat.Num != 0)
-            {
-                lcm = Lcm(lcm, rat.Den);
-            }
-        }
+        var basisVectors = new List<int[]>();
 
-        // Scale by LCM into integer solution
-        int[] intVector = new int[cols];
-        bool allPositive = true;
-        for (int c = 0; c < cols; c++)
+        foreach (int freeCol in freeCols)
         {
-            Rational scaled = solution[c] * new Rational(lcm);
-            int val = (int)(scaled.Num / scaled.Den);
-            if (val <= 0) allPositive = false;
-            intVector[c] = val;
-        }
+            Rational[] sol = new Rational[cols];
+            for (int i = 0; i < cols; i++) sol[i] = new Rational(0, 1);
+            sol[freeCol] = new Rational(1);
 
-        if (!allPositive)
-        {
             for (int c = 0; c < cols; c++)
             {
-                intVector[c] = -intVector[c];
-                if (intVector[c] <= 0) return null;
+                if (pivotCols[c] != -1)
+                {
+                    int r = pivotCols[c];
+                    sol[c] = -rMatrix[r, freeCol];
+                }
             }
-        }
 
-        // Reduce by Greatest Common Divisor (GCD) to minimal primitive integers
-        long commonGcd = intVector[0];
-        for (int c = 1; c < cols; c++)
-        {
-            commonGcd = Gcd(commonGcd, intVector[c]);
-        }
+            // Clear denominators via LCM
+            BigInteger lcm = 1;
+            foreach (var rat in sol)
+            {
+                if (rat.Num != 0)
+                {
+                    lcm = LcmBig(lcm, rat.Den);
+                }
+            }
 
-        if (commonGcd > 1)
-        {
+            var intVec = new int[cols];
+            bool allPos = true;
             for (int c = 0; c < cols; c++)
             {
-                intVector[c] /= (int)commonGcd;
+                Rational scaled = sol[c] * new Rational(lcm);
+                int val = (int)(scaled.Num / scaled.Den);
+                if (val <= 0) allPos = false;
+                intVec[c] = val;
             }
+
+            if (!allPos)
+            {
+                bool flippedAllPos = true;
+                for (int c = 0; c < cols; c++)
+                {
+                    if (-intVec[c] <= 0) flippedAllPos = false;
+                }
+                if (flippedAllPos)
+                {
+                    for (int c = 0; c < cols; c++) intVec[c] = -intVec[c];
+                }
+            }
+
+            // Reduce by GCD
+            BigInteger commonGcd = 0;
+            for (int c = 0; c < cols; c++)
+            {
+                if (intVec[c] != 0)
+                {
+                    commonGcd = commonGcd == 0 ? BigInteger.Abs(intVec[c]) : BigInteger.GreatestCommonDivisor(commonGcd, BigInteger.Abs(intVec[c]));
+                }
+            }
+
+            if (commonGcd > 1)
+            {
+                for (int c = 0; c < cols; c++) intVec[c] = (int)(intVec[c] / commonGcd);
+            }
+
+            basisVectors.Add(intVec);
         }
 
-        return intVector;
+        return basisVectors;
     }
 
-    /// <summary>Calculates Greatest Common Divisor (Euclidean algorithm).</summary>
-    private static long Gcd(long a, long b)
+    private static BigInteger LcmBig(BigInteger a, BigInteger b)
     {
-        a = Math.Abs(a);
-        b = Math.Abs(b);
-        while (b != 0)
-        {
-            long temp = b;
-            b = a % b;
-            a = temp;
-        }
-        return a == 0 ? 1 : a;
+        if (a == 0 || b == 0) return 0;
+        return BigInteger.Abs((a / BigInteger.GreatestCommonDivisor(a, b)) * b);
     }
-
-    /// <summary>Calculates Least Common Multiple.</summary>
-    private static long Lcm(long a, long b) => (a / Gcd(a, b)) * b;
 }
 
 /// <summary>
-/// Immutable, exact rational number struct with automatic GCD reduction.
+/// Arbitrary precision rational number structure (Q) for exact algebraic balancing.
 /// </summary>
 internal readonly struct Rational
 {
-    public long Num { get; }
-    public long Den { get; }
+    public BigInteger Num { get; }
+    public BigInteger Den { get; }
 
-    public Rational(long num, long den = 1)
+    public Rational(BigInteger num, BigInteger den)
     {
         if (den == 0) throw new DivideByZeroException("Rational denominator cannot be zero.");
-
-        if (den < 0)
-        {
-            num = -num;
-            den = -den;
-        }
-
-        long g = Gcd(num, den);
+        if (den < 0) { num = -num; den = -den; }
+        BigInteger g = BigInteger.GreatestCommonDivisor(BigInteger.Abs(num), den);
         Num = num / g;
         Den = den / g;
     }
 
-    public static Rational operator +(Rational a, Rational b) => new(a.Num * b.Den + b.Num * a.Den, a.Den * b.Den);
-    public static Rational operator -(Rational a, Rational b) => new(a.Num * b.Den - b.Num * a.Den, a.Den * b.Den);
-    public static Rational operator -(Rational a) => new(-a.Num, a.Den);
-    public static Rational operator *(Rational a, Rational b) => new(a.Num * b.Num, a.Den * b.Den);
-    public static Rational operator /(Rational a, Rational b) => new(a.Num * b.Den, a.Den * b.Num);
+    public Rational(BigInteger num) : this(num, 1) { }
 
-    private static long Gcd(long a, long b)
+    public static Rational operator +(Rational a, Rational b) =>
+        new(a.Num * b.Den + b.Num * a.Den, a.Den * b.Den);
+
+    public static Rational operator -(Rational a, Rational b) =>
+        new(a.Num * b.Den - b.Num * a.Den, a.Den * b.Den);
+
+    public static Rational operator -(Rational a) => new(-a.Num, a.Den);
+
+    public static Rational operator *(Rational a, Rational b) =>
+        new(a.Num * b.Num, a.Den * b.Den);
+
+    public static Rational operator /(Rational a, Rational b)
     {
-        a = Math.Abs(a);
-        b = Math.Abs(b);
-        while (b != 0)
-        {
-            long temp = b;
-            b = a % b;
-            a = temp;
-        }
-        return a == 0 ? 1 : a;
+        if (b.Num == 0) throw new DivideByZeroException("Cannot divide rational by zero.");
+        return new Rational(a.Num * b.Den, a.Den * b.Num);
     }
+
+    public override string ToString() => Den == 1 ? Num.ToString() : $"{Num}/{Den}";
 }
