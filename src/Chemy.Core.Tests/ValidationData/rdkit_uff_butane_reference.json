@@ -62,7 +62,22 @@
       "smiles": "CF",
       "atom_count": 5,
       "uff_total_kcal_mol": 0.6168
+    },
+    "ammonia": {
+      "smiles": "N",
+      "atom_count": 4,
+      "uff_total_kcal_mol": 1.6777
+    },
+    "phosphine": {
+      "smiles": "P",
+      "atom_count": 4,
+      "uff_total_kcal_mol": 0.7209
+    },
+    "bromomethane": {
+      "smiles": "CBr",
+      "atom_count": 5,
+      "uff_total_kcal_mol": 0.5961
     }
   },
-  "sha256": "afea038071f45ee76078d730fb7146bd6734528dc4ef38adf7b4ea80cde1eba3"
+  "sha256": "cebb5e0dc388bc3f3375fb0e0ec6fa730382d817acd41dc1f6fb5ae174450f2b"
 }

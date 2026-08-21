@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "metadata": {
+    "title": "SDBS / NIST Experimental 1H-NMR Reference Chemical Shifts",
+    "primary_source": "Spectral Database for Organic Compounds (SDBS), National Institute of Advanced Industrial Science and Technology (AIST), Japan",
+    "secondary_source": "NIST Chemistry WebBook Standard Reference Database 69",
+    "retrieval_date": "2026-08-21",
+    "version": "1.0",
+    "license_note": "Reference spectral peak data compiled for educational and non-commercial scientific validation benchmark.",
+    "standard_conditions": "CDCl3 solvent, 400 MHz spectrometer, 298 K, TMS reference (0.00 ppm)"
+  },
+  "compounds": [
+    {
+      "name": "Ethanol",
+      "formula": "C2H6O",
+      "smiles": "CCO",
+      "sdbs_compound_id": "SDBS-1300",
+      "sdbs_spectrum_id": "CDS-01-387",
+      "solvent": "CDCl3",
+      "frequency": "400 MHz",
+      "temperature_k": 298.15,
+      "peaks": [
+        {
+          "group": "CH3 (Methyl)",
+          "experimental_shift_ppm": 1.22,
+          "multiplicity": "Triplet",
+          "integration": 3,
+          "tolerance_ppm": 0.35
+        },
+        {
+          "group": "CH2 (Methylene)",
+          "experimental_shift_ppm": 3.68,
+          "multiplicity": "Quartet",
+          "integration": 2,
+          "tolerance_ppm": 0.35
+        }
+      ]
+    },
+    {
+      "name": "Acetone",
+      "formula": "C3H6O",
+      "smiles": "CC(=O)C",
+      "sdbs_compound_id": "SDBS-319",
+      "sdbs_spectrum_id": "CDS-00-098",
+      "solvent": "CDCl3",
+      "frequency": "400 MHz",
+      "temperature_k": 298.15,
+      "peaks": [
+        {
+          "group": "CH3 (alpha-Carbonyl methyl)",
+          "experimental_shift_ppm": 2.16,
+          "multiplicity": "Singlet",
+          "integration": 6,
+          "tolerance_ppm": 0.25
+        }
+      ]
+    },
+    {
+      "name": "Benzene",
+      "formula": "C6H6",
+      "smiles": "c1ccccc1",
+      "sdbs_compound_id": "SDBS-187",
+      "sdbs_spectrum_id": "CDS-00-043",
+      "solvent": "CDCl3",
+      "frequency": "400 MHz",
+      "temperature_k": 298.15,
+      "peaks": [
+        {
+          "group": "Aromatic CH",
+          "experimental_shift_ppm": 7.27,
+          "multiplicity": "Singlet",
+          "integration": 6,
+          "tolerance_ppm": 0.25
+        }
+      ]
+    },
+    {
+      "name": "AceticAcid",
+      "formula": "C2H4O2",
+      "smiles": "CC(=O)O",
+      "sdbs_compound_id": "SDBS-305",
+      "sdbs_spectrum_id": "CDS-00-087",
+      "solvent": "CDCl3",
+      "frequency": "400 MHz",
+      "temperature_k": 298.15,
+      "peaks": [
+        {
+          "group": "CH3 (alpha-Carboxyl methyl)",
+          "experimental_shift_ppm": 2.08,
+          "multiplicity": "Singlet",
+          "integration": 3,
+          "tolerance_ppm": 0.25
+        }
+      ]
+    }
+  ]
+}

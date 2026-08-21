@@ -454,12 +454,17 @@ public static class ForceFieldEngine
     private static double GetUffIdealAngle(Element elem, int coordinationNumber) => coordinationNumber switch
     {
         >= 4 => 109.4712, // Tetrahedral sp3
-        3 => 120.0,       // Trigonal planar sp2
+        3 => elem.Symbol switch
+        {
+            "N" => 106.70, // Pyramidal sp3 Nitrogen
+            "P" => 93.30,  // Pyramidal sp3 Phosphorus
+            _ => 120.00    // Trigonal planar sp2
+        },
         2 => elem.Symbol switch
         {
-            "O" => 104.51,
-            "S" => 92.10,
-            _ => 180.0
+            "O" => 104.51, // Bent sp3 Oxygen
+            "S" => 92.10,  // Bent sp3 Sulfur
+            _ => 180.00    // Linear
         },
         _ => 109.4712
     };

@@ -108,14 +108,19 @@ def generate_rdkit_fixtures(output_dir: str) -> None:
     print(f"  Exported Multi-Record SDF ({len(sdf_molecules)} records) -> {sdf_path}")
 
 
-def verify_chemy_exports(input_dir: str) -> bool:
+def verify_chemy_exports(input_dir: str, strict: bool = False) -> bool:
     """Validate Chemy-exported files using RDKit 2025.09.2 with fail-closed integrity checks."""
-    candidate_dirs = [
-        input_dir,
-        "src/Chemy.Core.Tests/ValidationData/interop_fixtures/chemy_exported",
-        "src/Chemy.Core.Tests/bin/Release/net10.0/ValidationData/interop_fixtures/chemy_exported",
-        "src/Chemy.Core.Tests/bin/Debug/net10.0/ValidationData/interop_fixtures/chemy_exported",
-    ]
+    print(f"=== [DIRECTION 1: CHEMY -> RDKIT] Verifying Chemy Exports ===")
+
+    if strict:
+        candidate_dirs = [input_dir]
+    else:
+        candidate_dirs = [
+            input_dir,
+            "src/Chemy.Core.Tests/ValidationData/interop_fixtures/chemy_exported",
+            "src/Chemy.Core.Tests/bin/Release/net10.0/ValidationData/interop_fixtures/chemy_exported",
+            "src/Chemy.Core.Tests/bin/Debug/net10.0/ValidationData/interop_fixtures/chemy_exported",
+        ]
 
     actual_dir = None
     for d in candidate_dirs:
@@ -123,9 +128,8 @@ def verify_chemy_exports(input_dir: str) -> bool:
             actual_dir = d
             break
 
-    print(f"=== [DIRECTION 1: CHEMY -> RDKIT] Verifying Chemy Exports ===")
     if actual_dir is None:
-        print(f"  FAIL: Chemy export directory not found in candidate paths. Run `dotnet test` first.", file=sys.stderr)
+        print(f"  FAIL: Chemy export directory '{input_dir}' not found or missing aspirin_neutral.mol. Run `dotnet test` first.", file=sys.stderr)
         return False
 
     print(f"  Using Chemy export directory: '{actual_dir}'")

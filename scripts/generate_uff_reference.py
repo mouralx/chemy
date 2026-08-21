@@ -187,6 +187,52 @@ def _build_fluoromethane() -> Chem.Mol:
     return mol
 
 
+def _build_ammonia() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("N"))
+    coords = [
+        (0.0, 0.0, 0.0),
+        (0.939, 0.0, -0.377),
+        (-0.470, 0.813, -0.377),
+        (-0.470, -0.813, -0.377)
+    ]
+    conf = Chem.Conformer(4)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
+def _build_phosphine() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("P"))
+    coords = [
+        (0.0, 0.0, 0.0),
+        (1.1923, 0.0, -0.7712),
+        (-0.5962, 1.0326, -0.7712),
+        (-0.5962, -1.0326, -0.7712)
+    ]
+    conf = Chem.Conformer(4)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
+def _build_bromomethane() -> Chem.Mol:
+    mol = Chem.AddHs(Chem.MolFromSmiles("CBr"))
+    coords = [
+        (0.0, 0.0, 0.0),      # C
+        (1.94, 0.0, 0.0),      # Br
+        (-0.36, 1.02, 0.0),    # H
+        (-0.36, -0.51, 0.89),  # H
+        (-0.36, -0.51, -0.89)  # H
+    ]
+    conf = Chem.Conformer(5)
+    for idx, pos in enumerate(coords):
+        conf.SetAtomPosition(idx, pos)
+    mol.AddConformer(conf, assignId=True)
+    return mol
+
+
 def generate_reference() -> dict:
     """Calculate UFF energies for butane conformers and diverse standard molecules."""
     assert rdkit.__version__ == RDKIT_VERSION, (
@@ -221,7 +267,7 @@ def generate_reference() -> dict:
             "delta_vs_anti_kcal_mol": round(energy - anti_energy, 4) if anti_energy is not None else 0.0,
         }
 
-    # 2. Diverse Molecules (hybridizations, oxygen, sulfur, halogens)
+    # 2. Diverse Molecules (hybridizations, oxygen, sulfur, nitrogen, phosphorus, halogens)
     diverse_builders = [
         ("methane", "C", _build_methane()),
         ("ethane", "CC", _build_ethane()),
@@ -230,6 +276,9 @@ def generate_reference() -> dict:
         ("h2s", "S", _build_h2s()),
         ("chloromethane", "CCl", _build_chloromethane()),
         ("fluoromethane", "CF", _build_fluoromethane()),
+        ("ammonia", "N", _build_ammonia()),
+        ("phosphine", "P", _build_phosphine()),
+        ("bromomethane", "CBr", _build_bromomethane()),
     ]
 
     for name, smiles, mol in diverse_builders:
@@ -279,14 +328,14 @@ def main() -> None:
                 sys.exit(1)
 
         # Compare diverse molecule energies
-        for name in ["methane", "ethane", "ethylene", "water", "h2s", "chloromethane", "fluoromethane"]:
+        for name in ["methane", "ethane", "ethylene", "water", "h2s", "chloromethane", "fluoromethane", "ammonia", "phosphine", "bromomethane"]:
             stored = existing["diverse_molecules"][name]["uff_total_kcal_mol"]
             fresh = ref["diverse_molecules"][name]["uff_total_kcal_mol"]
             if abs(stored - fresh) > 1e-3:
                 print(f"FAIL: {name} energy mismatch: stored={stored}, fresh={fresh}", file=sys.stderr)
                 sys.exit(1)
 
-        print(f"PASS: All 4 butane conformers and 7 diverse molecules verified against RDKit {RDKIT_VERSION} UFF")
+        print(f"PASS: All 4 butane conformers and 10 diverse molecules verified against RDKit {RDKIT_VERSION} UFF")
         print(f"  SHA-256: {existing_hash}")
         return
 

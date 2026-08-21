@@ -528,6 +528,34 @@ public class ScientificBenchmarkValidationTests
             new Atom3D(ch3fMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
         ], ch3fMol);
 
+        // 8. Ammonia (NH3, sp3 pyramidal Nitrogen)
+        var nh3Mol = Molecule.FromSmiles("N", "Ammonia");
+        var nh33D = new Molecule3D("Ammonia", "NH3", "TrigonalPyramidal", 106.7, [
+            new Atom3D(nh3Mol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(nh3Mol.Atoms[1], new Vector3D(0.939, 0.0, -0.377)),
+            new Atom3D(nh3Mol.Atoms[2], new Vector3D(-0.470, 0.813, -0.377)),
+            new Atom3D(nh3Mol.Atoms[3], new Vector3D(-0.470, -0.813, -0.377))
+        ], nh3Mol);
+
+        // 9. Phosphine (PH3, sp3 pyramidal Phosphorus)
+        var ph3Mol = Molecule.FromSmiles("P", "Phosphine");
+        var ph33D = new Molecule3D("Phosphine", "PH3", "TrigonalPyramidal", 93.3, [
+            new Atom3D(ph3Mol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(ph3Mol.Atoms[1], new Vector3D(1.1923, 0.0, -0.7712)),
+            new Atom3D(ph3Mol.Atoms[2], new Vector3D(-0.5962, 1.0326, -0.7712)),
+            new Atom3D(ph3Mol.Atoms[3], new Vector3D(-0.5962, -1.0326, -0.7712))
+        ], ph3Mol);
+
+        // 10. Bromomethane (CH3Br, halogen Br)
+        var ch3brMol = Molecule.FromSmiles("CBr", "Bromomethane");
+        var ch3br3D = new Molecule3D("Bromomethane", "CH3Br", "Tetrahedral", 109.47, [
+            new Atom3D(ch3brMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(ch3brMol.Atoms[1], new Vector3D(1.94, 0.0, 0.0)),
+            new Atom3D(ch3brMol.Atoms[2], new Vector3D(-0.36, 1.02, 0.0)),
+            new Atom3D(ch3brMol.Atoms[3], new Vector3D(-0.36, -0.51, 0.89)),
+            new Atom3D(ch3brMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
+        ], ch3brMol);
+
         double eMethane = ForceFieldEngine.CalculateTotalEnergy(methane3D);
         double eEthane = ForceFieldEngine.CalculateTotalEnergy(ethane3D);
         double eEthylene = ForceFieldEngine.CalculateTotalEnergy(ethylene3D);
@@ -535,6 +563,9 @@ public class ScientificBenchmarkValidationTests
         double eH2S = ForceFieldEngine.CalculateTotalEnergy(h2s3D);
         double eCH3Cl = ForceFieldEngine.CalculateTotalEnergy(ch3cl3D);
         double eCH3F = ForceFieldEngine.CalculateTotalEnergy(ch3f3D);
+        double eNH3 = ForceFieldEngine.CalculateTotalEnergy(nh33D);
+        double ePH3 = ForceFieldEngine.CalculateTotalEnergy(ph33D);
+        double eCH3Br = ForceFieldEngine.CalculateTotalEnergy(ch3br3D);
 
         // Pinned RDKit 2025.09.2 UFF reference energies (kcal/mol):
         const double rdkitUffMethane = 0.4984;
@@ -544,6 +575,9 @@ public class ScientificBenchmarkValidationTests
         const double rdkitUffH2S = 2.1564;
         const double rdkitUffCH3Cl = 0.5877;
         const double rdkitUffCH3F = 0.6168;
+        const double rdkitUffNH3 = 1.6777;
+        const double rdkitUffPH3 = 0.7212;
+        const double rdkitUffCH3Br = 0.5961;
 
         _output.WriteLine("\n=== DIVERSE HYBRIDIZATION & HETEROATOM UFF FORCE FIELD BENCHMARKS ===");
         _output.WriteLine($"Methane       (sp3 C,   N=5): Chemy = {eMethane:F4} kcal/mol, RDKit Ref = {rdkitUffMethane:F4} kcal/mol, Diff = {Math.Abs(eMethane - rdkitUffMethane):F4}");
@@ -553,8 +587,11 @@ public class ScientificBenchmarkValidationTests
         _output.WriteLine($"H2S           (sp3 S,   N=3): Chemy = {eH2S:F4} kcal/mol, RDKit Ref = {rdkitUffH2S:F4} kcal/mol, Diff = {Math.Abs(eH2S - rdkitUffH2S):F4}");
         _output.WriteLine($"Chloromethane (sp3 Cl,  N=5): Chemy = {eCH3Cl:F4} kcal/mol, RDKit Ref = {rdkitUffCH3Cl:F4} kcal/mol, Diff = {Math.Abs(eCH3Cl - rdkitUffCH3Cl):F4}");
         _output.WriteLine($"Fluoromethane (sp3 F,   N=5): Chemy = {eCH3F:F4} kcal/mol, RDKit Ref = {rdkitUffCH3F:F4} kcal/mol, Diff = {Math.Abs(eCH3F - rdkitUffCH3F):F4}");
+        _output.WriteLine($"Ammonia       (sp3 N,   N=4): Chemy = {eNH3:F4} kcal/mol, RDKit Ref = {rdkitUffNH3:F4} kcal/mol, Diff = {Math.Abs(eNH3 - rdkitUffNH3):F4}");
+        _output.WriteLine($"Phosphine     (sp3 P,   N=4): Chemy = {ePH3:F4} kcal/mol, RDKit Ref = {rdkitUffPH3:F4} kcal/mol, Diff = {Math.Abs(ePH3 - rdkitUffPH3):F4}");
+        _output.WriteLine($"Bromomethane  (sp3 Br,  N=5): Chemy = {eCH3Br:F4} kcal/mol, RDKit Ref = {rdkitUffCH3Br:F4} kcal/mol, Diff = {Math.Abs(eCH3Br - rdkitUffCH3Br):F4}");
 
-        // Validate within 1.20 kcal/mol tolerance across all distinct atom types & hybridizations
+        // Validate within tolerance across all distinct atom types & hybridizations
         Assert.InRange(Math.Abs(eMethane - rdkitUffMethane), 0.0, 1.20);
         Assert.InRange(Math.Abs(eEthane - rdkitUffEthane), 0.0, 1.20);
         Assert.InRange(Math.Abs(eEthylene - rdkitUffEthylene), 0.0, 1.20);
@@ -562,6 +599,9 @@ public class ScientificBenchmarkValidationTests
         Assert.InRange(Math.Abs(eH2S - rdkitUffH2S), 0.0, 1.20);
         Assert.InRange(Math.Abs(eCH3Cl - rdkitUffCH3Cl), 0.0, 1.20);
         Assert.InRange(Math.Abs(eCH3F - rdkitUffCH3F), 0.0, 1.20);
+        Assert.InRange(Math.Abs(eNH3 - rdkitUffNH3), 0.0, 1.20);
+        Assert.InRange(Math.Abs(ePH3 - rdkitUffPH3), 0.0, 1.20);
+        Assert.InRange(Math.Abs(eCH3Br - rdkitUffCH3Br), 0.0, 1.20);
     }
 
     [Fact]
@@ -882,28 +922,31 @@ public class ScientificBenchmarkValidationTests
     [Fact]
     public void Benchmark_Electrochemistry_StandardPotentialsAndNernstCell_MatchesIupacCrcReferences()
     {
-        // Reference Standard Reduction Potentials E° (V vs SHE at 298.15 K) from CRC Handbook of Chemistry & Physics / IUPAC
-        var standardRedoxCouples = new (string Couple, double ExpE0, int Electrons)[]
+        string jsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "crc_iupac_reduction_potentials.json");
+        if (!File.Exists(jsonPath))
         {
-            ("Zn(2+)/Zn",    -0.763, 2),
-            ("Fe(2+)/Fe",    -0.440, 2),
-            ("2H(+)/H2",      0.000, 2), // Standard Hydrogen Electrode reference
-            ("Cu(2+)/Cu",    +0.340, 2),
-            ("Ag(+)/Ag",     +0.7996, 1),
-            ("Cl2/2Cl(-)",   +1.358, 2),
-            ("MnO4(-)+8H(+)/Mn(2+)", +1.507, 5)
-        };
+            jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "crc_iupac_reduction_potentials.json");
+        }
+        Assert.True(File.Exists(jsonPath), $"Required external electrochemistry reference '{jsonPath}' not found.");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var couplesArray = doc.RootElement.GetProperty("standard_reduction_potentials").EnumerateArray().ToList();
+        Assert.Equal(29, couplesArray.Count);
 
         _output.WriteLine("\n=== ELECTROCHEMISTRY STANDARD REDUCTION POTENTIALS BENCHMARK ===");
         _output.WriteLine("| Redox Couple | Queried Chemy E° | CRC/IUPAC Ref E° | Diff | Status |");
         _output.WriteLine("| :--- | :---: | :---: | :---: | :---: |");
 
-        foreach (var (couple, expE0, n) in standardRedoxCouples)
+        foreach (var item in couplesArray)
         {
+            string couple = item.GetProperty("couple").GetString()!;
+            double expE0 = item.GetProperty("potential_volts").GetDouble();
+            int electrons = item.GetProperty("electrons").GetInt32();
+
             double chemyE0 = ElectrochemistryEngine.GetStandardReductionPotential(couple);
             double diff = Math.Abs(chemyE0 - expE0);
             _output.WriteLine($"| {couple} | {chemyE0:+0.0000;-0.0000;0.0000} V | {expE0:+0.0000;-0.0000;0.0000} V | {diff:F4} | Verified ✅ |");
-            Assert.InRange(diff, 0.0, 1e-3);
+            Assert.InRange(diff, 0.0, 1e-4);
         }
 
         // Test non-standard Daniell Cell: Zn(s) + Cu(2+)(1.0 M) -> Zn(2+)(0.01 M) + Cu(s)
@@ -929,39 +972,44 @@ public class ScientificBenchmarkValidationTests
     [Fact]
     public void Benchmark_Spectroscopy_H1NmrChemicalShifts_MatchesExperimentalReferences()
     {
-        // SDBS / NIST Experimental 1H-NMR Chemical Shifts (ppm, CDCl3/neat, 400 MHz)
-        var referenceSpectra = new (string Name, string Smiles, string SdbsId, string Solvent, string Frequency, (string Group, double ExpPpm, string ExpectedMultiplet, int ExpectedIntegration, double TolPpm)[] ExpectedPeaks)[]
+        string jsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "experimental_nmr_reference.json");
+        if (!File.Exists(jsonPath))
         {
-            ("Ethanol", "CCO", "SDBS-412", "CDCl3", "400 MHz", [
-                ("CH3", 1.22, "Triplet", 3, 0.35),
-                ("CH2", 3.68, "Quartet", 2, 0.35)
-            ]),
-            ("Acetone", "CC(=O)C", "SDBS-396", "CDCl3", "400 MHz", [
-                ("CH3", 2.16, "Singlet", 6, 0.25)
-            ]),
-            ("Benzene", "c1ccccc1", "SDBS-187", "CDCl3", "400 MHz", [
-                ("Aromatic CH", 7.27, "Singlet", 6, 0.25)
-            ]),
-            ("AceticAcid", "CC(=O)O", "SDBS-305", "CDCl3", "400 MHz", [
-                ("CH3", 2.08, "Singlet", 3, 0.25)
-            ])
-        };
+            jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "experimental_nmr_reference.json");
+        }
+        Assert.True(File.Exists(jsonPath), $"Required external NMR reference '{jsonPath}' not found.");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var compoundsArray = doc.RootElement.GetProperty("compounds").EnumerateArray().ToList();
+        Assert.Equal(4, compoundsArray.Count);
 
         var errors = new List<double>();
         _output.WriteLine("\n=== 1H-NMR SPECTROSCOPY EXPERIMENTAL CHEMICAL SHIFTS BENCHMARK ===");
-        _output.WriteLine("| Molecule | SDBS ID | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Multiplicity | Integration |");
-        _output.WriteLine("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |");
+        _output.WriteLine("| Molecule | SDBS ID | Spectrum ID | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Multiplicity | Integration |");
+        _output.WriteLine("| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |");
 
-        foreach (var (name, smiles, sdbsId, solvent, freq, expectedPeaks) in referenceSpectra)
+        foreach (var comp in compoundsArray)
         {
+            string name = comp.GetProperty("name").GetString()!;
+            string smiles = comp.GetProperty("smiles").GetString()!;
+            string sdbsCompoundId = comp.GetProperty("sdbs_compound_id").GetString()!;
+            string sdbsSpectrumId = comp.GetProperty("sdbs_spectrum_id").GetString()!;
+            string solvent = comp.GetProperty("solvent").GetString()!;
+
             var mol = SmilesParser.Parse(smiles, name);
             var prediction = SpectroscopyEngine.Predict(mol);
             Assert.NotEmpty(prediction.H1NmrPeaks);
 
             var availablePredicted = prediction.H1NmrPeaks.ToList();
 
-            foreach (var (group, expPpm, expMultiplet, expIntegration, tolPpm) in expectedPeaks)
+            foreach (var peak in comp.GetProperty("peaks").EnumerateArray())
             {
+                string group = peak.GetProperty("group").GetString()!;
+                double expPpm = peak.GetProperty("experimental_shift_ppm").GetDouble();
+                string expMultiplet = peak.GetProperty("multiplicity").GetString()!;
+                int expIntegration = peak.GetProperty("integration").GetInt32();
+                double tolPpm = peak.GetProperty("tolerance_ppm").GetDouble();
+
                 // Strict 1-to-1 matching: match with closest unused peak
                 Assert.NotEmpty(availablePredicted);
                 var matched = availablePredicted.MinBy(p => Math.Abs(p.ChemicalShiftPpm - expPpm));
@@ -972,8 +1020,8 @@ public class ScientificBenchmarkValidationTests
                 double diff = Math.Abs(matched.ChemicalShiftPpm - expPpm);
                 errors.Add(diff);
 
-                _output.WriteLine($"| {name} | {sdbsId} ({solvent}) | {group} | {matched.ChemicalShiftPpm:F2} | {expPpm:F2} | {diff:F2} | {matched.Multiplet} (Exp: {expMultiplet}) | {matched.HydrogenCount}H (Exp: {expIntegration}H) |");
-                
+                _output.WriteLine($"| {name} | {sdbsCompoundId} | {sdbsSpectrumId} ({solvent}) | {group} | {matched.ChemicalShiftPpm:F2} | {expPpm:F2} | {diff:F2} | {matched.Multiplet} (Exp: {expMultiplet}) | {matched.HydrogenCount}H (Exp: {expIntegration}H) |");
+
                 Assert.Equal(expMultiplet, matched.Multiplet);
                 Assert.Equal(expIntegration, matched.HydrogenCount);
                 Assert.InRange(diff, 0.0, tolPpm);
