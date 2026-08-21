@@ -56,4 +56,31 @@ public class ReactionTests
         Assert.True(result.ProductYieldsGrams.ContainsKey("H2O"));
         Assert.InRange(result.ProductYieldsGrams["H2O"], 17.5, 18.5);
     }
+
+    [Fact]
+    public void BalanceIndependentPathways_UnderdeterminedCombustion_DecomposesIntoConservedPathways()
+    {
+        // C + O2 -> CO + CO2 (underdetermined 2-pathway system)
+        var rxn = Reaction.Parse("C + O2 -> CO + CO2");
+        var pathways = rxn.BalanceIndependentPathways();
+
+        Assert.NotEmpty(pathways);
+        foreach (var p in pathways)
+        {
+            Assert.True(p.IsBalanced, $"Pathway '{p}' is not balanced!");
+            Assert.NotEmpty(p.Reactants);
+            Assert.NotEmpty(p.Products);
+        }
+    }
+
+    [Fact]
+    public void Balance_RedoxReactionWithCharges_BalancesMassAndNetCharge()
+    {
+        // Zn + Cu{2+} -> Zn{2+} + Cu
+        var rxn = Reaction.Parse("Zn + Cu{2+} -> Zn{2+} + Cu");
+        var balanced = rxn.Balance();
+
+        Assert.True(balanced.IsBalanced);
+        Assert.Equal("Zn + Cu{2+} -> Zn{2+} + Cu", balanced.ToString());
+    }
 }

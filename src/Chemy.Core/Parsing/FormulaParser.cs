@@ -6,7 +6,7 @@ namespace Chemy.Core.Parsing;
 
 public static class FormulaParser
 {
-    private static readonly Regex ChargeRegex = new(@"(?:\^)?([+-]?\d*|\d+[+-]|[+-])\s*$", RegexOptions.Compiled);
+    private static readonly Regex ChargeRegex = new(@"(?:[\^\{]|\^\{)?([+-]?\d+|\d+[+-]|[+-])\}?\s*$", RegexOptions.Compiled);
 
     public static Molecule Parse(string formula, string? name = null)
     {

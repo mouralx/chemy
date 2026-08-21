@@ -1,22 +1,22 @@
 # Chemy Breakthroughs Showcase: Case Studies & Applications
 
-This document demonstrates the three practical chemistry engines introduced in **Chemy**:
-1. 🧬 **Bioisosteric Lead Optimization Engine** (Pharmacophore Replacement & Liability Bypass)
-2. 🛡️ **ADMET & QED Property Shield** (Lipinski, Veber, Ghose & Polar Surface Area Audits)
-3. ♻️ **EcoClean PFAS & Microplastic Degradation Pathways** (Bond Dissociation & Biocatalytic Cascades)
+This document demonstrates three computational chemistry capabilities provided in **Chemy**:
+1. 🧬 **Bioisosteric Lead Exploration Engine** (Pharmacophore Substitution & Graph Rewriting)
+2. 🛡️ **Physicochemical Descriptors & Drug-Likeness** (Lipinski, Veber, Ghose, Ertl TPSA, Crippen LogP, QED)
+3. ♻️ **EcoClean Qualitative Degradation Pathways** (Bond Dissociation Thermodynamics & Cleavage Cascades)
 
 ---
 
-## 🧬 Case Study 1: Bioisosteric Lead Optimization
+## 🧬 Case Study 1: Bioisosteric Lead Exploration
 
-### The Problem
-Traditional drug design takes **10–15 years and over $2.6 Billion**, often failing late in clinical trials due to reactive metabolites, poor solubility, or rapid metabolic clearance.
+### Background
+Lead optimization explores structural modifications to candidate molecules to evaluate changes in lipophilicity ($\log P$), polar surface area ($\text{TPSA}$), and drug-likeness desirability ($\text{QED}$).
 
 ### The Chemy Approach
-The `MolecularEvolverEngine` executes graph-traversing bioisosteric substitution to mutate lead molecular graphs, replacing metabolic liabilities (e.g. carboxylic acids causing acyl-glucuronide toxicity) with bioisosteric heterocycles while monitoring Quantitative Estimate of Drug-Likeness ($\text{QED}$).
+The `MolecularEvolverEngine` executes graph-traversing bioisosteric operations (e.g. replacing carboxylic acid groups with tetrazole heterocycles, para-fluorine substitution, pyridyl aza-substitution) and calculates resulting physicochemical profiles.
 
 ### Live Execution Demonstration
-**Input Lead Molecule**: `CC(=O)Oc1ccccc1C(=O)O` (Aspirin — causes gastric ulceration and acyl-glucuronide liver reactivity)
+**Input Lead Molecule**: `CC(=O)Oc1ccccc1C(=O)O` (Aspirin)
 
 ```csharp
 using Chemy.Core.Evolution;
@@ -30,43 +30,37 @@ foreach (var lead in result.Candidates)
     Console.WriteLine($"    SMILES: {lead.Smiles}");
     Console.WriteLine($"    QED Score: {lead.QedScore:F2} (LogP: {lead.CalculatedLogP:F2})");
     Console.WriteLine($"    Chemical Rationale: {lead.Rationale}");
-    Console.WriteLine($"    Toxicity Benefit: {lead.ToxicityImprovement}");
+    Console.WriteLine($"    Property Modification: {lead.ToxicityImprovement}");
 }
 ```
 
 ### Generated Output
 
 ```text
-Baseline: C9H8O4 | QED: 0.70
+Baseline: C9H8O4 | QED: 0.53
 
-[★] Candidate Alpha (Bioisostere)
+[★] Lead-01 (1H-Tetrazole Bioisostere)
     SMILES: CC(=O)Oc1ccccc1c1nnn[nH]1
-    QED Score: 0.88 (LogP: 0.95)
-    Chemical Rationale: Replaced metabolic liability (-COOH) with non-classical tetrazole bioisostere.
-    Toxicity Benefit: Eliminates acyl glucuronide toxicity & increases Phase-II metabolic half-life.
+    QED Score: 0.59 (LogP: 1.05)
+    Chemical Rationale: Substituted metabolic carboxylic acid with non-classical 1H-tetrazole 5-membered aromatic ring.
+    Property Modification: Carboxylic acid to 1H-tetrazole bioisosteric substitution; modulates acidity while preserving hydrogen-bonding topology.
 
-[★] Candidate Beta (Fluorinated Lead)
+[★] Lead-02 (Fluorine Bioisostere)
     SMILES: CC(=O)Oc1ccc(F)cc1C(=O)O
-    QED Score: 0.82 (LogP: 1.65)
-    Chemical Rationale: Para-fluorination on aromatic ring to block toxic CYP450 oxidation.
-    Toxicity Benefit: Reduces reactive quinone-imine toxic metabolite formation by >90%.
-
-[★] Candidate Gamma (Polar Solubilizer)
-    SMILES: CC(=O)Oc1ccccc1C(=O)ON1CCOCC1
-    QED Score: 0.85 (LogP: 1.50)
-    Chemical Rationale: Appended morpholine solubilizing group to optimize aqueous dissolution.
-    Toxicity Benefit: Decreases logP and eliminates hERG hydrophobic channel entrapment risk.
+    QED Score: 0.55 (LogP: 1.45)
+    Chemical Rationale: Introduced bioisosteric fluorine atom at aromatic scaffold position.
+    Property Modification: Para-fluorine substitution heuristic; modulates lipophilicity and electronic distribution.
 ```
 
 ---
 
-## 🛡️ Case Study 2: Predictive ADMET & QED Toxicity Shield
+## 🛡️ Case Study 2: Physicochemical Descriptors & Drug-Likeness Profiling
 
-### The Problem
-Over **90% of prospective medicines fail** in human trials because of unforeseen cardiac cardiotoxicity ($\text{hERG}$ potassium channel blockage) or unfavorable pharmacokinetics.
+### Background
+Evaluating early-stage small molecules requires rapid screening of biophysical properties such as molecular weight, polar surface area, hydrogen-bond donors/acceptors, and empirical lipophilicity.
 
-### The Chemy Breakthrough
-The `AdmetEngine` performs instantaneous biophysical and structural alert audits covering Lipinski's Rule of 5, Topological Polar Surface Area ($\text{TPSA}$), $\text{hERG}$ cardiac risk, and Phase-I $\text{CYP450}$ liver metabolism sites.
+### The Chemy Approach
+The `AdmetEngine` performs instantaneous descriptor calculations covering Lipinski's Rule of 5, Veber oral bioavailability criteria, Ghose drug filter, Ertl Topological Polar Surface Area ($\text{TPSA}$), and Bickerton Quantitative Estimate of Drug-Likeness ($\text{QED}$).
 
 ### Live Execution Demonstration
 **Input Molecule**: `CC(=O)Oc1ccccc1C(=O)O` (Aspirin)
@@ -76,14 +70,14 @@ using Chemy.Core;
 using Chemy.Core.Pharmacology;
 
 var molecule = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
-var admet = AdmetEngine.Analyze(molecule);
+var profile = AdmetEngine.Analyze(molecule);
 
-Console.WriteLine($"Molecular Weight: {admet.MolecularWeight} g/mol");
-Console.WriteLine($"Calculated LogP: {admet.CalculatedLogP}");
-Console.WriteLine($"Topological Polar Surface Area: {admet.TpsaAngstrom2} Å²");
-Console.WriteLine($"H-Bond Donors: {admet.HydrogenBondDonors} | H-Bond Acceptors: {admet.HydrogenBondAcceptors}");
-Console.WriteLine($"Lipinski Rule of 5: {(admet.PassesLipinskiRuleOf5 ? "PASSED (0 violations)" : "FAILED")}");
-Console.WriteLine($"QED Drug-Likeness Score: {admet.QedDrugLikenessScore}");
+Console.WriteLine($"Molecular Weight: {profile.MolecularWeight} g/mol");
+Console.WriteLine($"Calculated LogP: {profile.CalculatedLogP}");
+Console.WriteLine($"Topological Polar Surface Area: {profile.TpsaAngstrom2} Å²");
+Console.WriteLine($"H-Bond Donors: {profile.HydrogenBondDonors} | H-Bond Acceptors: {profile.HydrogenBondAcceptors}");
+Console.WriteLine($"Lipinski Rule of 5: {(profile.PassesLipinskiRuleOf5 ? "PASSED (0 violations)" : "FAILED")}");
+Console.WriteLine($"QED Drug-Likeness Score: {profile.QedDrugLikenessScore}");
 ```
 
 ### Generated Output
@@ -92,7 +86,7 @@ Console.WriteLine($"QED Drug-Likeness Score: {admet.QedDrugLikenessScore}");
 Molecular Weight: 180.16 g/mol
 Calculated LogP: 1.31
 Topological Polar Surface Area: 63.6 Å²
-H-Bond Donors: 1 | H-Bond Acceptors: 3
+H-Bond Donors: 1 | H-Bond Acceptors: 4
 Lipinski Rule of 5: PASSED (0 violations)
 QED Drug-Likeness Score: 0.534
 ```
@@ -101,11 +95,11 @@ QED Drug-Likeness Score: 0.534
 
 ## ♻️ Case Study 3: *EcoClean* PFAS & Plastic Degradation Pathways
 
-### The Problem
-Perfluoroalkyl substances (**PFAS**) are known as "Forever Chemicals" due to ultra-strong $\text{C}-\text{F}$ covalent bonds ($110\text{ kcal/mol}$), persisting in global waterways and soil.
+### Background
+Perfluoroalkyl substances (**PFAS**) and synthetic polymers feature high bond dissociation energies ($\text{C}-\text{F} \approx 110\text{ kcal/mol}$), making degradation mechanisms a key area of environmental chemistry research.
 
 ### The Chemy Approach
-The `EcoCleanEngine` models bond dissociation thermodynamics and constructs qualitative enzymatic and advanced oxidation cleavage cascades based on published biochemical degradation mechanisms.
+The `EcoCleanEngine` models bond dissociation thermodynamics and constructs qualitative enzymatic and advanced oxidation cleavage cascades based on published chemical degradation mechanisms.
 
 ### Live Execution Demonstration
 **Input Pollutant**: `PFOA C8HF15O2` (Perfluorooctanoic Acid)
@@ -136,35 +130,7 @@ Theoretical Mineralization Products: Fluoride (F⁻) + CO₂ + H₂O
 
 [Step 1] Terminal Carboxylate Decarboxylation (C-COOH)
        BDE: 85 kcal/mol
-       Catalyst: Electrochemical Anodic Oxidation / UV-Sulfite Catalysis
+       Candidate System: Electrochemical Anodic Oxidation / UV-Sulfite Catalysis
        Intermediate: Perfluoroalkyl Radical [C7F15•]
-       Mechanism: Electron transfer induces homolytic decarboxylation to generate perfluoroalkyl radical.
-
-[Step 2] Radical Hydroxylation & HF Elimination (C-F Cleavage)
-       BDE: 110 kcal/mol
-       Catalyst: Microbial Dehalogenase / Hydroxyl Radical (•OH)
-       Intermediate: Perfluoroalkanol -> Perfluoroacyl Fluoride
-       Mechanism: Unstable perfluoroalcohol undergoes spontaneous α-elimination of Fluoride (F⁻).
-
-[Step 3] Iterative Chain Shortening Cascade (C_n -> C_n-1)
-       BDE: 105 kcal/mol
-       Catalyst: Engineered Pseudomonas / Rhodococcus Biocatalyst
-       Intermediate: Short-chain carboxylates (TFA / Formate)
-       Mechanism: Sequential one-carbon iterative trimming down to inorganic CO₂ and benign F⁻ salts.
-
-Final End Products: Fluoride Ions (F⁻) + CO₂ + H₂O (100% Mineralized Non-Toxic)
+       Mechanism: Single-electron transfer decarboxylation initiates defluorination cascade.
 ```
-
----
-
-## 🌐 Live HTTP REST API Testing
-
-All breakthrough engines are exposed via minimal endpoints:
-
-| Feature | HTTP Endpoint | Payload Example |
-| :--- | :--- | :--- |
-| **Drug Evolver** | `POST /api/v1/evolution/evolve` | `{"input": "CC(=O)Oc1ccccc1C(=O)O", "generations": 50}` |
-| **ADMET Shield** | `POST /api/v1/pharmacology/admet` | `{"formula": "CC(=O)Oc1ccccc1C(=O)O"}` |
-| **EcoClean** | `POST /api/v1/environmental/ecoclean` | `{"pollutant": "PFOA C8HF15O2"}` |
-
-Test interactively in Swagger at **`http://localhost:5000/swagger`** or Scalar at **`http://localhost:5000/scalar/v1`**.

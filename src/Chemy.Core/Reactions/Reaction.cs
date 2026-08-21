@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using Chemy.Core.Parsing;
 using Chemy.Core.Reactions;
 using Chemy.Core.Reactions.Explanations;
@@ -308,7 +309,7 @@ public record Reaction
     /// <summary>Parses one side (reactants or products) of a reaction equation.</summary>
     private static List<ReactionComponent> ParseSide(string sideStr)
     {
-        string[] terms = sideStr.Split('+', StringSplitOptions.RemoveEmptyEntries);
+        var terms = SplitReactionTerms(sideStr);
         var components = new List<ReactionComponent>();
 
         foreach (var term in terms)
@@ -323,19 +324,49 @@ public record Reaction
             }
 
             int coefficient = 1;
-            string formulaStr = trimmed;
+            string formula = trimmed;
 
             if (i > 0)
             {
-                coefficient = int.Parse(trimmed[..i]);
-                formulaStr = trimmed[i..].Trim();
+                coefficient = int.Parse(trimmed[..i], CultureInfo.InvariantCulture);
+                formula = trimmed[i..].Trim();
             }
 
-            var molecule = FormulaParser.Parse(formulaStr);
+            var molecule = FormulaParser.Parse(formula);
             components.Add(new ReactionComponent(molecule, coefficient));
         }
 
         return components;
+    }
+
+    private static List<string> SplitReactionTerms(string sideStr)
+    {
+        var terms = new List<string>();
+        int depth = 0;
+        int lastStart = 0;
+
+        for (int i = 0; i < sideStr.Length; i++)
+        {
+            char c = sideStr[i];
+            if (c is '(' or '[' or '{') depth++;
+            else if (c is ')' or ']' or '}') depth = Math.Max(0, depth - 1);
+            else if (c == '+' && depth == 0)
+            {
+                bool isSeparator = (i > 0 && char.IsWhiteSpace(sideStr[i - 1])) ||
+                                   (i + 1 < sideStr.Length && char.IsWhiteSpace(sideStr[i + 1]));
+                if (isSeparator)
+                {
+                    string term = sideStr[lastStart..i].Trim();
+                    if (term.Length > 0) terms.Add(term);
+                    lastStart = i + 1;
+                }
+            }
+        }
+
+        string finalTerm = sideStr[lastStart..].Trim();
+        if (finalTerm.Length > 0) terms.Add(finalTerm);
+
+        return terms;
     }
 
     /// <summary>Audits total count of atoms per element across components.</summary>

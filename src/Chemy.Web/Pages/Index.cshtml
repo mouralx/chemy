@@ -662,8 +662,8 @@ Console.WriteLine($"Lipinski Violations: {admet.LipinskiViolations} (Passes: {ad
                         <button onclick="copyCode('code-eco')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
                     </div>
                     <pre id="code-eco" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var cascade = EcoCleanEngine.SolveDegradationCascade("PFOA C8HF15O2");
-Console.WriteLine($"Mineralization Efficiency: {cascade.TotalMineralizationEfficiencyPercent}%");
-Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pre>
+Console.WriteLine($"Pollutant: {cascade.PollutantClass}");
+Console.WriteLine($"Theoretical Products: {cascade.TheoreticalMineralizationProducts}");</code></pre>
                 </div>
             </div>
         </div>
@@ -1567,8 +1567,8 @@ Console.WriteLine($"End Products: {cascade.MineralizedEndProducts}");</code></pr
                 const data = await res.json();
                 if (res.ok) {
                     out.innerHTML = `
-                        <div class="text-emerald-400 font-bold">${data.pollutantClass} (${data.totalMineralizationEfficiencyPercent}% Mineralization)</div>
-                        <div class="text-slate-300 text-[10px]">End Products: ${data.mineralizedEndProducts}</div>
+                        <div class="text-emerald-400 font-bold">${data.pollutantClass}</div>
+                        <div class="text-slate-300 text-[10px]">Theoretical Products: ${data.theoreticalMineralizationProducts}</div>
                         ${data.degradationCascade.map(s => `
                             <div class="border-t border-slate-800 pt-1 mt-1">
                                 <span class="text-sky-300 font-bold">[Step ${s.stepNumber}] ${s.targetBond} (${s.bondDissociationEnergyKcalPerMol} kcal/mol)</span>

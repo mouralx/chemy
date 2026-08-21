@@ -85,7 +85,7 @@ public record Molecule3D(
             ));
         }
 
-        // Add CONECT records for explicit bond connectivity
+        // Add CONECT records strictly for explicit bond connectivity
         if (SourceMolecule.Bonds.Count > 0)
         {
             for (int i = 0; i < Atoms.Count; i++)
@@ -100,16 +100,6 @@ public record Molecule3D(
                 {
                     sb.AppendLine($"CONECT{i + 1,5}{string.Join("", connected.Select(idx => $"{idx,5}"))}");
                 }
-            }
-        }
-        else if (Atoms.Count > 1)
-        {
-            // Single center connectivity for VSEPR coordinate models
-            var outerIndices = Enumerable.Range(2, Atoms.Count - 1).ToList();
-            sb.AppendLine($"CONECT{1,5}{string.Join("", outerIndices.Select(idx => $"{idx,5}"))}");
-            foreach (int idx in outerIndices)
-            {
-                sb.AppendLine($"CONECT{idx,5}{1,5}");
             }
         }
 
@@ -269,7 +259,11 @@ public static class Geometry3DEngine
         }
 
         var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, shape, angle, atom3DArray, molecule);
-        return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 80).MinimizedMolecule;
+        if (molecule.HasBondedTopology)
+        {
+            return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 80).MinimizedMolecule;
+        }
+        return unoptimized;
     }
 
     /// <summary>

@@ -53,6 +53,12 @@ public static class WildmanCrippenLogP
     {
         ArgumentNullException.ThrowIfNull(molecule);
 
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. Crippen LogP/MR calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
+
         double totalLogP = 0.0;
         double totalMr = 0.0;
         var contributions = new List<CrippenAtomContribution>(molecule.Atoms.Count);

@@ -51,6 +51,12 @@ public static class ErtlTpsa
     {
         ArgumentNullException.ThrowIfNull(molecule);
 
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. TPSA calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
+
         var contributions = new List<TpsaAtomContribution>(molecule.Atoms.Count);
         double total = 0.0;
 

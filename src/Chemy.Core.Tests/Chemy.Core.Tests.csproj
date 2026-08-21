@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -20,6 +20,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chemy.Core\Chemy.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ValidationData\reference_compounds.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

@@ -9,7 +9,7 @@ public class Geometry3DTests
     [Fact]
     public void Generate3D_Water_CalculatesBentGeometryAndFormatsXyzPdb()
     {
-        var water = Molecule.Parse("H2O");
+        var water = Molecule.FromSmiles("O", "Water");
         var m3d = Geometry3DEngine.Generate3D(water);
 
         Assert.NotNull(m3d);
@@ -26,6 +26,11 @@ public class Geometry3DTests
         Assert.Contains("HETATM", pdb);
         Assert.Contains("CONECT", pdb);
         Assert.Contains("END", pdb);
+
+        // Formula-only unbonded molecule should NOT emit CONECT records
+        var formulaMol = Molecule.Parse("H2O");
+        var formula3D = Geometry3DEngine.Generate3D(formulaMol);
+        Assert.DoesNotContain("CONECT", formula3D.ToPdb());
     }
 
     [Fact]

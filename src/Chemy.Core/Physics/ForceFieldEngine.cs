@@ -113,6 +113,12 @@ public static class ForceFieldEngine
             );
         }
 
+        if (molecule3D.SourceMolecule != null && !molecule3D.SourceMolecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule3D.Name}' has no bonded topology. Force field energy minimization requires a bonded molecular structure, not an empirical formula without connectivity.");
+        }
+
         var currentPositions = molecule3D.Atoms.Select(a => a.Position).ToList();
         double currentEnergy = CalculateTotalPotentialEnergy(molecule3D, currentPositions);
         double initialEnergy = currentEnergy;
@@ -191,7 +197,7 @@ public static class ForceFieldEngine
             molecule3D.VseprShape,
             molecule3D.IdealBondAngleDegrees,
             minimizedAtoms,
-            molecule3D.SourceMolecule
+            molecule3D.SourceMolecule ?? new Molecule(molecule3D.Name, molecule3D.Atoms.Select(a => a.Atom), Enumerable.Empty<Bond>())
         );
 
         return new EnergyMinimizationResult(

@@ -54,6 +54,12 @@ public static class BickertonQed
     {
         ArgumentNullException.ThrowIfNull(molecule);
 
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. QED calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
+
         double mw = molecule.MolecularWeight;
         double logP = WildmanCrippenLogP.Calculate(molecule).CalculatedLogP;
         double tpsa = ErtlTpsa.Calculate(molecule).TotalTpsa;

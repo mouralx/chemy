@@ -167,15 +167,17 @@ public static class AdmetEngine
             var a = molecule.Atoms[i];
             if (a.Element.Symbol == "O")
             {
-                count++;
+                // Uncharged oxygens are acceptors
+                if (a.NetCharge <= 0) count++;
             }
             else if (a.Element.Symbol == "N")
             {
+                // Amide nitrogens and quaternary/pyrrole nitrogens are not standard acceptors
                 bool isAmide = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
                     molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
 
-                if (!isAmide) count++;
+                if (!isAmide && a.NetCharge <= 0) count++;
             }
         }
         return count;
@@ -200,6 +202,15 @@ public static class AdmetEngine
             if (heavyDeg1 <= 1 || heavyDeg2 <= 1) continue;
 
             if (IsBondInRing(molecule, bond)) continue;
+
+            // Exclude amide C-N bonds (partial double-bond resonance character)
+            int cIdx = a1.Element.Symbol == "C" && a2.Element.Symbol == "N" ? bond.Atom1Index : (a2.Element.Symbol == "C" && a1.Element.Symbol == "N" ? bond.Atom2Index : -1);
+            if (cIdx >= 0)
+            {
+                bool isAmideCarbon = molecule.Bonds.Any(b => b.Connects(cIdx) && b.Type == BondType.Double &&
+                    molecule.Atoms[b.Atom1Index == cIdx ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
+                if (isAmideCarbon) continue;
+            }
 
             rotatable++;
         }

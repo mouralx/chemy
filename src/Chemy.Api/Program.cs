@@ -628,8 +628,8 @@ pharmaGroup.MapPost("/admet", (AdmetRequest request, ILogger<Program> log) =>
     log.LogDebug("ADMET analyzed: MW = {MW}, LogP = {LogP}, QED = {QED}, Passes = {Passes}", profile.MolecularWeight, profile.CalculatedLogP, profile.QedDrugLikenessScore, profile.PassesLipinskiRuleOf5);
     return Results.Ok(profile);
 })
-.WithSummary("Screen ADMET, Lipinski Rule of 5 & QED drug-likeness")
-.WithDescription("Calculates Molecular Weight, LogP, TPSA, HBD, HBA, rotatable bonds, hERG cardiac safety, CYP450 metabolism, and QED score.");
+.WithSummary("Screen physicochemical properties, Lipinski Rule of 5 & QED drug-likeness")
+.WithDescription("Calculates Molecular Weight, LogP, TPSA, HBD, HBA, rotatable bonds, Lipinski/Veber/Ghose rules, and Bickerton QED drug-likeness desirability score.");
 
 // ============================================================================
 // 14. AUTONOMOUS MOLECULAR EVOLUTION & LEAD OPTIMIZATION ENDPOINTS
@@ -647,7 +647,7 @@ evolutionGroup.MapPost("/evolve", (EvolutionRequest request, ILogger<Program> lo
     return Results.Ok(result);
 })
 .WithSummary("Autonomous de novo molecular evolution & bioisosteric optimizer")
-.WithDescription("Evolves 5 optimized drug candidates with improved QED, metabolic stability, and reduced toxicity.");
+.WithDescription("Evolves 5 candidate drug derivatives with evaluated QED, LogP, and bioisosteric structural rationales.");
 
 // ============================================================================
 // 15. ENVIRONMENTAL & ECOCLEAN PFAS BIOCLEAVAGE ENDPOINTS

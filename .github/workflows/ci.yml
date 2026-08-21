@@ -26,5 +26,8 @@ jobs:
     - name: Build with Warnings as Errors
       run: dotnet build src/Chemy.slnx --configuration Release --no-restore --warnaserror
 
-    - name: Run Scientific Test Suite (xUnit)
-      run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal
+    - name: Run Scientific Test Suite with Coverage
+      run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Security & Dependency Vulnerability Audit
+      run: dotnet list src/Chemy.slnx package --vulnerable --include-transitive

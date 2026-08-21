@@ -297,7 +297,7 @@ Screens Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber rules, Ghose 
 {
   "formula": "C9H8O4",
   "molecularWeight": 180.16,
-  "calculatedLogP": 1.35,
+  "calculatedLogP": 1.31,
   "tpsaAngstrom2": 63.6,
   "hydrogenBondDonors": 1,
   "hydrogenBondAcceptors": 4,
@@ -307,10 +307,11 @@ Screens Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber rules, Ghose 
   "passesLipinskiRuleOf5": true,
   "passesVeberRules": true,
   "passesGhoseFilter": true,
-  "qedDrugLikenessScore": 0.758,
-  "hergCardiacRisk": "Low Risk (Normal cardiac safety window)",
-  "cyp450MetabolismSite": "Carboxylesterase / CYP3A4: Rapid ester hydrolysis",
-  "bloodBrainBarrierPermeability": "High BBB Permeability (CNS Active)"
+  "qedDrugLikenessScore": 0.534,
+  "methodInfo": {
+    "methodName": "Chemy Comprehensive Physicochemical & Drug-Likeness Profile",
+    "evidenceLevel": "EmpiricalModel"
+  }
 }
 ```
 

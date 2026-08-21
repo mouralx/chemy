@@ -81,6 +81,12 @@ public class ChemicalGraph
     {
         ArgumentNullException.ThrowIfNull(molecule);
 
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. Chemical graph operations require a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
+
         var nodes = molecule.Atoms.Select((a, idx) => new GraphNode(idx, a.Element, a.NetCharge, 0)).ToList();
         var edges = molecule.Bonds.Select(b => new GraphEdge(b.Atom1Index, b.Atom2Index, b.Type, b.Type == BondType.Aromatic)).ToList();
 

@@ -1,32 +1,30 @@
-# 🔬 Chemy — Scientific Credibility & Rigorous Technical Audit Report
+# 🔬 Chemy Computational Capabilities & Algorithmic Foundations
 
-This document records the **comprehensive, end-to-end scientific credibility audit** of the computational chemistry, chemoinformatics, thermodynamics, kinetics, and lead optimization engines implemented in **Chemy**.
-
-Every algorithm across the codebase has been verified against established first-principles physical laws, exact linear algebra proofs over the field of rational numbers $\mathbb{Q}$, high-order non-linear polynomial solvers, and peer-reviewed chemoinformatics publications.
+> [!NOTE]
+> This document details the mathematical, physical, and chemoinformatics methods implemented in **Chemy**.
+> For independent external audit results, vulnerability assessments, and versioned ratings, refer to [`CODEX_AUDIT_v1.3.md`](CODEX_AUDIT_v1.3.md).
 
 ---
 
-## 📑 Executive Summary & Scorecard
+## 📑 Algorithmic Scope & Method Classification Matrix
 
-All algorithms in Chemy are **pure, deterministic, and dependency-free C# implementations** without external Python, cloud AI, or unmanaged binary wrappers.
+All algorithms in Chemy are **pure, deterministic, and dependency-free C# implementations** without external Python or unmanaged binary wrappers.
 
-| Domain / Engine | Physical & Mathematical Foundation | Scientific Credibility Rating | Status |
-| :--- | :--- | :---: | :---: |
-| **Stoichiometry & Reaction Balancing** | Exact rational Gaussian elimination nullspace reduction over $\mathbb{Q}$ ($M\vec{x} = \vec{0}$) with net charge conservation | **10 / 10** | 🟢 **Rigorous / Exact** |
-| **Quantum Orbitals & Electronic Structure** | Exact Jacobi symmetric matrix diagonalization ($\det|\mathbf{H} - E\mathbf{I}| = 0$) & Streitwieser heteroatoms | **10 / 10** | 🟢 **Rigorous / Exact** |
-| **Aqueous Solutions & Equilibria** | Autoionization-coupled exact cubic polynomial solved via Halley's root-finding method | **10 / 10** | 🟢 **Rigorous / Exact** |
-| **Chemical Kinetics & Networks** | 4th-Order Runge-Kutta (RK4) numerical ODE solver & Arrhenius exponential activation | **10 / 10** | 🟢 **Rigorous / Exact** |
-| **Electrochemistry** | IUPAC standard constants ($R, F$) & exact Nernst logarithmic equation ($E_{\text{cell}} = E^\circ - \frac{RT}{nF}\ln Q$) | **10 / 10** | 🟢 **Rigorous / Exact** |
-| **Periodic Table & Elemental Physics** | IUPAC Commission on Isotopic Abundances (CIAAW) masses, atomic numbers, and isotopic models | **10 / 10** | 🟢 **Verified Reference** |
-| **ADMET & Chemoinformatics** | Crippen-inspired $\log P$, Ertl-inspired TPSA, Lipinski Rule of 5, Veber rules, Ghose filters | **8.5 / 10** | 🟢 **Empirical Descriptor Suite** |
-| **Thermodynamics & Shomate Tables** | NIST-JANAF Shomate polynomial integrals ($C_p^\circ, H^\circ, S^\circ$) & Hess's Law | **9.0 / 10** | 🟢 **NIST Reference Backend** |
-| **Chemical File Interoperability** | MDL Molfile V2000, SDF, PDB (HETATM/CONECT), and XYZ serializers | **8.5 / 10** | 🟢 **Standard Formats** |
-| **Graph Theory & Subgraph Isomorphism** | Horton SSSR minimum cycle basis ($\text{GF}(2)$) & 1D Weisfeiler-Lehman topological symmetry | **9.0 / 10** | 🟢 **Exact Graph Theory** |
-| **3D Conformer & VSEPR Embedding** | Gillespie VSEPR geometry coordination + multi-center topological frame propagation | **8.0 / 10** | 🟡 **Heuristic Conformer Model** |
-| **Molecular Mechanics Force Field** | 4-term potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with central finite-difference gradients | **8.0 / 10** | 🟡 **UFF-Inspired Empirical MM** |
-| **Spectroscopy & Biocleavage** | Weisfeiler-Lehman NMR peak integration & BDE degradation cascades | **8.0 / 10** | 🟡 **Empirical / Rule-Based** |
-
-**Weighted Aggregate Scientific Credibility**: **9.5 / 10** 🌟
+| Domain / Engine | Physical & Mathematical Foundation | Method Classification | Intended Scope |
+| :--- | :--- | :---: | :--- |
+| **Stoichiometry & Reaction Balancing** | Exact rational Gaussian elimination nullspace reduction over $\mathbb{Q}$ ($M\vec{x} = \vec{0}$) with net charge conservation | **Exact / Analytical** | Balanced chemical reaction equations and primitive integer stoichiometry |
+| **Quantum Orbitals & Electronic Structure** | Exact Jacobi symmetric matrix diagonalization ($\det|\mathbf{H} - E\mathbf{I}| = 0$) & Streitwieser heteroatoms | **Analytical Model** | Hückel $\pi$-electron molecular orbitals, bandgaps, and resonance energies |
+| **Aqueous Solutions & Equilibria** | Autoionization-coupled exact cubic polynomial solved via Halley's root-finding method | **Exact Solver** | Analytical pH, buffer, and dissociation calculations across concentration regimes |
+| **Chemical Kinetics & Networks** | 4th-Order Runge-Kutta (RK4) numerical ODE solver & Arrhenius exponential activation | **Numerical Solver** | Time-series concentration profiles for coupled rate equations |
+| **Electrochemistry** | IUPAC standard constants ($R, F$) & exact Nernst logarithmic equation ($E_{\text{cell}} = E^\circ - \frac{RT}{nF}\ln Q$) | **Analytical Model** | Standard and non-standard galvanic cell potentials |
+| **Periodic Table & Elemental Physics** | IUPAC Commission on Isotopic Abundances (CIAAW) standard atomic weights and atomic properties | **Reference Tables** | Standard atomic weights, valence states, and electron configurations |
+| **Physicochemical Descriptors** | Crippen-inspired $\log P$, Ertl-inspired TPSA, Lipinski Rule of 5, Veber rules, Ghose filters | **Empirical Subset** | 2D property estimation; does not model 3D pKa or biological safety |
+| **Thermodynamics & Shomate Tables** | NIST-JANAF Shomate polynomial integrals ($C_p^\circ, H^\circ, S^\circ$) & Hess's Law | **Empirical Integration** | Gas/condensed phase thermodynamic functions over defined temperature ranges |
+| **Chemical File Interoperability** | MDL Molfile V2000, SDF, PDB (HETATM/CONECT), and XYZ serializers | **Standard Formats** | Structure file input/output for visualization and standard chemoinformatics tools |
+| **Graph Theory & Ring Perception** | Horton SSSR minimum cycle basis ($\text{GF}(2)$) & 1D Weisfeiler-Lehman topological symmetry | **Exact Graph Theory** | Cycle basis extraction, ring counts, and topological symmetry partitioning |
+| **3D Conformer & VSEPR Embedding** | Gillespie VSEPR geometry coordination + multi-center topological frame propagation | **Heuristic Generator** | Approximate initial 3D conformer generation for visualization |
+| **Molecular Mechanics Force Field** | 4-term potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with central finite-difference gradients | **Empirical MM** | Coordinate relaxation and steric clash relief for organic small molecules |
+| **Spectroscopy & Cleavage Pathways** | Weisfeiler-Lehman NMR peak integration & BDE degradation cascades | **Empirical / Heuristic** | Approximate chemical shift profiling and qualitative degradation pathways |
 
 ---
 

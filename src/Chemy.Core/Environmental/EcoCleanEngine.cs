@@ -237,7 +237,7 @@ public static class EcoCleanEngine
                 60.0,
                 "GpdQ Phosphodiesterase",
                 "Inorganic Orthophosphate",
-                "Cleaves remaining alkyl chains yielding non-toxic inorganic phosphate salts."
+                "Cleaves remaining alkyl chains yielding stoichiometric inorganic phosphate ions."
             ));
         }
         // 5. General Hydrocarbons
