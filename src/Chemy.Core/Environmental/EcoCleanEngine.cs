@@ -41,17 +41,20 @@ public record EcoCleanDegradationResult(
     /// Backwards-compatible legacy property (always returns 0.0 with warning in MethodInfo).
     /// </summary>
     [Obsolete("Quantitative mineralization efficiency requires empirical reactor kinetics and is deprecated.")]
+    [System.Text.Json.Serialization.JsonIgnore]
     public double TotalMineralizationEfficiencyPercent => 0.0;
 
     /// <summary>
     /// Backwards-compatible legacy property (always returns 0.0 with warning in MethodInfo).
     /// </summary>
     [Obsolete("Natural environmental persistence half-life requires environmental field calibration.")]
+    [System.Text.Json.Serialization.JsonIgnore]
     public double PersistenceHalfLifeYears => 0.0;
 
     /// <summary>
     /// Backwards-compatible alias for TheoreticalMineralizationProducts.
     /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
     public string MineralizedEndProducts => TheoreticalMineralizationProducts;
 }
 

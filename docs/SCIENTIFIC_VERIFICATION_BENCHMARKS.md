@@ -26,9 +26,9 @@ This document records the **comprehensive, end-to-end scientific verification** 
 | **16** | Spectroscopy | Carbonyl Ketone | `CC(=O)C` (Acetone) | Proton Shift $\delta 2.15\text{ ppm}$ ($6\text{H}$ Singlet), IR $1715\text{ cm}^{-1}$ | ✅ **Verified** |
 | **17** | Molecular Mechanics | Water Force Field | `H2O` ($30\text{ iterations}$) | 4-Term MMFF with 1,2/1,3 Non-Bonded Steric Exclusion | ✅ **Verified** |
 | **18** | Live Cloud Sync | NSAID Cloud Discovery | NCBI PubChem: `"Ibuprofen"` | Live REST PUG-API Sync (CID 3672, $\text{C}_{13}\text{H}_{18}\text{O}_2$) | ✅ **Verified** |
-| **19** | ADMET & Drug Safety | NSAID Anti-inflammatory | `CC(C)Cc1ccc(cc1)C(C)C(=O)O` | Wildman-Crippen LogP ($4.0$), Ertl TPSA ($34.1\text{ \AA}^2$), Lipinski ($0$) | ✅ **Verified** |
+| **19** | Chemoinformatics | NSAID Anti-inflammatory | `CC(C)Cc1ccc(cc1)C(C)C(=O)O` | Crippen LogP ($3.42$), Ertl TPSA ($37.3\text{ \AA}^2$), Lipinski ($0$) | ✅ **Verified** |
 | **20** | Molecular Evolution | Acetylsalicylic Acid | `CC(=O)Oc1ccccc1C(=O)O` (Aspirin) | Graph Mutation Bioisosteres (Tetrazole, Fluorine, $d_3$) | ✅ **Verified** |
-| **21** | Environmental Toxin | PFAS Forever Chemical | `C8HF15O2` (PFOA) | Multi-Step BDE Decarboxylation & Mineralization ($99.4\%$) | ✅ **Verified** |
+| **21** | Environmental Cleavage | PFAS Forever Chemical | `C8HF15O2` (PFOA) | Multi-Step BDE Decarboxylation & Qualitative Cascade | ✅ **Verified** |
 
 ---
 
@@ -241,9 +241,11 @@ This document records the **comprehensive, end-to-end scientific verification** 
   {
     "pollutantFormula": "C8HF15O2",
     "pollutantClass": "PFAS 'Forever Chemical' (Perfluoroalkyl Substance)",
-    "persistenceHalfLifeYears": 1000.0,
-    "totalMineralizationEfficiencyPercent": 99.4,
-    "mineralizedEndProducts": "Fluoride Ions (F⁻) + CO₂ + H₂O (100% Mineralized Non-Toxic)"
+    "theoreticalMineralizationProducts": "Fluoride (F⁻) + CO₂ + H₂O",
+    "methodInfo": {
+      "methodName": "EcoClean Qualitative BDE Degradation Cascade",
+      "evidenceLevel": "Heuristic"
+    }
   }
   ```
 * **Scientific Assessment**: Catalytic cascade follows peer-reviewed PFAS photochemical and electrochemical destruction pathways. ✅

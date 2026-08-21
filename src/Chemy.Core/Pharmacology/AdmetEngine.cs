@@ -1,26 +1,27 @@
-using Chemy.Core.Structure;
-
 namespace Chemy.Core.Pharmacology;
 
+using Chemy.Core.Graph;
+using Chemy.Core.Scientific;
+using Chemy.Core.Structure;
+
 /// <summary>
-/// Comprehensive, industrial-grade ADMET &amp; drug-likeness profile.
+/// Chemoinformatics Physicochemical &amp; Drug-Likeness Profile.
+/// Encapsulates calculated molecular descriptors (LogP, TPSA, QED, MW) and standard rule-based medicinal chemistry filters.
 /// </summary>
-/// <param name="Formula">Empirical chemical formula.</param>
+/// <param name="Formula">Hill-system chemical formula.</param>
 /// <param name="MolecularWeight">Molecular mass in g/mol (Pfizer Rule limit: &lt;= 500).</param>
-/// <param name="CalculatedLogP">Calculated Wildman-Crippen partition coefficient (Pfizer Rule limit: &lt;= 5.0).</param>
-/// <param name="TpsaAngstrom2">Ertl Topological Polar Surface Area in Å² (Veber limit: &lt;= 140 Å²).</param>
+/// <param name="CalculatedLogP">Calculated Crippen partition coefficient (Pfizer Rule limit: &lt;= 5.0).</param>
+/// <param name="TpsaAngstrom2">Topological Polar Surface Area in Å² (Veber limit: &lt;= 140 Å²).</param>
 /// <param name="HydrogenBondDonors">Number of hydrogen bond donor groups (-OH, -NH).</param>
 /// <param name="HydrogenBondAcceptors">Number of hydrogen bond acceptor atoms (N, O, F).</param>
 /// <param name="RotatableBonds">Number of non-terminal, single rotatable bonds (Veber limit: &lt;= 10).</param>
-/// <param name="AromaticRings">Count of aromatic ring systems.</param>
+/// <param name="AromaticRings">Count of aromatic ring systems from SSSR minimum cycle basis.</param>
 /// <param name="LipinskiViolations">Total number of Lipinski Rule of 5 criteria violated (0 to 4).</param>
 /// <param name="PassesLipinskiRuleOf5">True if 0 or 1 Lipinski criteria are violated.</param>
 /// <param name="PassesVeberRules">True if RotatableBonds &lt;= 10 and TPSA &lt;= 140 Å².</param>
 /// <param name="PassesGhoseFilter">True if 160 &lt;= MW &lt;= 480 and -0.4 &lt;= LogP &lt;= 5.6.</param>
-/// <param name="QedDrugLikenessScore">Quantitative Estimate of Drug-Likeness (0.0 to 1.0).</param>
-/// <param name="HergCardiacRisk">Estimated hERG potassium channel cardiotoxicity risk classification.</param>
-/// <param name="Cyp450MetabolismSite">Predicted Phase-I CYP450 hepatic oxidation cleavage site.</param>
-/// <param name="BloodBrainBarrierPermeability">Predicted Central Nervous System (CNS) blood-brain barrier permeability.</param>
+/// <param name="QedDrugLikenessScore">Quantitative Estimate of Drug-Likeness desirability score (0.0 to 1.0).</param>
+/// <param name="MethodInfo">Scientific method provenance and metadata.</param>
 public record AdmetProfile(
     string Formula,
     double MolecularWeight,
@@ -35,24 +36,39 @@ public record AdmetProfile(
     bool PassesVeberRules,
     bool PassesGhoseFilter,
     double QedDrugLikenessScore,
-    string HergCardiacRisk,
-    string Cyp450MetabolismSite,
-    string BloodBrainBarrierPermeability
+    ScientificMethodInfo MethodInfo
 );
 
 /// <summary>
-/// Industrial-Grade ADMET &amp; Chemoinformatics Property Calculator.
-/// Implements standard Ertl Topological Polar Surface Area (TPSA), Wildman-Crippen atom-typing LogP,
+/// Chemoinformatics &amp; Drug-Likeness Property Calculator.
+/// Computes Topological Polar Surface Area (TPSA), Crippen atom-typing LogP,
 /// Lipinski Rule of 5, Veber Oral Bioavailability rules, and Ghose drug-likeness filters.
 /// </summary>
 public static class AdmetEngine
 {
+    private static readonly ScientificMethodInfo AdmetMethodInfo = new(
+        "Chemoinformatics Physicochemical & Drug-Likeness Filter Suite",
+        "2026.1",
+        EvidenceLevel.EmpiricalModel,
+        "Neutral or singly charged organic molecules with standard covalent topology.",
+        [
+            "Rule-based physicochemical filters (Lipinski, Veber, Ghose) and empirical descriptors.",
+            "Does NOT assess in vitro/in vivo biological safety, pharmacokinetics, hERG cardiotoxicity, or clinical outcomes."
+        ]
+    );
+
     /// <summary>
-    /// Computes a comprehensive ADMET profile for any given molecule.
+    /// Computes a comprehensive physicochemical and drug-likeness profile for a bonded molecule.
     /// </summary>
     public static AdmetProfile Analyze(Molecule molecule)
     {
         ArgumentNullException.ThrowIfNull(molecule);
+
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. Chemoinformatics descriptors (TPSA, LogP, QED, Lipinski) require a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
 
         double mw = molecule.MolecularWeight;
         double logP = CalculateCrippenLogP(molecule);
@@ -76,51 +92,6 @@ public static class AdmetEngine
         // Quantitative Estimate of Drug-Likeness (QED) Score (0.0 to 1.0)
         double qed = CalculateQedScore(molecule);
 
-        // Cardiac hERG risk prediction (Lipophilic bases with high LogP and low TPSA)
-        string hergRisk;
-        if (logP > 3.8 && tpsa < 60.0 && molecule.Atoms.Any(a => a.Element.Symbol == "N"))
-        {
-            hergRisk = "High Alert (High LogP + Basic Nitrogen -> Potential QT Prolongation Risk)";
-        }
-        else if (logP > 2.5)
-        {
-            hergRisk = "Moderate Risk (Monitor hERG patch clamp in vitro)";
-        }
-        else
-        {
-            hergRisk = "Low Risk (Normal cardiac safety window)";
-        }
-
-        // Phase-I CYP450 metabolism prediction
-        string cypSite;
-        var fgs = molecule.GetFunctionalGroups().Select(f => f.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        if (fgs.Contains("Ester"))
-        {
-            cypSite = "Carboxylesterase / CYP3A4: Rapid ester hydrolysis";
-        }
-        else if (fgs.Contains("Amine"))
-        {
-            cypSite = "CYP2D6 / CYP3A4: Oxidative N-dealkylation";
-        }
-        else if (fgs.Contains("Aromatic"))
-        {
-            cypSite = "CYP1A2 / CYP2C9: Aromatic para-hydroxylation";
-        }
-        else if (fgs.Contains("Alcohol"))
-        {
-            cypSite = "Alcohol Dehydrogenase / UGT: Phase-II Glucuronidation";
-        }
-        else
-        {
-            cypSite = "CYP450 Omega-1 Aliphatic Hydroxylation";
-        }
-
-        // Blood-Brain Barrier (BBB) permeability
-        string bbb = (tpsa < 90.0 && logP is >= 1.0 and <= 3.5 && mw < 400.0)
-            ? "High BBB Permeability (CNS Active)"
-            : "Low BBB Permeability (Peripherally Restricted)";
-
         return new AdmetProfile(
             molecule.ChemicalFormula,
             Math.Round(mw, 2),
@@ -135,72 +106,53 @@ public static class AdmetEngine
             passesVeber,
             passesGhose,
             Math.Round(qed, 3),
-            hergRisk,
-            cypSite,
-            bbb
+            AdmetMethodInfo
         );
     }
 
     /// <summary>
     /// Calculates Topological Polar Surface Area (TPSA) using standard Ertl atomic fragment contributions.
-    /// Reference: Ertl et al., J. Med. Chem. 2000, 43, 3714-3717.
     /// </summary>
     public static double CalculateErtlTpsa(Molecule molecule)
     {
+        ArgumentNullException.ThrowIfNull(molecule);
         return ErtlTpsa.Calculate(molecule).TotalTpsa;
     }
 
     /// <summary>
-    /// Computes Wildman-Crippen partition coefficient (LogP).
-    /// Reference: Wildman &amp; Crippen, J. Chem. Inf. Comput. Sci. 1999, 39, 868-873.
+    /// Calculates Wildman-Crippen logP using atom-type contribution summing.
     /// </summary>
     public static double CalculateCrippenLogP(Molecule molecule)
     {
+        ArgumentNullException.ThrowIfNull(molecule);
         return WildmanCrippenLogP.Calculate(molecule).CalculatedLogP;
     }
 
-    private static List<int> GetNeighborIndices(Molecule molecule, int atomIndex) =>
-        molecule.Bonds
-            .Where(b => b.Connects(atomIndex))
-            .Select(b => b.Atom1Index == atomIndex ? b.Atom2Index : b.Atom1Index)
-            .ToList();
+    /// <summary>
+    /// Calculates Bickerton Quantitative Estimate of Drug-likeness (QED).
+    /// </summary>
+    public static double CalculateQedScore(Molecule molecule)
+    {
+        ArgumentNullException.ThrowIfNull(molecule);
+        return BickertonQed.Calculate(molecule).QedScore;
+    }
 
     private static int CountHydrogenBondDonors(Molecule molecule)
     {
         int count = 0;
         for (int i = 0; i < molecule.Atoms.Count; i++)
         {
-            var atom = molecule.Atoms[i];
-            if (atom.Element.Symbol is "O" or "N")
+            var a = molecule.Atoms[i];
+            if (a.Element.Symbol is "O" or "N")
             {
-                // Check if explicitly connected to Hydrogen
-                bool hasExplicitH = molecule.Bonds.Any(b =>
-                {
-                    if (!b.Connects(i)) return false;
-                    int other = b.Atom1Index == i ? b.Atom2Index : b.Atom1Index;
-                    return molecule.Atoms[other].Element.Symbol == "H";
-                });
+                int hNeighbors = molecule.Bonds
+                    .Where(b => b.Connects(i))
+                    .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
+                    .Count(neighborIdx => molecule.Atoms[neighborIdx].Element.Symbol == "H");
 
-                if (hasExplicitH)
+                if (hNeighbors > 0)
                 {
-                    count++;
-                }
-                else
-                {
-                    bool isAromatic = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic);
-                    if (!isAromatic)
-                    {
-                        // Check implicit hydrogens from standard aliphatic valence
-                        int bondValence = molecule.Bonds.Where(b => b.Connects(i)).Sum(b => b.Type switch
-                        {
-                            BondType.Double => 2,
-                            BondType.Triple => 3,
-                            _ => 1
-                        });
-
-                        if (atom.Element.Symbol == "O" && bondValence < 2) count++;
-                        else if (atom.Element.Symbol == "N" && bondValence < 3) count++;
-                    }
+                    count += hNeighbors;
                 }
             }
         }
@@ -212,16 +164,18 @@ public static class AdmetEngine
         int count = 0;
         for (int i = 0; i < molecule.Atoms.Count; i++)
         {
-            var sym = molecule.Atoms[i].Element.Symbol;
-            if (sym == "O")
+            var a = molecule.Atoms[i];
+            if (a.Element.Symbol == "O")
             {
                 count++;
             }
-            else if (sym == "N")
+            else if (a.Element.Symbol == "N")
             {
-                bool isPyrrolic = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic) &&
-                    molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
-                if (!isPyrrolic) count++;
+                bool isAmide = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
+                        molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
+
+                if (!isAmide) count++;
             }
         }
         return count;
@@ -230,26 +184,27 @@ public static class AdmetEngine
     private static int CountRotatableBonds(Molecule molecule)
     {
         int rotatable = 0;
+
         foreach (var bond in molecule.Bonds)
         {
-            if (bond.Type == BondType.Single)
-            {
-                var e1 = molecule.Atoms[bond.Atom1Index].Element.Symbol;
-                var e2 = molecule.Atoms[bond.Atom2Index].Element.Symbol;
+            if (bond.Type != BondType.Single) continue;
 
-                // Non-terminal bonds (neither atom is H or Halogen) and NOT in a cyclic ring
-                if (e1 != "H" && e2 != "H" && e1 != "F" && e2 != "F" && e1 != "Cl" && e2 != "Cl" && e1 != "Br" && e2 != "Br")
-                {
-                    if (!IsBondInRing(molecule, bond))
-                    {
-                        int heavyDeg1 = molecule.Bonds.Count(b => b.Connects(bond.Atom1Index) && molecule.Atoms[b.Atom1Index == bond.Atom1Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
-                        int heavyDeg2 = molecule.Bonds.Count(b => b.Connects(bond.Atom2Index) && molecule.Atoms[b.Atom1Index == bond.Atom2Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
-                        if (heavyDeg1 > 1 && heavyDeg2 > 1) rotatable++;
-                    }
-                }
-            }
+            var a1 = molecule.Atoms[bond.Atom1Index];
+            var a2 = molecule.Atoms[bond.Atom2Index];
+
+            if (a1.Element.Symbol == "H" || a2.Element.Symbol == "H") continue;
+
+            int heavyDeg1 = molecule.Bonds.Count(b => b.Connects(bond.Atom1Index) && molecule.Atoms[b.Atom1Index == bond.Atom1Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
+            int heavyDeg2 = molecule.Bonds.Count(b => b.Connects(bond.Atom2Index) && molecule.Atoms[b.Atom1Index == bond.Atom2Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
+
+            if (heavyDeg1 <= 1 || heavyDeg2 <= 1) continue;
+
+            if (IsBondInRing(molecule, bond)) continue;
+
+            rotatable++;
         }
-        return Math.Max(0, rotatable);
+
+        return rotatable;
     }
 
     private static bool IsBondInRing(Molecule molecule, Bond bond)
@@ -266,7 +221,6 @@ public static class AdmetEngine
             if (b.Connects(start))
             {
                 int neighbor = b.Atom1Index == start ? b.Atom2Index : b.Atom1Index;
-                if (neighbor == target) return true;
                 visited.Add(neighbor);
                 queue.Enqueue(neighbor);
             }
@@ -297,7 +251,7 @@ public static class AdmetEngine
 
     private static int CountAromaticRings(Molecule molecule)
     {
-        var sssr = Graph.CycleBasis.ComputeSssr(molecule);
+        var sssr = CycleBasis.ComputeSssr(molecule);
         int count = 0;
         foreach (var ring in sssr.Rings)
         {
@@ -308,31 +262,4 @@ public static class AdmetEngine
         }
         return Math.Max(count, molecule.Bonds.Any(b => b.Type == BondType.Aromatic) ? 1 : 0);
     }
-
-    private static int CountStructuralAlerts(Molecule molecule)
-    {
-        // Counts reactive toxicophores (PAINS / Brenk filter alerts)
-        int alerts = 0;
-        var fgs = molecule.GetFunctionalGroups();
-
-        // 1. Reactive Halides
-        bool hasAlkylHalide = molecule.Bonds.Any(b =>
-        {
-            string e1 = molecule.Atoms[b.Atom1Index].Element.Symbol;
-            string e2 = molecule.Atoms[b.Atom2Index].Element.Symbol;
-            return (e1 == "C" && e2 is "Cl" or "Br" or "I") || (e2 == "C" && e1 is "Cl" or "Br" or "I");
-        });
-        if (hasAlkylHalide && !fgs.Contains(FunctionalGroup.Aromatic)) alerts++;
-
-        // 2. Nitro groups
-        if (fgs.Contains(FunctionalGroup.Nitro)) alerts++;
-
-        // 3. Reactive aldehydes
-        if (fgs.Contains(FunctionalGroup.Aldehyde)) alerts++;
-
-        return alerts;
-    }
-
-    private static double CalculateQedScore(Molecule molecule) =>
-        BickertonQed.Calculate(molecule).QedScore;
 }

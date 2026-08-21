@@ -102,9 +102,7 @@ public static class FormulaParser
                 atoms[^1] = atoms[^1].Ionize(charge);
             }
 
-            var bonds = AutoGenerateBonds(atoms);
-
-            result = new Molecule(name ?? formula, atoms, bonds);
+            result = new Molecule(name ?? formula, atoms, Enumerable.Empty<Bond>());
             return true;
         }
         catch (Exception ex)
@@ -112,25 +110,6 @@ public static class FormulaParser
             errorMessage = ex.Message;
             return false;
         }
-    }
-
-    private static List<Bond> AutoGenerateBonds(List<Atom> atoms)
-    {
-        var bonds = new List<Bond>();
-        if (atoms.Count <= 1) return bonds;
-
-        var centerAtom = atoms.FirstOrDefault(a => a.Element.Symbol != "H") ?? atoms[0];
-        int centerIndex = atoms.IndexOf(centerAtom);
-
-        for (int i = 0; i < atoms.Count; i++)
-        {
-            if (i != centerIndex)
-            {
-                bonds.Add(new Bond(centerIndex, i, BondType.Single));
-            }
-        }
-
-        return bonds;
     }
 
     private static Dictionary<Element, int> ParseSingleFormula(string formula)

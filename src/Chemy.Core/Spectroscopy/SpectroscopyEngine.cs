@@ -52,18 +52,24 @@ public record SpectroscopyPrediction(
 }
 
 /// <summary>
-/// Computational Spectroscopy Prediction Engine.
-/// Implements 1D Weisfeiler-Lehman topological symmetry partitioning, Curphey-Morrison additive chemical shift increments,
-/// first-order vicinal (3J) spin-spin splitting, and characteristic IR vibrational modes.
+/// Empirical Spectroscopy Estimation Engine.
+/// Implements 1D Weisfeiler-Lehman topological symmetry partitioning, empirical chemical shift correlation tables,
+/// first-order vicinal (3J) spin-spin splitting (N+1 rule), and characteristic IR vibrational functional group bands.
 /// </summary>
 public static class SpectroscopyEngine
 {
     /// <summary>
-    /// Predicts complete 1H-NMR, 13C-NMR, and IR vibrational spectra for any molecule.
+    /// Estimates empirical 1H-NMR, 13C-NMR, and IR vibrational band profiles for a bonded molecule.
     /// </summary>
     public static SpectroscopyPrediction Predict(Molecule molecule)
     {
         ArgumentNullException.ThrowIfNull(molecule);
+
+        if (!molecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException(
+                $"Molecule '{molecule.Name}' has no bonded topology. Spectroscopy estimation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
+        }
 
         var h1Peaks = PredictH1Nmr(molecule);
         var c13Peaks = PredictC13Nmr(molecule);

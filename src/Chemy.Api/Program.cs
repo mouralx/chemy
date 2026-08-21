@@ -661,7 +661,7 @@ envGroup.MapPost("/ecoclean", (EcoCleanRequest request, ILogger<Program> log) =>
 
     var result = EcoCleanEngine.SolveDegradationCascade(request.Pollutant);
 
-    log.LogDebug("EcoClean solved: {Class}, Efficiency = {Eff}%, Mineralized into: {EndProducts}", result.PollutantClass, result.TotalMineralizationEfficiencyPercent, result.MineralizedEndProducts);
+    log.LogDebug("EcoClean solved: {Class}, Theoretical Products: {EndProducts}", result.PollutantClass, result.TheoreticalMineralizationProducts);
     return Results.Ok(result);
 })
 .WithSummary("Solve PFAS and microplastic biocleavage degradation pathways");

@@ -26,7 +26,7 @@ public sealed record TpsaAtomContribution(
 );
 
 /// <summary>
-/// Exhaustive implementation of the 43-Fragment Topological Polar Surface Area (TPSA) model.
+/// Ertl-Inspired Topological Polar Surface Area (TPSA) calculator based on polar atom fragment contributions.
 /// Reference: Ertl, P., Rohde, B., &amp; Selzer, P. (2000). Fast calculation of molecular polar surface area 
 /// as a sum of fragment-based contributions and its application to the prediction of drug transport properties. 
 /// Journal of Medicinal Chemistry, 43(20), 3714-3717.
@@ -34,11 +34,14 @@ public sealed record TpsaAtomContribution(
 public static class ErtlTpsa
 {
     private static readonly ScientificMethodInfo TpsaMethodInfo = new(
-        "Ertl 43-Fragment Topological Polar Surface Area (TPSA)",
+        "Ertl-Inspired Topological Polar Surface Area (Fragment Subset)",
         "2000.1",
         EvidenceLevel.EmpiricalModel,
-        "Organic small molecules containing H, C, N, O, P, S, F, Cl, Br, I.",
-        ["Fragment-based 2D topological surface area estimation; does not account for 3D conformational occlusion or internal hydrogen bonding."]
+        "Organic small molecules containing polar N, O, P, S fragments.",
+        [
+            "Fragment-based polar surface area contribution model.",
+            "Unsupported heteroatom environments contribute 0.0 Å²."
+        ]
     );
 
     /// <summary>

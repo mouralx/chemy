@@ -86,17 +86,30 @@ public record Molecule3D(
         }
 
         // Add CONECT records for explicit bond connectivity
-        for (int i = 0; i < Atoms.Count; i++)
+        if (SourceMolecule.Bonds.Count > 0)
         {
-            var connected = SourceMolecule.Bonds
-                .Where(b => b.Connects(i))
-                .Select(b => b.Atom1Index == i ? b.Atom2Index + 1 : b.Atom1Index + 1)
-                .Distinct()
-                .ToList();
-
-            if (connected.Count > 0)
+            for (int i = 0; i < Atoms.Count; i++)
             {
-                sb.AppendLine($"CONECT{i + 1,5}{string.Join("", connected.Select(idx => $"{idx,5}"))}");
+                var connected = SourceMolecule.Bonds
+                    .Where(b => b.Connects(i))
+                    .Select(b => b.Atom1Index == i ? b.Atom2Index + 1 : b.Atom1Index + 1)
+                    .Distinct()
+                    .ToList();
+
+                if (connected.Count > 0)
+                {
+                    sb.AppendLine($"CONECT{i + 1,5}{string.Join("", connected.Select(idx => $"{idx,5}"))}");
+                }
+            }
+        }
+        else if (Atoms.Count > 1)
+        {
+            // Single center connectivity for VSEPR coordinate models
+            var outerIndices = Enumerable.Range(2, Atoms.Count - 1).ToList();
+            sb.AppendLine($"CONECT{1,5}{string.Join("", outerIndices.Select(idx => $"{idx,5}"))}");
+            foreach (int idx in outerIndices)
+            {
+                sb.AppendLine($"CONECT{idx,5}{1,5}");
             }
         }
 

@@ -23,13 +23,13 @@ The `MolecularEvolverEngine` implements graph-traversing bioisosteric optimizati
 Parameterizes the octanol-water partition coefficient based on atom hybridization ($sp^3, sp^2, sp$), aromaticity, formal charge, and neighbor connectivity:
 $$\log P = \sum_{i=1}^N a_i n_i$$
 
-### Full 43-Fragment Ertl Topological Polar Surface Area (TPSA) (2000)
-Calculates polar surface area from exact 2D topological fragment tables ($\text{\AA}^2$):
+### Ertl Topological Polar Surface Area (TPSA) (2000)
+Calculates polar surface area from 2D topological fragment tables ($\text{\AA}^2$):
 - Carbonyl oxygen ($=O$): $17.07\text{ \AA}^2$
 - Hydroxyl oxygen ($-OH$): $20.23\text{ \AA}^2$
 - Ester / Ether bridging oxygen ($-O-$): $9.23\text{ \AA}^2$
-- Secondary amide ($-C(=O)NH-$): $29.10\text{ \AA}^2$
-- Primary amide ($-C(=O)NH_2$): $43.09\text{ \AA}^2$
+- Primary amide ($-CONH_2$): $17.07$ (carbonyl) $+ 26.02$ (nitrogen) $= \mathbf{43.09\text{ \AA}^2}$
+- Secondary amide ($-CONHR$): $17.07$ (carbonyl) $+ 12.03$ (nitrogen) $= \mathbf{29.10\text{ \AA}^2}$
 - Nitro group ($-NO_2$): $45.82\text{ \AA}^2$
 
 ### Bickerton QED (Nature Chemistry 2012)

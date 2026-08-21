@@ -53,11 +53,14 @@ public sealed record EnergyMinimizationResult(
 public static class ForceFieldEngine
 {
     private static readonly ScientificMethodInfo UffMethodInfo = new(
-        "Rappé Universal Force Field (UFF) Molecular Mechanics",
+        "UFF-Inspired Molecular Mechanics Potential (C, H, N, O, P, S, Halogens)",
         "1992.1",
         EvidenceLevel.NumericalApproximation,
-        "Small molecules and periodic systems across the periodic table (H-Lw).",
-        ["Harmonic valence and 12-6 LJ nonbonded terms; does not model bond breaking/forming chemical reactivity or explicit polarization."]
+        "Organic small molecules containing H, C, N, O, P, S, F, Cl, Br, I.",
+        [
+            "Harmonic bond/angle, threefold dihedral, and 12-6 LJ nonbonded terms with soft-core clash buffering.",
+            "Uses central finite-difference gradient optimization; does not model electrostatic charges or explicit inversion terms."
+        ]
     );
 
     private record UffAtomParams(double R0, double Theta0Deg, double X, double D, double Chi, double Z);

@@ -53,7 +53,7 @@ graph TD
 `ChemicalGraph` models molecules as an immutable mathematical graph $G = (V, E)$:
 - **Vertices ($V$)**: Represent atoms with elemental identity $Z$, formal charge $q$, and implicit hydrogen counts.
 - **Edges ($E$)**: Represent covalent, ionic, and aromatic bonds with formal bond orders ($1, 2, 3, 1.5$).
-- **Cycle Detection**: Employs Depth-First Search (DFS) back-edge extraction to identify Smallest Set of Smallest Rings (SSSR / Hansch aromatic rings).
+- **Cycle Detection (`CycleBasis.cs`)**: Employs Horton's polynomial-time Minimum Cycle Basis algorithm over $\text{GF}(2)$ to compute the authentic Smallest Set of Smallest Rings (SSSR) and Frèrejacque cyclomatic ring number ($M = E - V + C$).
 - **Subgraph Isomorphism (`SubgraphMatcher.cs`)**: Implements an injective backtracking VF2-style subgraph matching algorithm to locate target functional groups.
 - **Graph Rewriting (`GraphRewriter.cs`)**: Performs atomic node substitution, bond reconnection, and ring fusion directly on graph structures.
 

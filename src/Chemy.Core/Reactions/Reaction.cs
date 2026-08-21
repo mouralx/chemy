@@ -167,25 +167,60 @@ public record Reaction
         var basis = MatrixSolver.SolveNullspaceBasis(matrix);
         var pathways = new List<Reaction>();
 
-        foreach (var vec in basis)
+        foreach (var rawVec in basis)
         {
-            var balancedReactants = new List<ReactionComponent>();
-            for (int i = 0; i < Reactants.Count; i++)
+            var vec = (int[])rawVec.Clone();
+
+            // Count effective reactant vs product direction
+            int reactantNet = 0;
+            for (int i = 0; i < Reactants.Count; i++) reactantNet += vec[i];
+            for (int i = 0; i < Products.Count; i++) reactantNet -= vec[Reactants.Count + i];
+
+            if (reactantNet < 0)
             {
-                int coeff = Math.Abs(vec[i]);
-                if (coeff > 0) balancedReactants.Add(new ReactionComponent(Reactants[i].Molecule, coeff));
+                for (int i = 0; i < vec.Length; i++) vec[i] = -vec[i];
             }
 
+            var balancedReactants = new List<ReactionComponent>();
             var balancedProducts = new List<ReactionComponent>();
-            for (int i = 0; i < Products.Count; i++)
+
+            for (int i = 0; i < allComponents.Count; i++)
             {
-                int coeff = Math.Abs(vec[Reactants.Count + i]);
-                if (coeff > 0) balancedProducts.Add(new ReactionComponent(Products[i].Molecule, coeff));
+                var mol = allComponents[i].Molecule;
+                int signCoeff = i < Reactants.Count ? vec[i] : -vec[i];
+
+                if (signCoeff > 0)
+                {
+                    balancedReactants.Add(new ReactionComponent(mol, signCoeff));
+                }
+                else if (signCoeff < 0)
+                {
+                    balancedProducts.Add(new ReactionComponent(mol, -signCoeff));
+                }
             }
 
             if (balancedReactants.Count > 0 && balancedProducts.Count > 0)
             {
-                pathways.Add(new Reaction(balancedReactants, balancedProducts));
+                // Verify stoichiometric element and charge conservation invariant
+                bool conserved = true;
+                foreach (var elem in allElements)
+                {
+                    int inCount = balancedReactants.Sum(r => r.Molecule.Atoms.Count(a => a.Element == elem) * r.Coefficient);
+                    int outCount = balancedProducts.Sum(p => p.Molecule.Atoms.Count(a => a.Element == elem) * p.Coefficient);
+                    if (inCount != outCount) { conserved = false; break; }
+                }
+
+                if (hasCharges)
+                {
+                    int inCharge = balancedReactants.Sum(r => r.Molecule.NetCharge * r.Coefficient);
+                    int outCharge = balancedProducts.Sum(p => p.Molecule.NetCharge * p.Coefficient);
+                    if (inCharge != outCharge) conserved = false;
+                }
+
+                if (conserved)
+                {
+                    pathways.Add(new Reaction(balancedReactants, balancedProducts));
+                }
             }
         }
 

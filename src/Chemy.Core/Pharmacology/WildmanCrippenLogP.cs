@@ -29,18 +29,21 @@ public sealed record CrippenAtomContribution(
 );
 
 /// <summary>
-/// Complete 68-Parameter Wildman-Crippen Atomic LogP &amp; Molar Refractivity Calculator.
+/// Crippen-Inspired Empirical LogP &amp; Molar Refractivity Calculator based on atom-type additive contributions.
 /// Reference: Wildman, S. A., &amp; Crippen, G. M. (1999). Prediction of Physicochemical Parameters 
 /// by Atomic Contributions. Journal of Chemical Information and Computer Sciences, 39(5), 868-873.
 /// </summary>
 public static class WildmanCrippenLogP
 {
     private static readonly ScientificMethodInfo CrippenMethodInfo = new(
-        "Wildman-Crippen Atom-Additive LogP / Molar Refractivity (ALogP/AMR)",
+        "Crippen-Inspired Empirical LogP/MR (Core Fragment Subset)",
         "1999.1",
         EvidenceLevel.EmpiricalModel,
         "Organic small molecules composed of C, H, N, O, P, S, F, Cl, Br, I.",
-        ["Additive 2D atomic property model; does not explicitly model 3D conformational pKa shifts or tautomeric equilibria."]
+        [
+            "Additive 2D atomic property model over core hybridization environments.",
+            "Coarse classification subset; unparameterized heteroatom environments use neutral zero default."
+        ]
     );
 
     /// <summary>

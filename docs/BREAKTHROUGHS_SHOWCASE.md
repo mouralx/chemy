@@ -84,34 +84,28 @@ Console.WriteLine($"Topological Polar Surface Area: {admet.TpsaAngstrom2} Å²")
 Console.WriteLine($"H-Bond Donors: {admet.HydrogenBondDonors} | H-Bond Acceptors: {admet.HydrogenBondAcceptors}");
 Console.WriteLine($"Lipinski Rule of 5: {(admet.PassesLipinskiRuleOf5 ? "PASSED (0 violations)" : "FAILED")}");
 Console.WriteLine($"QED Drug-Likeness Score: {admet.QedDrugLikenessScore}");
-Console.WriteLine($"hERG Cardiac Risk: {admet.HergCardiacRisk}");
-Console.WriteLine($"CYP450 Liver Metabolism: {admet.Cyp450MetabolismSite}");
-Console.WriteLine($"Blood-Brain Barrier: {admet.BloodBrainBarrierPermeability}");
 ```
 
 ### Generated Output
 
 ```text
 Molecular Weight: 180.16 g/mol
-Calculated LogP: 1.35
+Calculated LogP: 1.31
 Topological Polar Surface Area: 63.6 Å²
-H-Bond Donors: 1 | H-Bond Acceptors: 4
+H-Bond Donors: 1 | H-Bond Acceptors: 3
 Lipinski Rule of 5: PASSED (0 violations)
-QED Drug-Likeness Score: 0.758
-hERG Cardiac Risk: Low Risk (Normal QT interval)
-CYP450 Liver Metabolism: Carboxylesterase / CYP3A4: Rapid ester hydrolysis to carboxylate
-Blood-Brain Barrier: High BBB Penetration (CNS Active)
+QED Drug-Likeness Score: 0.534
 ```
 
 ---
 
-## ♻️ Case Study 3: *EcoClean* PFAS & Plastic Mineralization
+## ♻️ Case Study 3: *EcoClean* PFAS & Plastic Degradation Pathways
 
 ### The Problem
-Perfluoroalkyl substances (**PFAS**) are known as "Forever Chemicals" due to ultra-strong $\text{C}-\text{F}$ covalent bonds ($110\text{ kcal/mol}$), persisting in global waterways and human blood for thousands of years.
+Perfluoroalkyl substances (**PFAS**) are known as "Forever Chemicals" due to ultra-strong $\text{C}-\text{F}$ covalent bonds ($110\text{ kcal/mol}$), persisting in global waterways and soil.
 
-### The Chemy Breakthrough
-The `EcoCleanEngine` models bond dissociation thermodynamics and computes multi-step enzymatic and electrochemical catalytic cleavage pathways that achieve **100% complete mineralization** into harmless inorganic minerals ($\text{F}^-, \text{CO}_2, \text{H}_2\text{O}$).
+### The Chemy Approach
+The `EcoCleanEngine` models bond dissociation thermodynamics and constructs qualitative enzymatic and advanced oxidation cleavage cascades based on published biochemical degradation mechanisms.
 
 ### Live Execution Demonstration
 **Input Pollutant**: `PFOA C8HF15O2` (Perfluorooctanoic Acid)
@@ -122,27 +116,23 @@ using Chemy.Core.Environmental;
 var result = EcoCleanEngine.SolveDegradationCascade("PFOA C8HF15O2");
 
 Console.WriteLine($"Pollutant Class: {result.PollutantClass}");
-Console.WriteLine($"Natural Environmental Half-Life: {result.PersistenceHalfLifeYears} Years");
-Console.WriteLine($"Catalytic Mineralization Efficiency: {result.TotalMineralizationEfficiencyPercent}%\n");
+Console.WriteLine($"Theoretical Mineralization Products: {result.TheoreticalMineralizationProducts}\n");
 
 foreach (var step in result.DegradationCascade)
 {
     Console.WriteLine($"[Step {step.StepNumber}] {step.TargetBond}");
     Console.WriteLine($"       BDE: {step.BondDissociationEnergyKcalPerMol} kcal/mol");
-    Console.WriteLine($"       Catalyst: {step.EnzymeOrCatalyst}");
+    Console.WriteLine($"       Candidate System: {step.EnzymeOrCatalyst}");
     Console.WriteLine($"       Intermediate: {step.IntermediateProduct}");
     Console.WriteLine($"       Mechanism: {step.CleavageMechanism}\n");
 }
-
-Console.WriteLine($"Final End Products: {result.MineralizedEndProducts}");
 ```
 
 ### Generated Output
 
 ```text
 Pollutant Class: PFAS 'Forever Chemical' (Perfluoroalkyl Substance)
-Natural Environmental Half-Life: 1000 Years
-Catalytic Mineralization Efficiency: 99.4%
+Theoretical Mineralization Products: Fluoride (F⁻) + CO₂ + H₂O
 
 [Step 1] Terminal Carboxylate Decarboxylation (C-COOH)
        BDE: 85 kcal/mol

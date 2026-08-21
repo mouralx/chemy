@@ -23,9 +23,9 @@ foreach (var lead in evolution.Candidates)
 
 ---
 
-## 2. ADMET & Lipinski Rule of 5 Screening
+## 2. Physicochemical & Lipinski Rule of 5 Screening
 
-Screen biophysical properties, toxicity alerts, and oral drug-likeness:
+Screen biophysical properties and oral drug-likeness descriptors:
 
 ```csharp
 using Chemy.Core;
@@ -39,15 +39,13 @@ Console.WriteLine($"Calculated LogP: {admet.CalculatedLogP}");
 Console.WriteLine($"TPSA: {admet.TpsaAngstrom2} Å²");
 Console.WriteLine($"QED Score: {admet.QedDrugLikenessScore}");
 Console.WriteLine($"Lipinski Violations: {admet.LipinskiViolations} (Passes: {admet.PassesLipinskiRuleOf5})");
-Console.WriteLine($"hERG Risk: {admet.HergCardiacRisk}");
-Console.WriteLine($"CYP450 Site: {admet.Cyp450MetabolismSite}");
 ```
 
 ---
 
-## 3. EcoClean PFAS & Plastic Biocleavage Solver
+## 3. EcoClean Degradation Pathway Solver
 
-Solve catalytic degradation pathways for persistent environmental pollutants:
+Solve catalytic degradation pathways for environmental pollutants:
 
 ```csharp
 using Chemy.Core.Environmental;
@@ -55,8 +53,7 @@ using Chemy.Core.Environmental;
 var cascade = EcoCleanEngine.SolveDegradationCascade("PFOA C8HF15O2");
 
 Console.WriteLine($"Pollutant: {cascade.PollutantClass}");
-Console.WriteLine($"Environmental Half-Life: {cascade.PersistenceHalfLifeYears} years");
-Console.WriteLine($"Mineralization Efficiency: {cascade.TotalMineralizationEfficiencyPercent}%");
+Console.WriteLine($"Theoretical Products: {cascade.TheoreticalMineralizationProducts}");
 
 foreach (var step in cascade.DegradationCascade)
 {

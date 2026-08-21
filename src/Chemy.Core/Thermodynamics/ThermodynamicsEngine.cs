@@ -26,9 +26,9 @@ public record ReactionThermodynamicsResult(
 }
 
 /// <summary>
-/// 100% Universal Chemical Thermodynamics Engine.
+/// Chemical Reaction Thermodynamics Engine.
 /// Calculates standard reaction enthalpy (ΔH°), standard reaction entropy (ΔS°), and Gibbs free energy (ΔG°)
-/// using Hess's Law tables and dynamic Benson Group Additivity estimation for arbitrary unknown molecules.
+/// using Hess's Law reference tables with empirical group increment estimation for common organic fragments.
 /// </summary>
 public static class ThermodynamicsEngine
 {

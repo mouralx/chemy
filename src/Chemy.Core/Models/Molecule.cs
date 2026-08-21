@@ -31,6 +31,12 @@ public record Molecule
     public int NetCharge => Atoms.Sum(a => a.NetCharge);
 
     /// <summary>
+    /// Indicates whether the molecule possesses explicit covalent/aromatic bond topology
+    /// (e.g. parsed from SMILES or Molfile) as opposed to a composition-only empirical formula.
+    /// </summary>
+    public bool HasBondedTopology => Bonds.Count > 0 || Atoms.Count <= 1;
+
+    /// <summary>
     /// Constructs a Molecule instance with validated bonding graph topology.
     /// </summary>
     /// <param name="name">Descriptive name.</param>

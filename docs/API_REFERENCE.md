@@ -92,7 +92,7 @@ public static class ForceFieldEngine
 ---
 
 ### `AdmetEngine`
-Calculates Ertl Topological Polar Surface Area ($\text{TPSA}$ in $\text{\AA}^2$), Wildman-Crippen $\log P$, Lipinski Rule of 5 violations, Veber Oral Bioavailability rules, Ghose drug filter, $\text{hERG}$ cardiac risk, and $\text{CYP450}$ liver metabolism sites.
+Calculates Ertl Topological Polar Surface Area ($\text{TPSA}$ in $\text{\AA}^2$), Crippen $\log P$, Lipinski Rule of 5 violations, Veber Oral Bioavailability rules, Ghose drug-likeness filter, and Bickerton QED score.
 
 ```csharp
 namespace Chemy.Core.Pharmacology;

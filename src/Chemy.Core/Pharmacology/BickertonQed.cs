@@ -18,18 +18,21 @@ public sealed record QedResult(
 );
 
 /// <summary>
-/// Exact implementation of the Quantitative Estimate of Drug-Likeness (QED) model.
+/// QED Drug-Likeness Desirability Function based on asymmetric double-sigmoid functions.
 /// Reference: Bickerton, G. R., Paolini, G. V., Besnard, J., Muresan, S., &amp; Hopkins, A. L. (2012). 
 /// Quantifying the chemical beauty of drugs. Nature Chemistry, 4(2), 90-98.
 /// </summary>
 public static class BickertonQed
 {
     private static readonly ScientificMethodInfo QedMethodInfo = new(
-        "Bickerton Quantitative Estimate of Drug-Likeness (QED)",
+        "QED Drug-Likeness Desirability Function (Empirical Form)",
         "2012.1",
         EvidenceLevel.EmpiricalModel,
-        "Small-molecule orally bioavailable therapeutics.",
-        ["Based on asymmetric double-sigmoid desirability functions calibrated on 771 approved oral drugs."]
+        "Small-molecule organic compounds.",
+        [
+            "Calculates weighted geometric mean of 8 asymmetric double-sigmoid desirability functions.",
+            "Structural alerts use a core heuristic filter subset."
+        ]
     );
 
     // Official Nature Chemistry Bickerton et al. (2012) & RDKit QED Parameters (a, b, c, d, e, f, dmax, weight)
