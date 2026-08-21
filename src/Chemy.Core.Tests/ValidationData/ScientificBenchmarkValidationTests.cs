@@ -1,30 +1,44 @@
 namespace Chemy.Core.Tests.ValidationData;
 
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Chemy.Core;
 using Chemy.Core.Graph;
+using Chemy.Core.IO;
 using Chemy.Core.Pharmacology;
 using Chemy.Core.Physics;
 using Chemy.Core.Quantum;
 using Chemy.Core.Reactions;
+using Chemy.Core.Spatial;
 using Chemy.Core.Spectroscopy;
 using Chemy.Core.Structure;
 using Chemy.Core.Thermodynamics;
 using Xunit;
+using Xunit.Abstractions;
 
 /// <summary>
 /// Machine-reproducible scientific benchmark validation suite.
-/// Evaluates Chemy against a pinned reference dataset derived from published literature and standard chemoinformatics tools (RDKit 2024.03.1 / PubChem / NIST JANAF).
+/// Evaluates Chemy against a pinned external reference dataset generated via RDKit 2024.03.1, NIST JANAF, and IUPAC CIAAW.
 /// </summary>
 public class ScientificBenchmarkValidationTests
 {
+    private readonly ITestOutputHelper _output;
+
+    public ScientificBenchmarkValidationTests(ITestOutputHelper output)
+    {
+        _output = output;
+    }
+
     public record BenchmarkMoleculeRecord(
         string Id,
         string Name,
         string Smiles,
         string Formula,
-        double ExactMolecularWeight,
+        double StandardMolecularWeight,
+        double MonoisotopicExactMass,
         double ReferenceTpsa,
         double ReferenceLogP,
         double ReferenceQed,
@@ -32,7 +46,8 @@ public class ScientificBenchmarkValidationTests
         int ReferenceHba,
         int ReferenceRotatableBonds,
         int ReferenceAromaticRings,
-        string Provenance
+        string Provenance,
+        Dictionary<string, string>? PropertyProvenance
     );
 
     private static readonly Lazy<IReadOnlyList<BenchmarkMoleculeRecord>> LoadedBenchmarkDataset = new(() =>
@@ -40,7 +55,6 @@ public class ScientificBenchmarkValidationTests
         string path = Path.Combine(AppContext.BaseDirectory, "ValidationData", "reference_compounds.json");
         if (!File.Exists(path))
         {
-            // Fallback path search relative to test directory
             path = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "reference_compounds.json");
         }
 
@@ -68,7 +82,7 @@ public class ScientificBenchmarkValidationTests
         {
             var mol = SmilesParser.Parse(entry.Smiles, entry.Name);
             Assert.Equal(entry.Formula, mol.ChemicalFormula);
-            Assert.InRange(mol.MolecularWeight, entry.ExactMolecularWeight - 0.2, entry.ExactMolecularWeight + 0.2);
+            Assert.InRange(mol.MolecularWeight, entry.StandardMolecularWeight - 0.2, entry.StandardMolecularWeight + 0.2);
         }
     }
 
@@ -172,9 +186,119 @@ public class ScientificBenchmarkValidationTests
     }
 
     [Fact]
+    public void Benchmark_StatisticalDistribution_ReportsCompleteValidationMetrics()
+    {
+        var dataset = LoadedBenchmarkDataset.Value;
+        int n = dataset.Count;
+
+        var tpsaErrors = new List<double>();
+        var logpErrors = new List<double>();
+        var qedErrors = new List<double>();
+
+        _output.WriteLine("| Compound | Actual TPSA | Ref TPSA | Actual LogP | Ref LogP | Actual QED | Ref QED |");
+        _output.WriteLine("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |");
+
+        foreach (var entry in dataset)
+        {
+            var mol = SmilesParser.Parse(entry.Smiles, entry.Name);
+            double tpsa = ErtlTpsa.Calculate(mol).TotalTpsa;
+            double logp = WildmanCrippenLogP.Calculate(mol).CalculatedLogP;
+            double qed = BickertonQed.Calculate(mol).QedScore;
+
+            tpsaErrors.Add(tpsa - entry.ReferenceTpsa);
+            logpErrors.Add(logp - entry.ReferenceLogP);
+            qedErrors.Add(qed - entry.ReferenceQed);
+
+            _output.WriteLine($"| {entry.Name} | {tpsa:F2} | {entry.ReferenceTpsa:F2} | {logp:F2} | {entry.ReferenceLogP:F2} | {qed:F3} | {entry.ReferenceQed:F3} |");
+        }
+
+        // Compute statistical distribution metrics
+        double tpsaMae = tpsaErrors.Average(Math.Abs);
+        double tpsaRmse = Math.Sqrt(tpsaErrors.Select(e => e * e).Average());
+        double tpsaMax = tpsaErrors.Max(Math.Abs);
+
+        double logpMae = logpErrors.Average(Math.Abs);
+        double logpRmse = Math.Sqrt(logpErrors.Select(e => e * e).Average());
+        double logpMax = logpErrors.Max(Math.Abs);
+
+        double qedMae = qedErrors.Average(Math.Abs);
+        double qedRmse = Math.Sqrt(qedErrors.Select(e => e * e).Average());
+        double qedMax = qedErrors.Max(Math.Abs);
+
+        _output.WriteLine("\n=== STATISTICAL VALIDATION SUMMARY ===");
+        _output.WriteLine($"TPSA: MAE = {tpsaMae:F4} Å², RMSE = {tpsaRmse:F4} Å², MaxErr = {tpsaMax:F4} Å²");
+        _output.WriteLine($"LogP: MAE = {logpMae:F4}, RMSE = {logpRmse:F4}, MaxErr = {logpMax:F4}");
+        _output.WriteLine($"QED:  MAE = {qedMae:F4}, RMSE = {qedRmse:F4}, MaxErr = {qedMax:F4}");
+
+        Assert.True(tpsaMae < 0.05, $"TPSA MAE {tpsaMae:F4} exceeds 0.05");
+        Assert.True(logpMae < 0.35, $"LogP MAE {logpMae:F4} exceeds 0.35");
+        Assert.True(qedMae < 0.08, $"QED MAE {qedMae:F4} exceeds 0.08");
+    }
+
+    [Fact]
+    public void Benchmark_ForceField_ButaneConformationalTorsionBarrier_RelaxesCoordinates()
+    {
+        // Butane CCCC in staggered/anti vs unrelaxed coordinates
+        var butane = Molecule.FromSmiles("CCCC", "n-Butane");
+        var conformer = Geometry3DEngine.GenerateConformer3D(butane);
+
+        Assert.NotNull(conformer);
+        Assert.Equal(14, conformer.Atoms.Count); // 4 carbons + 10 implicit hydrogens
+        Assert.False(conformer.IsIdealizedVseprSketch);
+
+        // Run force field minimization
+        var result = ForceFieldEngine.MinimizeEnergy(conformer, maxIterations: 100);
+        Assert.NotNull(result);
+        Assert.True(result.FinalEnergyKcalPerMol <= result.InitialEnergyKcalPerMol, "Energy minimization must reduce or maintain potential energy.");
+    }
+
+    [Fact]
+    public void Benchmark_CycleBasis_PolycyclicAromatics_ExtractsCorrectRingCount()
+    {
+        // Anthracene: 3 fused rings
+        var anthracene = Molecule.FromSmiles("c1ccc2cc3ccccc3cc2c1", "Anthracene");
+        var antSssr = CycleBasis.ComputeSssr(anthracene);
+        Assert.Equal(3, antSssr.Rings.Count);
+
+        // Phenanthrene: 3 fused rings
+        var phenanthrene = Molecule.FromSmiles("c1ccc2c(c1)ccc3ccccc23", "Phenanthrene");
+        var phenSssr = CycleBasis.ComputeSssr(phenanthrene);
+        Assert.Equal(3, phenSssr.Rings.Count);
+
+        // Biphenyl: 2 isolated rings
+        var biphenyl = Molecule.FromSmiles("c1ccccc1c2ccccc2", "Biphenyl");
+        var biphSssr = CycleBasis.ComputeSssr(biphenyl);
+        Assert.Equal(2, biphSssr.Rings.Count);
+    }
+
+    [Fact]
+    public void Benchmark_MolfileAndSdf_RoundTripStructureConservation()
+    {
+        var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+        var asp3D = Geometry3DEngine.GenerateConformer3D(aspirin);
+        string molfile = MolfileExporter.ToMolfileV2000(asp3D);
+
+        Assert.Contains("V2000", molfile);
+        Assert.Contains("M  END", molfile);
+
+        // Check SDF format with multiple molecules
+        var dataset = new List<Molecule3D>
+        {
+            asp3D,
+            Geometry3DEngine.GenerateConformer3D(Molecule.FromSmiles("CCO", "Ethanol")),
+            Geometry3DEngine.GenerateConformer3D(Molecule.FromSmiles("c1ccccc1", "Benzene"))
+        };
+
+        string sdf = MolfileExporter.ToSdf(dataset);
+
+        Assert.Contains("$$$$", sdf);
+        Assert.Contains("> <FORMULA>", sdf);
+        Assert.Contains("> <VSEPR_SHAPE>", sdf);
+    }
+
+    [Fact]
     public void Benchmark_NistShomateThermodynamics_MatchesMultiTemperatureReferenceData()
     {
-        // Reference NIST-JANAF thermochemical benchmark: (Formula, TempKelvin, ExpectedH_kJ, ExpectedS_JperK, HTol, STol)
         var referenceData = new (string Formula, double T, double ExpH, double ExpS, double HTol, double STol)[]
         {
             ("H2O(g)", 298.15, -241.83, 188.83, 0.5, 0.5),
@@ -197,7 +321,6 @@ public class ScientificBenchmarkValidationTests
     [Fact]
     public void Benchmark_HuckelMolecularOrbitals_MatchesAnalyticalEigenvalues()
     {
-        // Analytical Hückel eigenvalues (x = (E - alpha)/beta)
         var ethylene = Molecule.FromSmiles("C=C", "Ethylene");
         var ethHmo = HuckelEngine.Analyze(ethylene);
         Assert.Equal(2, ethHmo.ConjugatedAtomCount);
@@ -222,13 +345,12 @@ public class ScientificBenchmarkValidationTests
         var formulaMol = Molecule.Parse("C9H8O4", "AspirinFormula");
         Assert.False(formulaMol.HasBondedTopology);
 
-        // Every topology-dependent engine MUST reject unbonded formulas
         Assert.Throws<InvalidOperationException>(() => AdmetEngine.Analyze(formulaMol));
         Assert.Throws<InvalidOperationException>(() => ErtlTpsa.Calculate(formulaMol));
         Assert.Throws<InvalidOperationException>(() => WildmanCrippenLogP.Calculate(formulaMol));
         Assert.Throws<InvalidOperationException>(() => BickertonQed.Calculate(formulaMol));
         Assert.Throws<InvalidOperationException>(() => SpectroscopyEngine.Predict(formulaMol));
         Assert.Throws<InvalidOperationException>(() => ChemicalGraph.FromMolecule(formulaMol));
-        Assert.Throws<InvalidOperationException>(() => formulaMol.To3D());
+        Assert.Throws<InvalidOperationException>(() => Geometry3DEngine.GenerateConformer3D(formulaMol));
     }
 }

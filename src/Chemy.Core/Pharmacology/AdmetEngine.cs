@@ -165,19 +165,32 @@ public static class AdmetEngine
         for (int i = 0; i < molecule.Atoms.Count; i++)
         {
             var a = molecule.Atoms[i];
+            if (a.NetCharge > 0) continue;
+
             if (a.Element.Symbol == "O")
             {
-                // Uncharged oxygens are acceptors
-                if (a.NetCharge <= 0) count++;
+                // Exclude carboxylic acid -OH oxygens where the lone pair is resonance-delocalized into carbonyl C=O
+                bool hasHydrogen = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
+                bool isCarboxylicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
+                        molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
+
+                if (!isCarboxylicHydroxyl)
+                {
+                    count++;
+                }
             }
             else if (a.Element.Symbol == "N")
             {
-                // Amide nitrogens and quaternary/pyrrole nitrogens are not standard acceptors
+                // Exclude amide nitrogens (resonance delocalized with carbonyl) and nitro nitrogens
                 bool isAmide = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
                     molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
 
-                if (!isAmide && a.NetCharge <= 0) count++;
+                if (!isAmide)
+                {
+                    count++;
+                }
             }
         }
         return count;

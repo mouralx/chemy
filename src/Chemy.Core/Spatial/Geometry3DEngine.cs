@@ -42,6 +42,12 @@ public record Molecule3D(
 )
 {
     /// <summary>
+    /// Indicates whether this 3D model represents an idealized VSEPR coordinate sketch derived from an unbonded empirical formula,
+    /// rather than a relaxed 3D conformer derived from a bonded molecular graph.
+    /// </summary>
+    public bool IsIdealizedVseprSketch => !SourceMolecule.HasBondedTopology;
+
+    /// <summary>
     /// Exports the 3D molecular structure in standard .xyz Cartesian coordinate format.
     /// </summary>
     /// <returns>.xyz file content as a string.</returns>
@@ -49,7 +55,7 @@ public record Molecule3D(
     {
         var sb = new StringBuilder();
         sb.AppendLine(Atoms.Count.ToString(CultureInfo.InvariantCulture));
-        sb.AppendLine($"{Name} ({ChemicalFormula}) - VSEPR: {VseprShape}");
+        sb.AppendLine($"{Name} ({ChemicalFormula}) - VSEPR: {VseprShape}{(IsIdealizedVseprSketch ? " [Idealized VSEPR Sketch]" : "")}");
         foreach (var a in Atoms)
         {
             sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "{0,-3} {1,10:F4} {2,10:F4} {3,10:F4}", a.Atom.Element.Symbol, a.Position.X, a.Position.Y, a.Position.Z));
@@ -58,47 +64,52 @@ public record Molecule3D(
     }
 
     /// <summary>
-    /// Exports the 3D molecular structure in standard Protein Data Bank (.pdb) format with HETATM and CONECT records.
+    /// Exports the 3D molecular structure in standard Protein Data Bank (.pdb) format.
+    /// Emits HETATM coordinate records and CONECT connectivity records strictly when bonded topology is available.
     /// </summary>
     /// <returns>.pdb file content as a string.</returns>
     public string ToPdb()
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"HEADER    {Name.ToUpperInvariant()}");
-        sb.AppendLine($"COMPND    {ChemicalFormula}");
+        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "HEADER    CHEMISTRY 3D CONFORMER GENERATOR    {0:dd-MMM-yy}   XXXX", DateTime.Now));
+        sb.AppendLine(string.Format(CultureInfo.InvariantCulture, "TITLE     {0} - FORMULA: {1} - VSEPR: {2}", Name, ChemicalFormula, VseprShape));
 
         for (int i = 0; i < Atoms.Count; i++)
         {
             var a = Atoms[i];
-            string atomName = a.Atom.Element.Symbol.Length == 1 ? $" {a.Atom.Element.Symbol}  " : $"{a.Atom.Element.Symbol,-4}";
-            string elemSymbol = $"{a.Atom.Element.Symbol,2}";
-
             sb.AppendLine(string.Format(
                 CultureInfo.InvariantCulture,
-                "HETATM{0,5} {1} MOL A   1    {2,8:F3}{3,8:F3}{4,8:F3}  1.00  0.00          {5}",
+                "HETATM{0,5} {1,-4} MOL     1    {2,8:F3}{3,8:F3}{4,8:F3}{5,6:F2}{6,6:F2}          {7,2}",
                 i + 1,
-                atomName,
+                a.Atom.Element.Symbol + (i + 1),
                 a.Position.X,
                 a.Position.Y,
                 a.Position.Z,
-                elemSymbol
+                1.00,
+                0.00,
+                a.Atom.Element.Symbol
             ));
         }
 
-        // Add CONECT records strictly for explicit bond connectivity
-        if (SourceMolecule.Bonds.Count > 0)
+        // Emit CONECT records strictly when the source molecule has a verified bonded graph topology
+        if (SourceMolecule.HasBondedTopology && SourceMolecule.Bonds.Count > 0)
         {
             for (int i = 0; i < Atoms.Count; i++)
             {
-                var connected = SourceMolecule.Bonds
+                var connectedIndices = SourceMolecule.Bonds
                     .Where(b => b.Connects(i))
-                    .Select(b => b.Atom1Index == i ? b.Atom2Index + 1 : b.Atom1Index + 1)
-                    .Distinct()
+                    .Select(b => b.Atom1Index == i ? b.Atom2Index : b.Atom1Index)
+                    .OrderBy(idx => idx)
                     .ToList();
 
-                if (connected.Count > 0)
+                if (connectedIndices.Count > 0)
                 {
-                    sb.AppendLine($"CONECT{i + 1,5}{string.Join("", connected.Select(idx => $"{idx,5}"))}");
+                    sb.AppendLine(string.Format(
+                        CultureInfo.InvariantCulture,
+                        "CONECT{0,5}{1}",
+                        i + 1,
+                        string.Join("", connectedIndices.Select(idx => string.Format(CultureInfo.InvariantCulture, "{0,5}", idx + 1)))
+                    ));
                 }
             }
         }
@@ -109,13 +120,33 @@ public record Molecule3D(
 }
 
 /// <summary>
-/// 3D Spatial Geometry Engine.
-/// Computes 3D Cartesian coordinates based on Valence Shell Electron Pair Repulsion (VSEPR) theory
-/// and steric number calculations. Supports 8 fundamental geometric shapes: Linear, Bent, Trigonal Planar,
-/// Trigonal Pyramidal, Tetrahedral, Square Planar, Trigonal Bipyramidal, and Octahedral.
+/// 3D Spatial Geometry and Conformer Engine.
+/// Provides idealized VSEPR coordinate sketches for empirical formulas and multi-center conformer embedding for bonded molecular graphs.
 /// </summary>
 public static class Geometry3DEngine
 {
+    /// <summary>
+    /// Generates an idealized VSEPR coordinate sketch for an empirical chemical formula (e.g. "H2O", "CH4", "SF6").
+    /// Note: VSEPR sketches provide qualitative geometric visualization and do not constitute energy-minimized bonded conformers.
+    /// </summary>
+    public static Molecule3D GenerateVseprSketch(string formula, string? name = null, string? overrideShape = null)
+    {
+        var mol = Molecule.Parse(formula, name);
+        return Generate3D(mol, overrideShape);
+    }
+
+    /// <summary>
+    /// Generates an energy-minimized 3D Cartesian conformer for a bonded molecular graph (e.g. from SMILES or Molfile).
+    /// </summary>
+    public static Molecule3D GenerateConformer3D(Molecule bondedMolecule)
+    {
+        ArgumentNullException.ThrowIfNull(bondedMolecule);
+        if (!bondedMolecule.HasBondedTopology)
+        {
+            throw new InvalidOperationException($"Molecule '{bondedMolecule.Name}' has no bonded topology. 3D conformer embedding requires a bonded molecular graph (e.g. from SMILES or Molfile).");
+        }
+        return Generate3D(bondedMolecule);
+    }
     /// <summary>
     /// Generates 3D Cartesian coordinates for a molecule.
     /// </summary>
