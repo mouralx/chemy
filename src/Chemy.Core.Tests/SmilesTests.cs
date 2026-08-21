@@ -8,6 +8,25 @@ namespace Chemy.Core.Tests;
 public class SmilesTests
 {
     [Theory]
+    [InlineData("C@C")]
+    [InlineData("F[C@](Cl)(Br)I")]
+    [InlineData("F/C=C/F")]
+    [InlineData("C%12CCCCC%12")]
+    public void UnsupportedSmilesSyntax_IsRejected(string smiles)
+    {
+        Assert.Throws<NotSupportedException>(() => Molecule.FromSmiles(smiles));
+    }
+
+    [Theory]
+    [InlineData("C$C")]
+    [InlineData("C1CC")]
+    [InlineData("C(C")]
+    [InlineData("C)C")]
+    public void MalformedSmiles_IsRejected(string smiles)
+    {
+        Assert.ThrowsAny<Exception>(() => Molecule.FromSmiles(smiles));
+    }
+    [Theory]
     [InlineData("CCO", 2, 6, 1, "Ethanol")]
     [InlineData("CCOC", 3, 8, 1, "Ethyl Methyl Ether")]
     [InlineData("CCOCC", 4, 10, 1, "Diethyl Ether")]

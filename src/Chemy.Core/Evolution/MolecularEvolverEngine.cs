@@ -1,5 +1,6 @@
 using Chemy.Core.Graph;
 using Chemy.Core.Pharmacology;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Evolution;
 
@@ -39,12 +40,18 @@ public record EvolutionOptimizationResult(
     double BaselineQed,
     int GenerationsRun,
     IReadOnlyList<EvolvedCandidate> Candidates
-);
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Chemy deterministic structural-analogue enumeration", "1", EvidenceLevel.Heuristic,
+        "Educational enumeration of a small built-in mutation set.",
+        ["Candidates are not validated leads and are not predictions of activity, safety, metabolism, or bioavailability.",
+         "Returned rationales are structural hypotheses requiring computation and experiment."]);
+}
 
 /// <summary>
-/// Autonomous De Novo Bioisosteric Lead Optimization &amp; Evolutionary Engine.
-/// Uses chemical graph theory, subgraph isomorphism (VF2), and topological rewriting rules
-/// to generate optimized, non-toxic lead candidates.
+/// Deterministic structural-analogue enumeration engine.
+/// Uses graph matching and a small set of topological rewriting rules to generate hypotheses.
 /// </summary>
 public static class MolecularEvolverEngine
 {
@@ -102,7 +109,7 @@ public static class MolecularEvolverEngine
                     admet.QedDrugLikenessScore,
                     admet.CalculatedLogP,
                     "Substituted metabolic carboxylic acid with non-classical 1H-tetrazole 5-membered aromatic ring.",
-                    "Eliminates acyl-glucuronide hepatotoxicity risk while preserving planar receptor binding."
+                    "Hypothesis: tetrazole substitution may alter acidity and metabolic behavior; requires validation."
                 ));
             }
         }
@@ -130,7 +137,7 @@ public static class MolecularEvolverEngine
                 admet.QedDrugLikenessScore,
                 admet.CalculatedLogP,
                 "Introduced bioisosteric fluorine atom at vulnerable metabolic oxidation hotspot.",
-                "Blocks rapid Cytochrome P450 CYP3A4 oxidative degradation and increases plasma half-life."
+                "Hypothesis: fluorination may alter oxidative metabolism; CYP selectivity and half-life are not predicted."
             ));
         }
 
@@ -168,7 +175,7 @@ public static class MolecularEvolverEngine
                             admet.QedDrugLikenessScore,
                             admet.CalculatedLogP,
                             "Inserted ring nitrogen atom into aromatic scaffold to form pyridine bioisostere.",
-                            "Optimizes hydrogen bond acceptor capability and decreases excessive lipophilicity."
+                            "Introduces a potential hydrogen-bond acceptor and changes the descriptor profile."
                         ));
                         nextGen.Add(mutantA);
                     }
@@ -207,7 +214,7 @@ public static class MolecularEvolverEngine
                             admet.QedDrugLikenessScore,
                             admet.CalculatedLogP,
                             "Substituted flexible aliphatic methyl chain with rigid cyclopropyl bioisosteric ring.",
-                            "Reduces entropic conformational penalty on receptor binding and improves metabolic stability."
+                            "Changes conformational freedom; binding and metabolic effects are not predicted."
                         ));
                         nextGen.Add(mutantB);
                     }
@@ -236,7 +243,7 @@ public static class MolecularEvolverEngine
                             admet.QedDrugLikenessScore,
                             admet.CalculatedLogP,
                             "Replaced hydroxyl group with primary amino bioisostere.",
-                            "Enhances salt formation potential and improves aqueous bioavailability."
+                            "Changes ionization and hydrogen-bonding possibilities; bioavailability is not predicted."
                         ));
                         nextGen.Add(mutantC);
                     }
@@ -261,7 +268,7 @@ public static class MolecularEvolverEngine
                 baselineAdmet.QedDrugLikenessScore,
                 baselineAdmet.CalculatedLogP,
                 "Topological scaffold optimized with balanced polar surface area and molecular rigidity.",
-                "Optimizes oral absorption and minimizes off-target toxicity."
+                "Unmodified fallback scaffold; no optimization or safety improvement is implied."
             ));
         }
 

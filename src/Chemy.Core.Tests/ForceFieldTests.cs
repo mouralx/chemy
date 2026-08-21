@@ -15,7 +15,7 @@ public class ForceFieldTests
         var result = ForceFieldEngine.MinimizeEnergy(m3d, maxIterations: 10);
 
         Assert.NotNull(result);
-        Assert.True(result.FinalEnergyKcalPerMol >= 0);
+        Assert.True(double.IsFinite(result.FinalEnergyKcalPerMol));
         Assert.Equal("H2O", result.Formula);
     }
 
@@ -26,8 +26,8 @@ public class ForceFieldTests
         var result = ForceFieldEngine.MinimizeEnergy(butane, maxIterations: 30);
 
         Assert.NotNull(result);
-        Assert.True(result.Converged);
-        Assert.True(result.FinalEnergyKcalPerMol >= 0);
+        Assert.True(double.IsFinite(result.FinalEnergyKcalPerMol));
+        Assert.NotEmpty(result.TerminationReason);
         Assert.Equal(butane.Atoms.Count, result.MinimizedMolecule.Atoms.Count);
     }
 
@@ -38,7 +38,14 @@ public class ForceFieldTests
         var result = ForceFieldEngine.MinimizeEnergy(ethanol, maxIterations: 20);
 
         Assert.NotNull(result);
-        Assert.True(result.FinalEnergyKcalPerMol >= 0);
+        Assert.True(double.IsFinite(result.FinalEnergyKcalPerMol));
         Assert.Equal(9, result.MinimizedMolecule.Atoms.Count); // C2H6O -> 2 C + 6 H + 1 O = 9 atoms
+    }
+
+    [Fact]
+    public void MinimizeEnergy_NonPositiveIterations_IsRejected()
+    {
+        var butane = Molecule.FromSmiles("CCCC").To3D();
+        Assert.Throws<ArgumentOutOfRangeException>(() => ForceFieldEngine.MinimizeEnergy(butane, 0));
     }
 }

@@ -7,6 +7,13 @@ namespace Chemy.Core.Tests;
 
 public class ReactionTests
 {
+    [Fact]
+    public void Balance_UnderdeterminedEquation_FailsWithoutArithmeticCrash()
+    {
+        var reaction = Reaction.Parse("C + O2 -> CO + CO2");
+        var error = Assert.Throws<InvalidOperationException>(() => reaction.Balance());
+        Assert.Contains("underdetermined", error.Message);
+    }
     [Theory]
     [InlineData("H2 + O2 -> H2O", "2H2 + O2 -> 2H2O")]
     [InlineData("Fe + O2 -> Fe2O3", "4Fe + 3O2 -> 2Fe2O3")]

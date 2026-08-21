@@ -1,4 +1,5 @@
 using Chemy.Core.Spatial;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Physics;
 
@@ -18,16 +19,24 @@ public record EnergyMinimizationResult(
     int Iterations,
     bool Converged,
     Molecule3D MinimizedMolecule
-);
+)
+{
+    public string TerminationReason { get; init; } = "MaximumIterationsReached";
+    public double FinalGradientNorm { get; init; }
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Chemy generalized four-term potential", "1", EvidenceLevel.NumericalApproximation,
+        "Fast geometry cleanup; not a parameterized UFF/MMFF energy model.",
+        ["Energies must not be used for quantitative conformer ranking."]);
+}
 
 /// <summary>
-/// Industrial-Grade Molecular Mechanics &amp; Universal Force Field (UFF) Energy Minimizer.
+/// Generalized molecular-mechanics geometry cleanup potential.
 /// Implements a full 4-term analytical potential:
 /// 1. Bond Stretching Energy: E_bond = Σ 0.5 * k_r * (r - r0)^2
 /// 2. Valence Angle Bending: E_angle = Σ 0.5 * k_θ * (θ - θ0)^2
 /// 3. Dihedral Torsional Strain: E_torsion = Σ 0.5 * V_n * (1 + cos(n*φ - γ))
 /// 4. Non-Bonded van der Waals: E_vdw = Σ ε * ((rm/r)^12 - 2*(rm/r)^6)
-/// Solved via Conjugate Gradient / Steepest-Descent geometric relaxation.
+/// Solved via steepest-descent geometric relaxation with backtracking.
 /// </summary>
 public static class ForceFieldEngine
 {
@@ -46,17 +55,34 @@ public static class ForceFieldEngine
     public static EnergyMinimizationResult MinimizeEnergy(Molecule3D molecule3D, int maxIterations = 50)
     {
         ArgumentNullException.ThrowIfNull(molecule3D);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxIterations);
 
         var currentPositions = molecule3D.Atoms.Select(a => a.Position).ToList();
         double initialEnergy = CalculateTotalPotentialEnergy(molecule3D, currentPositions);
 
         double energy = initialEnergy;
-        int iter = 0;
+        int iterationsPerformed = 0;
         double stepSize = 0.02;
+        bool converged = false;
+        string terminationReason = "MaximumIterationsReached";
+        double finalGradientNorm = double.PositiveInfinity;
 
-        for (iter = 0; iter < maxIterations; iter++)
+        for (int iter = 0; iter < maxIterations; iter++)
         {
             var forces = CalculateGradients(molecule3D, currentPositions);
+            finalGradientNorm = Math.Sqrt(forces.Sum(f => (f.X * f.X) + (f.Y * f.Y) + (f.Z * f.Z)));
+            if (!double.IsFinite(finalGradientNorm))
+            {
+                terminationReason = "NumericalFailure";
+                break;
+            }
+            if (finalGradientNorm < 1e-4)
+            {
+                converged = true;
+                terminationReason = "GradientToleranceReached";
+                break;
+            }
+
             var newPositions = new List<Vector3D>();
 
             for (int i = 0; i < currentPositions.Count; i++)
@@ -72,22 +98,28 @@ public static class ForceFieldEngine
 
             double newEnergy = CalculateTotalPotentialEnergy(molecule3D, newPositions);
 
-            if (Math.Abs(energy - newEnergy) < 1e-4)
-            {
-                energy = newEnergy;
-                currentPositions = newPositions;
-                break;
-            }
-
             if (newEnergy < energy)
             {
+                double energyChange = Math.Abs(energy - newEnergy);
                 energy = newEnergy;
                 currentPositions = newPositions;
+                iterationsPerformed++;
                 stepSize = Math.Min(0.05, stepSize * 1.1); // Adaptive step acceleration
+                if (energyChange < 1e-6)
+                {
+                    converged = true;
+                    terminationReason = "EnergyToleranceReached";
+                    break;
+                }
             }
             else
             {
                 stepSize *= 0.5; // Backtrack on overshoot
+                if (stepSize < 1e-10)
+                {
+                    terminationReason = "LineSearchFailed";
+                    break;
+                }
             }
         }
 
@@ -108,10 +140,14 @@ public static class ForceFieldEngine
             molecule3D.ChemicalFormula,
             Math.Round(initialEnergy, 3),
             Math.Round(energy, 3),
-            iter + 1,
-            true,
+            iterationsPerformed,
+            converged,
             minimizedMol
-        );
+        )
+        {
+            TerminationReason = terminationReason,
+            FinalGradientNorm = finalGradientNorm
+        };
     }
 
     /// <summary>
@@ -232,10 +268,52 @@ public static class ForceFieldEngine
             }
         }
 
-        return Math.Max(0.0, eBond + eAngle + eTorsion + eVdw);
+        return eBond + eAngle + eTorsion + eVdw;
     }
 
+    // Central differences deliberately derive forces from the same energy function.
+    // This is slower than a closed-form gradient but guarantees mathematical consistency
+    // while the generalized potential remains small and educational in scope.
     private static List<Vector3D> CalculateGradients(Molecule3D molecule3D, List<Vector3D> positions)
+    {
+        const double delta = 1e-5;
+        var forces = new List<Vector3D>(positions.Count);
+
+        for (int atom = 0; atom < positions.Count; atom++)
+        {
+            double fx = -CentralDerivative(molecule3D, positions, atom, 0, delta);
+            double fy = -CentralDerivative(molecule3D, positions, atom, 1, delta);
+            double fz = -CentralDerivative(molecule3D, positions, atom, 2, delta);
+            forces.Add(new Vector3D(fx, fy, fz));
+        }
+
+        return forces;
+    }
+
+    private static double CentralDerivative(Molecule3D molecule3D, List<Vector3D> positions, int atom, int axis, double delta)
+    {
+        var original = positions[atom];
+        positions[atom] = axis switch
+        {
+            0 => original with { X = original.X + delta },
+            1 => original with { Y = original.Y + delta },
+            _ => original with { Z = original.Z + delta }
+        };
+        double plus = CalculateTotalPotentialEnergy(molecule3D, positions);
+
+        positions[atom] = axis switch
+        {
+            0 => original with { X = original.X - delta },
+            1 => original with { Y = original.Y - delta },
+            _ => original with { Z = original.Z - delta }
+        };
+        double minus = CalculateTotalPotentialEnergy(molecule3D, positions);
+        positions[atom] = original;
+        return (plus - minus) / (2.0 * delta);
+    }
+
+    // Retained temporarily as a reference for a future parameterized analytical implementation.
+    private static List<Vector3D> CalculateApproximateAnalyticalGradients(Molecule3D molecule3D, List<Vector3D> positions)
     {
         var forces = new List<Vector3D>();
         int nAtoms = positions.Count;

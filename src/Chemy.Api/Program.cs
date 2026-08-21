@@ -56,8 +56,6 @@ logger.LogInformation("Chemy Computational Chemistry & Chemoinformatics REST API
 // ============================================================================
 
 app.UseCors();
-app.UseHealthChecks("/healthz");
-
 app.MapOpenApi();
 app.MapScalarApiReference();
 app.UseSwaggerUI(c =>
@@ -661,7 +659,7 @@ envGroup.MapPost("/ecoclean", (EcoCleanRequest request, ILogger<Program> log) =>
 
     var result = EcoCleanEngine.SolveDegradationCascade(request.Pollutant);
 
-    log.LogDebug("EcoClean solved: {Class}, Efficiency = {Eff}%, Mineralized into: {EndProducts}", result.PollutantClass, result.TotalMineralizationEfficiencyPercent, result.MineralizedEndProducts);
+    log.LogDebug("EcoClean hypotheses generated for {Class}: {EndProducts}", result.PollutantClass, result.PossibleEndProducts);
     return Results.Ok(result);
 })
 .WithSummary("Solve PFAS and microplastic biocleavage degradation pathways");

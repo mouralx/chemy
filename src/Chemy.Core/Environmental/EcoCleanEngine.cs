@@ -1,4 +1,5 @@
 using Chemy.Core.Structure;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Environmental;
 
@@ -25,18 +26,21 @@ public record CleavageStep(
 /// </summary>
 /// <param name="PollutantFormula">Input chemical formula or identifier of the toxin.</param>
 /// <param name="PollutantClass">Classification category (e.g. PFAS Forever Chemical, Synthetic Polyester).</param>
-/// <param name="PersistenceHalfLifeYears">Natural environmental half-life in years.</param>
-/// <param name="TotalMineralizationEfficiencyPercent">Predicted complete catalytic mineralization efficiency percentage.</param>
 /// <param name="DegradationCascade">Sequential step-by-step catalytic cleavage cascade.</param>
-/// <param name="MineralizedEndProducts">Harmless inorganic minerals produced (e.g. F⁻, CO₂, H₂O).</param>
+/// <param name="PossibleEndProducts">Possible end products; not a calculated yield or mass balance.</param>
 public record EcoCleanDegradationResult(
     string PollutantFormula,
     string PollutantClass,
-    double PersistenceHalfLifeYears,
-    double TotalMineralizationEfficiencyPercent,
     IReadOnlyList<CleavageStep> DegradationCascade,
-    string MineralizedEndProducts
-);
+    string PossibleEndProducts
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Chemy degradation-pathway knowledge rules", "1", EvidenceLevel.Heuristic,
+        "Qualitative educational hypotheses based on elemental and functional-group classification.",
+        ["Does not calculate degradation rate, half-life, conversion, yield, toxicity, or mineralization efficiency.",
+         "Catalysts and products require experimental verification under specified conditions."]);
+}
 
 /// <summary>
 /// EcoClean Environmental Biocleavage &amp; Mineralization Knowledge Engine.
@@ -85,7 +89,6 @@ public static class EcoCleanEngine
         var steps = new List<CleavageStep>();
 
         string pollutantClass;
-        double halfLife;
 
         // Calculate dynamic Bond Dissociation Energy (BDE) from molecular graph bonds
         double primaryBde = 85.0;
@@ -117,7 +120,6 @@ public static class EcoCleanEngine
         if (elements.Contains("F") || input.Contains("PFOA", StringComparison.OrdinalIgnoreCase) || input.Contains("PFAS", StringComparison.OrdinalIgnoreCase))
         {
             pollutantClass = "PFAS 'Forever Chemical' (Perfluoroalkyl Substance)";
-            halfLife = 1000.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -151,7 +153,6 @@ public static class EcoCleanEngine
         {
             string halogen = elements.Contains("Cl") ? "Chlorine (Cl)" : "Bromine (Br)";
             pollutantClass = $"Halogenated Persistent Organopollutant ({halogen})";
-            halfLife = 120.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -175,7 +176,6 @@ public static class EcoCleanEngine
         else if (fgs.Contains("Ester") || input.Contains("PET", StringComparison.OrdinalIgnoreCase) || input.Contains("Plastic", StringComparison.OrdinalIgnoreCase))
         {
             pollutantClass = "Microplastic / Synthetic Polyester Polymer (PET / PLA)";
-            halfLife = 450.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -208,7 +208,6 @@ public static class EcoCleanEngine
         else if (elements.Contains("P") || elements.Contains("S"))
         {
             pollutantClass = "Organophosphorus / Sulfur Contaminant";
-            halfLife = 15.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -232,7 +231,6 @@ public static class EcoCleanEngine
         else
         {
             pollutantClass = "Synthetic Hydrocarbon / Xenobiotic";
-            halfLife = 20.0;
 
             steps.Add(new CleavageStep(
                 1,
@@ -264,14 +262,11 @@ public static class EcoCleanEngine
         productList.Add("CO₂");
         productList.Add("H₂O");
 
-        string endProducts = string.Join(" + ", productList) + " (100% Mineralized)";
-        double efficiency = Math.Round(99.0 + Math.Clamp(10.0 / secondaryBde, 0.2, 0.8), 1);
+        string endProducts = string.Join(" + ", productList) + " (possible products; yield and mass balance not calculated)";
 
         return new EcoCleanDegradationResult(
             molecule.ChemicalFormula,
             pollutantClass,
-            halfLife,
-            efficiency,
             steps,
             endProducts
         );

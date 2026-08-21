@@ -76,18 +76,21 @@ internal static class MatrixSolver
             pivotRow++;
         }
 
-        // Identify free variable column
+        // This API promises a unique primitive coefficient vector. A nullspace
+        // with more than one free variable represents a family of balances and
+        // must be surfaced as ambiguous instead of selecting zero coefficients.
         int freeCol = -1;
+        int freeColumnCount = 0;
         for (int c = cols - 1; c >= 0; c--)
         {
             if (pivotCols[c] == -1)
             {
                 freeCol = c;
-                break;
+                freeColumnCount++;
             }
         }
 
-        if (freeCol == -1) return null;
+        if (freeCol == -1 || freeColumnCount != 1) return null;
 
         // Assign free variable unit rational value and back-substitute
         Rational[] solution = new Rational[cols];
@@ -195,7 +198,9 @@ internal readonly struct Rational
     public static Rational operator -(Rational a, Rational b) => new(a.Num * b.Den - b.Num * a.Den, a.Den * b.Den);
     public static Rational operator -(Rational a) => new(-a.Num, a.Den);
     public static Rational operator *(Rational a, Rational b) => new(a.Num * b.Num, a.Den * b.Den);
-    public static Rational operator /(Rational a, Rational b) => new(a.Num * b.Den, a.Den * b.Num);
+    public static Rational operator /(Rational a, Rational b) => b.Num == 0
+        ? throw new DivideByZeroException("Cannot divide by a zero rational value.")
+        : new(a.Num * b.Den, a.Den * b.Num);
 
     private static long Gcd(long a, long b)
     {

@@ -113,7 +113,7 @@ public record Reaction
         var coefficients = MatrixSolver.SolveNullspaceIntegerVector(matrix);
         if (coefficients == null || coefficients.Length != cols)
         {
-            throw new InvalidOperationException("Could not balance reaction automatically.");
+            throw new InvalidOperationException("Reaction does not have a unique strictly-positive stoichiometric balance. It may be impossible or underdetermined.");
         }
 
         var balancedReactants = Reactants.Select((c, i) => new ReactionComponent(c.Molecule, coefficients[i]));

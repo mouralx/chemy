@@ -1,5 +1,7 @@
 namespace Chemy.Core.Spectroscopy;
 
+using Chemy.Core.Scientific;
+
 /// <summary>
 /// Represents a predicted Nuclear Magnetic Resonance (NMR) spectral peak.
 /// </summary>
@@ -35,7 +37,14 @@ public record SpectroscopyPrediction(
     IReadOnlyList<NmrPeak> H1NmrPeaks,
     IReadOnlyList<NmrPeak> C13NmrPeaks,
     IReadOnlyList<IrBand> IrBands
-);
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Chemy functional-group spectral hints", "1", EvidenceLevel.Heuristic,
+        "Educational identification of characteristic functional-group regions.",
+        ["Not a complete NMR or IR spectrum prediction.",
+         "Does not model equivalence, stereochemistry, coupling constants, solvent, or conformational effects."]);
+}
 
 /// <summary>
 /// Computational Spectroscopy Prediction Engine.
@@ -143,7 +152,9 @@ public static class SpectroscopyEngine
         // 9. Ketone Alpha-Protons (-C(=O)-CH3, δ 2.1 - 2.6 ppm)
         if (fgs.Contains("Ketone"))
         {
-            peaks.Add(new NmrPeak(2.15, "1H", "Singlet", 3, "-C(=O)CH3 Ketone alpha-methyl protons"));
+            int alphaHydrogens = CountHydrogensOnCarbonsAdjacentToCarbonyl(molecule);
+            if (alphaHydrogens > 0)
+                peaks.Add(new NmrPeak(2.15, "1H", "Unresolved", alphaHydrogens, "Protons on carbons adjacent to a ketone carbonyl"));
         }
 
         // 10. Remaining Aliphatic Protons (-CH3, -CH2-, -CH, δ 0.8 - 1.8 ppm)
@@ -154,6 +165,25 @@ public static class SpectroscopyEngine
         }
 
         return peaks;
+    }
+
+    private static int CountHydrogensOnCarbonsAdjacentToCarbonyl(Molecule molecule)
+    {
+        var carbonylCarbons = molecule.Bonds
+            .Where(b => b.Type == BondType.Double)
+            .Where(b => molecule.Atoms[b.Atom1Index].Element.Symbol == "O" || molecule.Atoms[b.Atom2Index].Element.Symbol == "O")
+            .Select(b => molecule.Atoms[b.Atom1Index].Element.Symbol == "C" ? b.Atom1Index : b.Atom2Index)
+            .Where(i => molecule.Atoms[i].Element.Symbol == "C")
+            .ToHashSet();
+
+        var alphaCarbons = molecule.Bonds
+            .Where(b => carbonylCarbons.Contains(b.Atom1Index) || carbonylCarbons.Contains(b.Atom2Index))
+            .Select(b => carbonylCarbons.Contains(b.Atom1Index) ? b.Atom2Index : b.Atom1Index)
+            .Where(i => molecule.Atoms[i].Element.Symbol == "C")
+            .Distinct();
+
+        return alphaCarbons.Sum(c => molecule.Bonds.Count(b => b.Connects(c) &&
+            molecule.Atoms[b.Atom1Index == c ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H"));
     }
 
     /// <summary>

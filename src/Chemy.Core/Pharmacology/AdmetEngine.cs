@@ -1,4 +1,5 @@
 using Chemy.Core.Structure;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Pharmacology;
 
@@ -18,9 +19,6 @@ namespace Chemy.Core.Pharmacology;
 /// <param name="PassesVeberRules">True if RotatableBonds &lt;= 10 and TPSA &lt;= 140 Å².</param>
 /// <param name="PassesGhoseFilter">True if 160 &lt;= MW &lt;= 480 and -0.4 &lt;= LogP &lt;= 5.6.</param>
 /// <param name="QedDrugLikenessScore">Quantitative Estimate of Drug-Likeness (0.0 to 1.0).</param>
-/// <param name="HergCardiacRisk">Estimated hERG potassium channel cardiotoxicity risk classification.</param>
-/// <param name="Cyp450MetabolismSite">Predicted Phase-I CYP450 hepatic oxidation cleavage site.</param>
-/// <param name="BloodBrainBarrierPermeability">Predicted Central Nervous System (CNS) blood-brain barrier permeability.</param>
 public record AdmetProfile(
     string Formula,
     double MolecularWeight,
@@ -34,11 +32,15 @@ public record AdmetProfile(
     bool PassesLipinskiRuleOf5,
     bool PassesVeberRules,
     bool PassesGhoseFilter,
-    double QedDrugLikenessScore,
-    string HergCardiacRisk,
-    string Cyp450MetabolismSite,
-    string BloodBrainBarrierPermeability
-);
+    double QedDrugLikenessScore
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Chemy rule-based molecular descriptor screen", "1", EvidenceLevel.Heuristic,
+        "Educational descriptor screening for neutral, drug-like organic molecules.",
+        ["Not an ADMET, toxicity, hERG, CYP450, BBB, or clinical safety prediction.",
+         "LogP, TPSA, and QED are simplified approximations, not complete reference implementations."]);
+}
 
 /// <summary>
 /// Industrial-Grade ADMET &amp; Chemoinformatics Property Calculator.
@@ -77,51 +79,6 @@ public static class AdmetEngine
         int alerts = CountStructuralAlerts(molecule);
         double qed = CalculateQedScore(mw, logP, tpsa, hbd, hba, rotatableBonds, aromaticRings, alerts);
 
-        // Cardiac hERG risk prediction (Lipophilic bases with high LogP and low TPSA)
-        string hergRisk;
-        if (logP > 3.8 && tpsa < 60.0 && molecule.Atoms.Any(a => a.Element.Symbol == "N"))
-        {
-            hergRisk = "High Alert (High LogP + Basic Nitrogen -> Potential QT Prolongation Risk)";
-        }
-        else if (logP > 2.5)
-        {
-            hergRisk = "Moderate Risk (Monitor hERG patch clamp in vitro)";
-        }
-        else
-        {
-            hergRisk = "Low Risk (Normal cardiac safety window)";
-        }
-
-        // Phase-I CYP450 metabolism prediction
-        string cypSite;
-        var fgs = molecule.GetFunctionalGroups().Select(f => f.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        if (fgs.Contains("Ester"))
-        {
-            cypSite = "Carboxylesterase / CYP3A4: Rapid ester hydrolysis";
-        }
-        else if (fgs.Contains("Amine"))
-        {
-            cypSite = "CYP2D6 / CYP3A4: Oxidative N-dealkylation";
-        }
-        else if (fgs.Contains("Aromatic"))
-        {
-            cypSite = "CYP1A2 / CYP2C9: Aromatic para-hydroxylation";
-        }
-        else if (fgs.Contains("Alcohol"))
-        {
-            cypSite = "Alcohol Dehydrogenase / UGT: Phase-II Glucuronidation";
-        }
-        else
-        {
-            cypSite = "CYP450 Omega-1 Aliphatic Hydroxylation";
-        }
-
-        // Blood-Brain Barrier (BBB) permeability
-        string bbb = (tpsa < 90.0 && logP is >= 1.0 and <= 3.5 && mw < 400.0)
-            ? "High BBB Permeability (CNS Active)"
-            : "Low BBB Permeability (Peripherally Restricted)";
-
         return new AdmetProfile(
             molecule.ChemicalFormula,
             Math.Round(mw, 2),
@@ -135,10 +92,7 @@ public static class AdmetEngine
             passesLipinski,
             passesVeber,
             passesGhose,
-            Math.Round(qed, 3),
-            hergRisk,
-            cypSite,
-            bbb
+            Math.Round(qed, 3)
         );
     }
 

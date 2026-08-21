@@ -9,6 +9,10 @@ public static class SmilesParser
     public static Molecule Parse(string smiles, string? name = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(smiles);
+        if (smiles.IndexOfAny(['@', '/', '\\', '%']) >= 0)
+        {
+            throw new NotSupportedException("Stereochemistry, directional bonds, and multi-digit ring closures are not supported by this SMILES parser.");
+        }
 
         var rawAtoms = new List<RawAtom>();
         var rawBonds = new List<(int Atom1, int Atom2, BondType Type)>();
@@ -32,7 +36,8 @@ public static class SmilesParser
             }
             else if (ch == ')')
             {
-                if (branchStack.Count > 0) currentAtomIndex = branchStack.Pop();
+                if (branchStack.Count == 0) throw new FormatException($"Unmatched closing branch at position {i}.");
+                currentAtomIndex = branchStack.Pop();
                 i++;
                 currentBondType = BondType.Single;
             }
@@ -130,9 +135,12 @@ public static class SmilesParser
             }
             else
             {
-                i++;
+                throw new FormatException($"Unsupported SMILES character '{ch}' at position {i}.");
             }
         }
+
+        if (branchStack.Count > 0) throw new FormatException("Unmatched opening branch in SMILES string.");
+        if (ringOpenings.Count > 0) throw new FormatException("Unclosed ring bond in SMILES string.");
 
         var finalAtoms = new List<Atom>();
         var finalBonds = new List<Bond>();
@@ -276,4 +284,3 @@ public static class SmilesParser
 
     private static bool IsKnownSymbol(string symbol) => Elements.TryGetBySymbol(symbol, out _);
 }
-
