@@ -13,10 +13,25 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4.2.2
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Setup Python Environment
+      uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install RDKit Reference Generator Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install rdkit
+
+    - name: Verify Live RDKit External Dataset Derivation Gate
+      run: |
+        python3 scripts/generate_reference_dataset.py --verify src/Chemy.Core.Tests/ValidationData/reference_compounds.json
 
     - name: Setup .NET 10 SDK
-      uses: actions/setup-dotnet@v4.3.0
+      uses: actions/setup-dotnet@39504859a4d33458efecad9d9eb933e49dcadfa7 # v4.3.0
       with:
         dotnet-version: '10.0.x'
 
@@ -30,7 +45,7 @@ jobs:
       run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
 
     - name: Upload Test Coverage Artifact
-      uses: actions/upload-artifact@v4.6.1
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: code-coverage-report
         path: '**/TestResults/**/coverage.cobertura.xml'
@@ -44,8 +59,3 @@ jobs:
           echo "::error::Vulnerable dependencies detected in repository solution!"
           exit 1
         fi
-
-    - name: Verify External Reference Dataset Reproducibility
-      run: |
-        python3 scripts/generate_reference_dataset.py --output /tmp/reference_compounds.json
-        diff -u /tmp/reference_compounds.json src/Chemy.Core.Tests/ValidationData/reference_compounds.json

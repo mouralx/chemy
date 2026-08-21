@@ -102,7 +102,7 @@ public static class SmilesParser
                 if (i + 1 < len && char.IsLower(smiles[i + 1]) && !isAromatic)
                 {
                     string candidate = smiles.Substring(i, 2);
-                    if (IsKnownSymbol(candidate))
+                    if (candidate is "Cl" or "Br")
                     {
                         symbol = candidate;
                         i++;

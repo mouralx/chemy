@@ -152,7 +152,7 @@ public static class AdmetEngine
 
                 if (hNeighbors > 0)
                 {
-                    count += hNeighbors;
+                    count++;
                 }
             }
         }
@@ -182,12 +182,16 @@ public static class AdmetEngine
             }
             else if (a.Element.Symbol == "N")
             {
-                // Exclude amide nitrogens (resonance delocalized with carbonyl) and nitro nitrogens
+                // Exclude amide nitrogens (resonance delocalized with carbonyl)
                 bool isAmide = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
                     molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
                         molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
 
-                if (!isAmide)
+                // Exclude nitro group nitrogens (-NO2)
+                int oxygenNeighbors = molecule.Bonds.Count(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
+                bool isNitro = oxygenNeighbors >= 2;
+
+                if (!isAmide && !isNitro)
                 {
                     count++;
                 }
@@ -216,13 +220,13 @@ public static class AdmetEngine
 
             if (IsBondInRing(molecule, bond)) continue;
 
-            // Exclude amide C-N bonds (partial double-bond resonance character)
-            int cIdx = a1.Element.Symbol == "C" && a2.Element.Symbol == "N" ? bond.Atom1Index : (a2.Element.Symbol == "C" && a1.Element.Symbol == "N" ? bond.Atom2Index : -1);
+            // Exclude amide C-N and ester C-O single bonds (partial double-bond resonance character)
+            int cIdx = a1.Element.Symbol == "C" && a2.Element.Symbol is "N" or "O" ? bond.Atom1Index : (a2.Element.Symbol == "C" && a1.Element.Symbol is "N" or "O" ? bond.Atom2Index : -1);
             if (cIdx >= 0)
             {
-                bool isAmideCarbon = molecule.Bonds.Any(b => b.Connects(cIdx) && b.Type == BondType.Double &&
+                bool isCarbonylCarbon = molecule.Bonds.Any(b => b.Connects(cIdx) && b.Type == BondType.Double &&
                     molecule.Atoms[b.Atom1Index == cIdx ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
-                if (isAmideCarbon) continue;
+                if (isCarbonylCarbon) continue;
             }
 
             rotatable++;

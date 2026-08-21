@@ -1,5 +1,6 @@
 namespace Chemy.Core.Pharmacology;
 
+using Chemy.Core.Graph;
 using Chemy.Core.Scientific;
 using Chemy.Core.Structure;
 
@@ -146,6 +147,14 @@ public static class ErtlTpsa
                         // Pyrrole / Indole / Imidazole -NH-
                         return (":NH: (Aromatic pyrrolic nitrogen)", 15.79);
                     }
+
+                    // N-substituted aromatic nitrogen (e.g. N-alkyl pyrrole, caffeine N-methyl imidazole)
+                    int nonAromaticBonds = molecule.Bonds.Count(b => b.Connects(atomIndex) && b.Type != BondType.Aromatic);
+                    if (nonAromaticBonds > 0 && doubleBonds == 0)
+                    {
+                        return (":NR: (Aromatic substituted nitrogen)", 8.31);
+                    }
+
                     if (doubleBonds >= 1 || aromaticBonds >= 2)
                     {
                         // Pyridine / Pyrimidine :N:
@@ -154,12 +163,18 @@ public static class ErtlTpsa
                     return (":N: (Aromatic nitrogen)", 12.89);
                 }
 
+                bool inRing = IsInRing(molecule, atomIndex);
+
                 if (doubleBonds >= 1)
                 {
-                    // =N- Imine, azo
+                    // =N- Imine, azo, heterocyclic =N-
                     if (hCount >= 1)
                     {
                         return ("=NH (Imine nitrogen with H)", 23.85);
+                    }
+                    if (inRing)
+                    {
+                        return (":N: (Heterocyclic ring nitrogen)", 12.89);
                     }
                     return ("=N- (Imine/azo nitrogen)", 12.36);
                 }
@@ -184,6 +199,16 @@ public static class ErtlTpsa
                         1 => ("-CONHR (Secondary amide nitrogen)", 12.03),
                         _ => ("-CONR2 (Tertiary amide nitrogen)", 3.24)
                     };
+                }
+
+                if (inRing && doubleBonds == 0 && hCount == 0)
+                {
+                    // Check if adjacent to double-bonded carbon in conjugated ring (e.g. N-methyl imidazole in purines)
+                    bool isConjugatedRing = neighbors.Any(n => molecule.Bonds.Any(b => b.Connects(n) && b.Type == BondType.Double));
+                    if (isConjugatedRing)
+                    {
+                        return (":NR: (Heterocyclic planar nitrogen)", 8.31);
+                    }
                 }
 
                 if (in3MemberedRing)
@@ -252,6 +277,12 @@ public static class ErtlTpsa
             else if (bond.Atom2Index == atomIndex) list.Add(bond.Atom1Index);
         }
         return list;
+    }
+
+    private static bool IsInRing(Molecule molecule, int atomIndex)
+    {
+        var sssr = CycleBasis.ComputeSssr(molecule);
+        return sssr.Rings.Any(r => r.Contains(atomIndex));
     }
 
     private static bool IsIn3MemberedRing(Molecule molecule, int atomIndex)

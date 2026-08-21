@@ -1,5 +1,6 @@
 namespace Chemy.Core.Pharmacology;
 
+using Chemy.Core.Graph;
 using Chemy.Core.Scientific;
 using Chemy.Core.Structure;
 
@@ -38,14 +39,14 @@ public static class BickertonQed
     // Official Nature Chemistry Bickerton et al. (2012) & RDKit QED Parameters (a, b, c, d, e, f, dmax, weight)
     private record AdsParams(double A, double B, double C, double D, double E, double F, double Dmax, double Weight);
 
-    private static readonly AdsParams MwParams = new(2.817, 392.57, 290.75, 2.42, 49.22, 65.37, 104.97, 0.66);
-    private static readonly AdsParams AlogpParams = new(12.41, 130.47, 1.17, 0.40, 0.74, 1.34, 38.44, 0.46);
-    private static readonly AdsParams HbdParams = new(0.96, 6.75, 1.31, 0.52, 0.44, 0.77, 6.70, 0.61);
-    private static readonly AdsParams HbaParams = new(2.55, 10.60, 4.41, 0.94, 0.81, 1.14, 8.84, 0.05);
-    private static readonly AdsParams TpsaParams = new(1.61, 41.77, 85.00, 1.30, 20.30, 29.58, 38.40, 0.06);
-    private static readonly AdsParams RotbParams = new(2.58, 12.00, 4.41, 0.94, 0.81, 1.14, 8.84, 0.65);
-    private static readonly AdsParams AromParams = new(0.21, 2.68, 1.01, 0.50, 0.44, 0.77, 2.62, 0.48);
-    private static readonly AdsParams AlertsParams = new(0.01, 0.99, 0.00, 0.00, 0.10, 0.10, 1.00, 0.95);
+    private static readonly AdsParams MwParams = new(2.817065973, 392.5754953, 290.7489764, 2.419764353, 49.22325677, 65.37051707, 104.9805561, 0.66);
+    private static readonly AdsParams AlogpParams = new(3.172690585, 137.8624751, 2.534937431, 4.581497897, 0.822739154, 0.576295591, 131.3186604, 0.46);
+    private static readonly AdsParams HbaParams = new(2.948620388, 160.4605972, 3.615294657, 4.435986202, 0.290141953, 1.300669958, 148.7763046, 0.05);
+    private static readonly AdsParams HbdParams = new(1.618662227, 1010.051101, 0.985094388, 1e-09, 0.713820843, 0.920922555, 258.1632616, 0.61);
+    private static readonly AdsParams TpsaParams = new(1.876861559, 125.2232657, 62.90773554, 87.83366614, 12.01999824, 28.51324732, 104.5686167, 0.06);
+    private static readonly AdsParams RotbParams = new(0.01, 272.4121427, 2.55837997, 1.565547684, 1.271567166, 2.758063707, 105.4420403, 0.65);
+    private static readonly AdsParams AromParams = new(3.21778897, 957.7374108, 2.274627939, 1e-09, 1.317690384, 0.375760881, 312.337261, 0.48);
+    private static readonly AdsParams AlertsParams = new(0.01, 1199.094025, -0.09002883, 1e-09, 0.185904477, 0.875193782, 417.725314, 0.95);
 
     /// <summary>
     /// Computes the complete Bickerton QED score and descriptor desirabilities for a molecule.
@@ -73,27 +74,27 @@ public static class BickertonQed
         {
             ["MolecularWeight"] = CalculateAds(mw, MwParams),
             ["ALogP"] = CalculateAds(logP, AlogpParams),
-            ["HBD"] = CalculateAds(hbd, HbdParams),
             ["HBA"] = CalculateAds(hba, HbaParams),
+            ["HBD"] = CalculateAds(hbd, HbdParams),
             ["TPSA"] = CalculateAds(tpsa, TpsaParams),
             ["RotatableBonds"] = CalculateAds(rotb, RotbParams),
             ["AromaticRings"] = CalculateAds(arom, AromParams),
-            ["StructuralAlerts"] = CalculateAlertsDesirability(alerts.Count)
+            ["StructuralAlerts"] = CalculateAds(alerts.Count, AlertsParams)
         };
 
         // Weighted geometric mean: QED = exp( sum(w_i * ln(d_i)) / sum(w_i) )
         double weightedLogSum = 
             MwParams.Weight * Math.Log(Math.Max(1e-4, dMap["MolecularWeight"])) +
             AlogpParams.Weight * Math.Log(Math.Max(1e-4, dMap["ALogP"])) +
-            HbdParams.Weight * Math.Log(Math.Max(1e-4, dMap["HBD"])) +
             HbaParams.Weight * Math.Log(Math.Max(1e-4, dMap["HBA"])) +
+            HbdParams.Weight * Math.Log(Math.Max(1e-4, dMap["HBD"])) +
             TpsaParams.Weight * Math.Log(Math.Max(1e-4, dMap["TPSA"])) +
             RotbParams.Weight * Math.Log(Math.Max(1e-4, dMap["RotatableBonds"])) +
             AromParams.Weight * Math.Log(Math.Max(1e-4, dMap["AromaticRings"])) +
             AlertsParams.Weight * Math.Log(Math.Max(1e-4, dMap["StructuralAlerts"]));
 
-        double totalWeight = MwParams.Weight + AlogpParams.Weight + HbdParams.Weight + 
-                             HbaParams.Weight + TpsaParams.Weight + RotbParams.Weight + 
+        double totalWeight = MwParams.Weight + AlogpParams.Weight + HbaParams.Weight + 
+                             HbdParams.Weight + TpsaParams.Weight + RotbParams.Weight + 
                              AromParams.Weight + AlertsParams.Weight;
 
         double qed = Math.Exp(weightedLogSum / totalWeight);
@@ -107,18 +108,11 @@ public static class BickertonQed
     /// </summary>
     private static double CalculateAds(double x, AdsParams p)
     {
-        double exp1 = Math.Exp(-(x - p.C + p.D / 2.0) / p.E);
-        double exp2 = Math.Exp(-(x - p.C - p.D / 2.0) / p.F);
-        double raw = p.A + (p.B / (1.0 + exp1)) * (1.0 - (1.0 / (1.0 + exp2)));
-        return Math.Clamp(raw / p.Dmax, 0.001, 1.0);
+        double exp1 = 1.0 + Math.Exp(-1.0 * (x - p.C + p.D / 2.0) / p.E);
+        double exp2 = 1.0 + Math.Exp(-1.0 * (x - p.C - p.D / 2.0) / p.F);
+        double dx = p.A + (p.B / exp1) * (1.0 - 1.0 / exp2);
+        return Math.Clamp(dx / p.Dmax, 0.0001, 1.0);
     }
-
-    private static double CalculateAlertsDesirability(int alertCount) => alertCount switch
-    {
-        0 => 1.0,
-        1 => 0.50,
-        _ => 0.10
-    };
 
     private static int CountHbd(Molecule molecule)
     {
@@ -130,7 +124,7 @@ public static class BickertonQed
             {
                 int h = molecule.Bonds.Count(b => b.Connects(i) &&
                     molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
-                count += h;
+                if (h > 0) count++;
             }
         }
         return count;
@@ -141,17 +135,27 @@ public static class BickertonQed
         int count = 0;
         for (int i = 0; i < molecule.Atoms.Count; i++)
         {
-            var sym = molecule.Atoms[i].Element.Symbol;
-            if (sym == "O")
+            var a = molecule.Atoms[i];
+            if (a.NetCharge > 0) continue;
+
+            if (a.Element.Symbol == "O")
             {
-                count++;
+                bool hasHydrogen = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
+                bool isCarboxylicHydroxyl = hasHydrogen && molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
+                        molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
+
+                if (!isCarboxylicHydroxyl) count++;
             }
-            else if (sym == "N")
+            else if (a.Element.Symbol == "N")
             {
-                // Exclude pyrrole/indole nitrogens where lone pair is delocalized in aromatic 6-pi system
-                bool isPyrrolic = molecule.Bonds.Any(b => b.Connects(i) && b.Type == BondType.Aromatic) &&
-                    molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H");
-                if (!isPyrrolic) count++;
+                bool isAmide = molecule.Bonds.Any(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(b2 => b2.Connects(b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) && b2.Type == BondType.Double &&
+                        molecule.Atoms[b2.Atom1Index == (b.Atom1Index == i ? b.Atom2Index : b.Atom1Index) ? b2.Atom2Index : b2.Atom1Index].Element.Symbol == "O"));
+                int oxygenNeighbors = molecule.Bonds.Count(b => b.Connects(i) && molecule.Atoms[b.Atom1Index == i ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
+                bool isNitro = oxygenNeighbors >= 2;
+
+                if (!isAmide && !isNitro) count++;
             }
         }
         return count;
@@ -159,35 +163,41 @@ public static class BickertonQed
 
     private static int CountRotatableBonds(Molecule molecule)
     {
-        int count = 0;
-        foreach (var b in molecule.Bonds)
+        int rotatable = 0;
+        foreach (var bond in molecule.Bonds)
         {
-            if (b.Type != BondType.Single) continue;
-            var a1 = molecule.Atoms[b.Atom1Index];
-            var a2 = molecule.Atoms[b.Atom2Index];
+            if (bond.Type != BondType.Single) continue;
+
+            var a1 = molecule.Atoms[bond.Atom1Index];
+            var a2 = molecule.Atoms[bond.Atom2Index];
             if (a1.Element.Symbol == "H" || a2.Element.Symbol == "H") continue;
 
-            int deg1 = molecule.Bonds.Count(nb => nb.Connects(b.Atom1Index));
-            int deg2 = molecule.Bonds.Count(nb => nb.Connects(b.Atom2Index));
-            if (deg1 > 1 && deg2 > 1) count++;
+            int heavyDeg1 = molecule.Bonds.Count(b => b.Connects(bond.Atom1Index) && molecule.Atoms[b.Atom1Index == bond.Atom1Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
+            int heavyDeg2 = molecule.Bonds.Count(b => b.Connects(bond.Atom2Index) && molecule.Atoms[b.Atom1Index == bond.Atom2Index ? b.Atom2Index : b.Atom1Index].Element.Symbol != "H");
+            if (heavyDeg1 <= 1 || heavyDeg2 <= 1) continue;
+
+            var sssr = CycleBasis.ComputeSssr(molecule);
+            if (sssr.Rings.Any(r => r.Contains(bond.Atom1Index) && r.Contains(bond.Atom2Index))) continue;
+
+            int cIdx = a1.Element.Symbol == "C" && a2.Element.Symbol is "N" or "O" ? bond.Atom1Index : (a2.Element.Symbol == "C" && a1.Element.Symbol is "N" or "O" ? bond.Atom2Index : -1);
+            if (cIdx >= 0)
+            {
+                bool isCarbonylCarbon = molecule.Bonds.Any(b => b.Connects(cIdx) && b.Type == BondType.Double &&
+                    molecule.Atoms[b.Atom1Index == cIdx ? b.Atom2Index : b.Atom1Index].Element.Symbol == "O");
+                if (isCarbonylCarbon) continue;
+            }
+
+            rotatable++;
         }
-        return count;
+        return rotatable;
     }
 
     private static int CountAromaticRings(Molecule molecule)
     {
-        var aromaticAtoms = molecule.Bonds
-            .Where(b => b.Type == BondType.Aromatic)
-            .SelectMany(b => new[] { b.Atom1Index, b.Atom2Index })
-            .ToHashSet();
-
-        return aromaticAtoms.Count switch
-        {
-            >= 14 => 3, // Anthracene / Phenanthrene
-            >= 10 => 2, // Naphthalene
-            >= 6 => 1,  // Benzene / Pyridine
-            _ => 0
-        };
+        var sssr = CycleBasis.ComputeSssr(molecule);
+        int arom = sssr.Rings.Count(r => r.All(atomIdx => molecule.Bonds.Any(b => b.Connects(atomIdx) && b.Type == BondType.Aromatic)));
+        if (arom == 0 && molecule.Bonds.Any(b => b.Type == BondType.Aromatic)) arom = 1;
+        return arom;
     }
 
     private static List<string> DetectStructuralAlerts(Molecule molecule)
