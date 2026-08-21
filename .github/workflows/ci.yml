@@ -26,11 +26,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r scripts/requirements-reference.txt --require-hashes
 
-    - name: Verify Live RDKit External Dataset Derivation Gate (32 Compounds)
+    - name: Verify Live RDKit External Dataset Derivation Gate (48 Compounds across 3 Partitions)
       run: |
         python3 scripts/generate_reference_dataset.py --verify src/Chemy.Core.Tests/ValidationData/reference_compounds.json
 
-    - name: Verify Bidirectional Cross-Tool Molfile Conformance with RDKit
+    - name: Verify Pinned RDKit UFF Butane Reference Energies (4 Conformers)
+      run: |
+        python3 scripts/generate_uff_reference.py --verify src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json
+
+    - name: Generate Initial RDKit Interop Fixtures
       run: |
         python3 scripts/verify_molfile_interop.py
 
@@ -47,6 +51,10 @@ jobs:
 
     - name: Run Scientific Test Suite with Coverage
       run: dotnet test src/Chemy.slnx --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Verify Live Chemy-Exported Molfiles & SDF with RDKit 2025.09.2
+      run: |
+        python3 scripts/verify_molfile_interop.py
 
     - name: Enforce Scientific Line & Branch Coverage Floors
       run: |

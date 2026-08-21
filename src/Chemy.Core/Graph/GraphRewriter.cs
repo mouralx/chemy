@@ -1,7 +1,7 @@
 namespace Chemy.Core.Graph;
 
 /// <summary>
-/// Industrial-Grade Topological Chemical Graph Rewriting Engine.
+/// Rule-Based Topological Chemical Graph Rewriting Engine.
 /// Performs precise bond cleavage, atom insertion, ring substitution, and valence-consistent molecule reconstruction.
 /// </summary>
 public static class GraphRewriter

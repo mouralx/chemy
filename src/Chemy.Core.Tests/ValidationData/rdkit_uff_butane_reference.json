@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "rdkit_version": "2025.09.2",
+    "force_field": "UFF",
+    "molecule": "butane (C4H10)",
+    "atom_count": 14,
+    "coordinate_source": "Chemy BuildButaneConformer (hardcoded tetrahedral geometry)",
+    "note": "Total energies are absolute UFF totals, not relative. Compare relative energies (delta_E vs anti) for conformational analysis."
+  },
+  "conformers": {
+    "anti_180": {
+      "dihedral_deg": 180.0,
+      "uff_total_kcal_mol": 7.3147,
+      "delta_vs_anti_kcal_mol": 0.0
+    },
+    "gauche_60": {
+      "dihedral_deg": 60.0,
+      "uff_total_kcal_mol": 16.1286,
+      "delta_vs_anti_kcal_mol": 8.8139
+    },
+    "eclipsed_120": {
+      "dihedral_deg": 120.0,
+      "uff_total_kcal_mol": 12.7332,
+      "delta_vs_anti_kcal_mol": 5.4184
+    },
+    "syn_0": {
+      "dihedral_deg": 0.0,
+      "uff_total_kcal_mol": 45.3103,
+      "delta_vs_anti_kcal_mol": 37.9956
+    }
+  },
+  "sha256": "4cd1aa362f4b95c7808ba215715c73de62263ea56ba52076de1e2d1368b68b71"
+}

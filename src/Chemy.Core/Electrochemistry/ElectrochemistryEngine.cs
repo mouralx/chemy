@@ -23,7 +23,7 @@ public record NernstResult(
 }
 
 /// <summary>
-/// Industrial-Grade Electrochemistry &amp; Nernst Cell Potential Engine.
+/// Textbook Electrochemistry &amp; Nernst Cell Potential Engine.
 /// Calculates non-standard cell potentials ($E_{\text{cell}}$), Faraday redox transfer, and galvanic spontaneity.
 /// </summary>
 public static class ElectrochemistryEngine

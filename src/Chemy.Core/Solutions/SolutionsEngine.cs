@@ -43,7 +43,7 @@ public record BufferResult(
 }
 
 /// <summary>
-/// Industrial-Grade Solutions Chemistry &amp; Acid-Base Equilibria Engine.
+/// Physicochemical Solutions Chemistry &amp; Acid-Base Equilibria Engine.
 /// Solves aqueous pH, pOH, strong/weak acid dissociations, and Henderson-Hasselbalch buffer equations.
 /// </summary>
 public static class SolutionsEngine

@@ -120,16 +120,21 @@ public static class MolfileParser
             bondList.Add(new Bond(atom1, atom2, bondType));
         }
 
-        // Properties Block: Process M  CHG and M  END
+        // Properties Block: Process M  CHG and required M  END record
+        bool foundMEnd = false;
         while (currentLine < lines.Length)
         {
             string pLine = lines[currentLine++].Trim();
-            if (pLine.StartsWith("M  END", StringComparison.Ordinal)) break;
+            if (pLine.StartsWith("M  END", StringComparison.Ordinal))
+            {
+                foundMEnd = true;
+                break;
+            }
 
             if (pLine.StartsWith("M  CHG", StringComparison.Ordinal))
             {
                 var tokens = pLine.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (tokens.Length >= 3 && int.TryParse(tokens[2], CultureInfo.InvariantCulture, out int count))
+                if (tokens.Length >= 3 && int.TryParse(tokens[2], CultureInfo.InvariantCulture, out int count) && count > 0)
                 {
                     int tokenIdx = 3;
                     for (int k = 0; k < count && tokenIdx + 1 < tokens.Length; k++)
@@ -146,6 +151,11 @@ public static class MolfileParser
                     }
                 }
             }
+        }
+
+        if (!foundMEnd)
+        {
+            throw new FormatException("Invalid MDL Molfile: missing required 'M  END' property terminator block.");
         }
 
         // Construct final atoms and 3D representations with verified charges

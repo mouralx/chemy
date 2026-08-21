@@ -24,7 +24,7 @@ public record GraphEdge(int SourceId, int TargetId, BondType BondType, bool IsAr
 }
 
 /// <summary>
-/// Industrial-grade, immutable topological chemical graph representation.
+/// Immutable topological chemical graph representation.
 /// Provides adjacency indexing, cycle detection (SSSR / Hansch rings), and degree calculations.
 /// </summary>
 public class ChemicalGraph

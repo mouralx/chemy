@@ -10,7 +10,7 @@ public record SubgraphQuery(
 );
 
 /// <summary>
-/// Industrial-grade Subgraph Isomorphism &amp; Pattern Matching Engine.
+/// Subgraph Isomorphism &amp; Pattern Matching Engine.
 /// Identifies target functional groups and pharmacophore substructures directly on chemical graphs.
 /// </summary>
 public static class SubgraphMatcher

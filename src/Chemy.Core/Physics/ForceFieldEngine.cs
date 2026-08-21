@@ -272,7 +272,10 @@ public static class ForceFieldEngine
             }
         }
 
-        // 3. UFF Dihedral Torsional Strain: E_torsion = 0.5 * V_n * (1 - cos(n * phi - phi0))
+        // 3. UFF Dihedral Torsional Strain: E_torsion = (V_jk / (n_ij * n_jk)) * 0.5 * (1 - cos(n*phi0) * cos(n*phi))
+        //    Rappé et al. (1992, J. Am. Chem. Soc. 114, 10024) §II.D:
+        //    The total barrier V_jk is divided equally among all n_ij × n_jk torsion interactions around bond j–k.
+        //    For sp3–sp3: n = 3, phi0 = 180° → cos(3*180°) = -1 → E = (V/n_pairs) * 0.5 * (1 + cos(3*phi))
         foreach (var centralBond in molecule3D.SourceMolecule.Bonds)
         {
             int j = centralBond.Atom1Index;
@@ -291,6 +294,10 @@ public static class ForceFieldEngine
                 .Where(n => n != j)
                 .ToList();
 
+            int nPairs = jNeighbors.Count * kNeighbors.Count;
+            if (nPairs == 0) continue;
+            double vPerPair = 2.5 / nPairs;
+
             foreach (var i in jNeighbors)
             {
                 foreach (var l in kNeighbors)
@@ -298,7 +305,7 @@ public static class ForceFieldEngine
                     if (i != l && i < nAtoms && l < nAtoms)
                     {
                         double phiRad = CalculateDihedralAngleRad(positions[i], positions[j], positions[k], positions[l]);
-                        eTorsion += 0.5 * 2.5 * (1.0 + Math.Cos(3.0 * phiRad));
+                        eTorsion += 0.5 * vPerPair * (1.0 + Math.Cos(3.0 * phiRad));
                     }
                 }
             }

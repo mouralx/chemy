@@ -26,7 +26,7 @@ except ImportError:
     RDKIT_AVAILABLE = False
 
 
-# 32 Benchmark Compounds: 16 Tuning set + 16 Held-out Validation set (F, Cl, Br, S, P, Heterocycles, Polycycles)
+# 48 Benchmark Compounds: 16 Tuning + 16 Expanded Regression + 16 Prospective Evaluation
 BENCHMARK_COMPOUNDS = [
     # --- SUBSET 1: Core Tuning Benchmark (16 molecules) ---
     {
@@ -285,6 +285,135 @@ BENCHMARK_COMPOUNDS = [
         "formula": "C12H12N2O2S",
         "subset": "expanded_regression",
         "provenance": f"ChEMBL22 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    # --- SUBSET 3: Prospective Evaluation Benchmark (Frozen Unseen Bioactive Compounds) (16 molecules) ---
+    {
+        "id": "CHEMBL1431",
+        "name": "Metformin",
+        "smiles": "CN(C)C(=N)NC(=N)N",
+        "formula": "C4H11N5",
+        "subset": "prospective",
+        "provenance": f"ChEMBL1431 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL12",
+        "name": "Diazepam",
+        "smiles": "CN1C(=O)CN=C(c2ccccc2)c3cc(Cl)ccc13",
+        "formula": "C16H13ClN2O",
+        "subset": "prospective",
+        "provenance": f"ChEMBL12 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL545",
+        "name": "Warfarin",
+        "smiles": "CC(=O)CC(c1ccccc1)c2c(O)c3ccccc3oc2=O",
+        "formula": "C19H16O4",
+        "subset": "prospective",
+        "provenance": f"ChEMBL545 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL41",
+        "name": "Fluoxetine",
+        "smiles": "CNCCC(Oc1ccc(C(F)(F)F)cc1)c2ccccc2",
+        "formula": "C17H18F3NO",
+        "subset": "prospective",
+        "provenance": f"ChEMBL41 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL83",
+        "name": "Tamoxifen",
+        "smiles": "CCC(=C(c1ccccc1)c2ccc(OCCN(C)C)cc2)c3ccccc3",
+        "formula": "C26H29NO",
+        "subset": "prospective",
+        "provenance": f"ChEMBL83 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL95",
+        "name": "Propranolol",
+        "smiles": "CC(C)NCC(O)COc1cccc2ccccc12",
+        "formula": "C16H21NO2",
+        "subset": "prospective",
+        "provenance": f"ChEMBL95 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL1456",
+        "name": "Salbutamol",
+        "smiles": "CC(C)(C)NCC(O)c1ccc(O)c(CO)c1",
+        "formula": "C13H21NO3",
+        "subset": "prospective",
+        "provenance": f"ChEMBL1456 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL428",
+        "name": "Atenolol",
+        "smiles": "CC(C)NCC(O)COc1ccc(CC(N)=O)cc1",
+        "formula": "C14H22N2O3",
+        "subset": "prospective",
+        "provenance": f"ChEMBL428 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL58",
+        "name": "Lidocaine",
+        "smiles": "CCN(CC)CC(=O)Nc1c(C)cccc1C",
+        "formula": "C14H22N2O",
+        "subset": "prospective",
+        "provenance": f"ChEMBL58 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL444",
+        "name": "Procaine",
+        "smiles": "CCN(CC)CCOC(=O)c1ccc(N)cc1",
+        "formula": "C13H20N2O2",
+        "subset": "prospective",
+        "provenance": f"ChEMBL444 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL64",
+        "name": "Ketoprofen",
+        "smiles": "CC(C(=O)O)c1cccc(C(=O)c2ccccc2)c1",
+        "formula": "C16H14O3",
+        "subset": "prospective",
+        "provenance": f"ChEMBL64 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL185",
+        "name": "Naproxen",
+        "smiles": "COc1ccc2cc(C(C)C(=O)O)ccc2c1",
+        "formula": "C14H14O3",
+        "subset": "prospective",
+        "provenance": f"ChEMBL185 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL6",
+        "name": "Phenytoin",
+        "smiles": "O=C1NC(=O)C(c2ccccc2)(c3ccccc3)N1",
+        "formula": "C15H12N2O2",
+        "subset": "prospective",
+        "provenance": f"ChEMBL6 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL1482",
+        "name": "Sulfamethoxazole",
+        "smiles": "Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1",
+        "formula": "C10H11N3O3S",
+        "subset": "prospective",
+        "provenance": f"ChEMBL1482 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL467",
+        "name": "Prilocaine",
+        "smiles": "CCCNC(C)C(=O)Nc1ccccc1C",
+        "formula": "C13H20N2O",
+        "subset": "prospective",
+        "provenance": f"ChEMBL467 / RDKit {PINNED_RDKIT_VERSION}"
+    },
+    {
+        "id": "CHEMBL553",
+        "name": "Tolbutamide",
+        "smiles": "CCCCNC(=O)NS(=O)(=O)c1ccc(C)cc1",
+        "formula": "C12H18N2O3S",
+        "subset": "prospective",
+        "provenance": f"ChEMBL553 / RDKit {PINNED_RDKIT_VERSION}"
     }
 ]
 
