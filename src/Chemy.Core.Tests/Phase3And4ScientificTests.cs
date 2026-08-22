@@ -65,29 +65,53 @@ public class Phase3And4ScientificTests
     }
 
     [Fact]
-    public void ShomateThermodynamics_WaterGas_CalculatesStandardEnthalpyAndEntropy()
+    public void ShomateThermodynamics_WaterGas_UsesPublishedIntervalWithoutExtrapolation()
     {
-        var result298 = ShomateThermodynamics.Evaluate("H2O(g)", 298.15);
-        Assert.NotNull(result298);
-
-        // NIST standard value for H2O(g) formation enthalpy at 298.15 K is -241.83 kJ/mol
-        Assert.InRange(result298.StandardEnthalpyH, -245.0, -238.0);
-
-        // NIST standard entropy S° at 298.15 K is 188.8 J/(mol*K)
-        Assert.InRange(result298.StandardEntropyS, 180.0, 200.0);
-
-        // High temperature test at 1000 K
+        var result500 = ShomateThermodynamics.Evaluate("H2O(g)", 500.0);
         var result1000 = ShomateThermodynamics.Evaluate("H2O(g)", 1000.0);
+        Assert.NotNull(result500);
         Assert.NotNull(result1000);
-        Assert.True(result1000.HeatCapacityCp > result298.HeatCapacityCp); // Cp increases with T
+
+        Assert.InRange(result500.StandardEnthalpyH, -234.91, -234.89);
+        Assert.InRange(result500.StandardEntropyS, 206.52, 206.54);
+        Assert.InRange(result500.HeatCapacityCp, 35.21, 35.23);
+        Assert.Equal(new ShomateTemperatureRange(500.0, 1700.0), result500.CoefficientRange);
+        Assert.StartsWith("https://webbook.nist.gov/", result500.SourceUrl, StringComparison.Ordinal);
+        Assert.True(result1000.HeatCapacityCp > result500.HeatCapacityCp);
     }
 
     [Fact]
     public void ShomateThermodynamics_OutOfRangeTemperature_ThrowsArgumentOutOfRangeException()
     {
-        // Shomate database valid range is 298.15 K to 2000.0 K
-        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 100.0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 3500.0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 499.99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("H2O(g)", 6000.01));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("CO2(g)", double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("CO2(g)", double.PositiveInfinity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ShomateThermodynamics.Evaluate("CO2(g)", 0.0));
+    }
+
+    [Fact]
+    public void ShomateThermodynamics_IntervalBoundary_SelectsUpperSegmentDeterministically()
+    {
+        var belowBoundary = ShomateThermodynamics.Evaluate("CO2(g)", 1199.999);
+        var atBoundary = ShomateThermodynamics.Evaluate("CO2(g)", 1200.0);
+
+        Assert.NotNull(belowBoundary);
+        Assert.NotNull(atBoundary);
+        Assert.Equal(new ShomateTemperatureRange(298.0, 1200.0), belowBoundary.CoefficientRange);
+        Assert.Equal(new ShomateTemperatureRange(1200.0, 6000.0), atBoundary.CoefficientRange);
+        Assert.InRange(Math.Abs(belowBoundary.HeatCapacityCp - atBoundary.HeatCapacityCp), 0.0, 0.05);
+    }
+
+    [Fact]
+    public void ShomateThermodynamics_SupportedRanges_AreSpeciesSpecific()
+    {
+        Assert.Equal(
+            [new ShomateTemperatureRange(500.0, 1700.0), new ShomateTemperatureRange(1700.0, 6000.0)],
+            ShomateThermodynamics.GetSupportedTemperatureRanges("H2O(g)"));
+        Assert.Equal(3, ShomateThermodynamics.GetSupportedTemperatureRanges("O2(g)").Count);
+        Assert.Empty(ShomateThermodynamics.GetSupportedTemperatureRanges("unsupported"));
+        Assert.Null(ShomateThermodynamics.Evaluate("unsupported", 500.0));
     }
 
     [Fact]

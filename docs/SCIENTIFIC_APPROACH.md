@@ -74,15 +74,19 @@ All matrix operations are performed over the exact rational field $\mathbb{Q}$ u
 
 ---
 
-## 6. 4-Term Molecular Mechanics Force Field
+## 6. 5-Term UFF-Inspired Molecular Mechanics Force Field
 
-### Analytical Potential Function
-$$E_{\text{total}} = \sum \frac{1}{2} k_r (r - r_0)^2 + \sum \frac{1}{2} k_\theta (\theta - \theta_0)^2 + \sum \frac{V_3}{2}[1 + \cos(3\phi)] + \sum_{\text{1,4+}} \epsilon \left[\left(\frac{r_m}{r_{ij}}\right)^{12} - 2\left(\frac{r_m}{r_{ij}}\right)^6\right]$$
+### Potential Function
+$$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$$
+
+Bond and angle terms are harmonic, torsions use the implemented 2-fold/3-fold forms, and trivalent planar C/N/O centers use three out-of-plane permutations. Carbonyl carbon receives the published UFF 50 kcal/mol inversion special case. `CalculateEnergyComponents` exposes every term independently; the implementation remains an explicitly documented UFF-inspired subset rather than a full interchangeable UFF engine.
 
 ### Central Finite-Difference Force Gradients ($-\nabla E$)
 Forces on atom coordinates are evaluated via high-precision central finite difference numerical gradients:
 $$F_{x,i} = -\frac{E(\mathbf{r}_i + h\hat{x}) - E(\mathbf{r}_i - h\hat{x})}{2h}$$
 with displacement $h = 10^{-5}\text{ \AA}$, coupled with line-search optimization and soft-core steric clash buffering.
+
+`EnergyMinimizationResult` and `Geometry3DEngine.GenerateConformer3DResult` expose convergence, termination reason, final gradient, iteration count, and initial/final energies so production callers can reject non-converged coordinates.
 
 ---
 

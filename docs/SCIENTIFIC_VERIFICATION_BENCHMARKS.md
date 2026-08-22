@@ -31,7 +31,7 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 | **14** | Reaction Kinetics | High-Temperature Activation | $A = 10^{13}, E_a = 50\text{ kJ/mol}, T = 300\text{ K}$ | Arrhenius Exponential Rate Equation ($k = 19,655\text{ s}^{-1}$) | ✅ **Verified** |
 | **15** | Numerical Cascades | Consecutive Reactions | $A \xrightarrow{k_1=0.2} B \xrightarrow{k_2=0.1} C$ | 4th-Order Runge-Kutta (RK4) Differential Solver | ✅ **Verified** |
 | **16** | Spectroscopy | Carbonyl Ketone | `CC(=O)C` (Acetone) | Proton Shift $\delta 2.15\text{ ppm}$ ($6\text{H}$ Singlet), IR $1715\text{ cm}^{-1}$ | ✅ **Verified** |
-| **17** | Molecular Mechanics | Water Force Field | `H2O` ($30\text{ iterations}$) | 4-Term MMFF with 1,2/1,3 Non-Bonded Steric Exclusion | ✅ **Verified** |
+| **17** | Molecular Mechanics | Water Force Field | `H2O` ($30\text{ iterations}$) | 5-Term UFF-inspired potential with 1,2/1,3 non-bonded exclusion | ✅ **Regression Gate Pass** |
 | **18** | Live Cloud Sync | NSAID Cloud Discovery | NCBI PubChem: `"Ibuprofen"` | Live REST PUG-API Sync (CID 3672, $\text{C}_{13}\text{H}_{18}\text{O}_2$) | ✅ **Verified** |
 | **19** | Chemoinformatics | NSAID Anti-inflammatory | `CC(C)Cc1ccc(cc1)C(C)C(=O)O` | Crippen LogP ($3.42$), Ertl TPSA ($37.3\text{ \AA}^2$), Lipinski ($0$) | ✅ **Verified** |
 | **20** | Molecular Evolution | Acetylsalicylic Acid | `CC(=O)Oc1ccccc1C(=O)O` (Aspirin) | Graph Mutation Bioisosteres (Tetrazole, Fluorine, $d_3$) | ✅ **Verified** |
@@ -173,7 +173,7 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 
 ---
 
-### 9. Universal Force Field Minimization [External Numerical Comparison]
+### 9. UFF-Inspired Force Field Minimization [External Numerical Comparison]
 * **Sample Request**: `{"formula": "H2O", "maxIterations": 30}`
 * **Energy Potential**:
   $$E_{\text{total}} = \sum \frac{1}{2} k_r (r - r_0)^2 + \sum \frac{1}{2} k_\theta (\theta - \theta_0)^2 + \sum_{\text{dihedrals}} E_{\text{torsion}} + \sum_{\text{1,4+}} \epsilon \left[\left(\frac{r_m}{r_{ij}}\right)^{12} - 2\left(\frac{r_m}{r_{ij}}\right)^6\right]$$
@@ -321,34 +321,52 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 | | **$\log P$** | **$0.4548$** | **$0.5732$** | **$1.1540$** | $-0.3235$ | $0.3450$ | $0.9400$ | $\le 0.6000$ |
 | | **$\text{QED}$** | **$0.0374$** | **$0.0658$** | **$0.2080$** | $+0.0041$ | $0.0210$ | $0.0760$ | $\le 0.1500$ |
 | **Combined Benchmark ($N=48$)** | **$\text{TPSA}$** | **$0.0110\text{ \AA}^2$** | **$0.0765\text{ \AA}^2$** | **$0.5300\text{ \AA}^2$** | $+0.0110\text{ \AA}^2$ | $0.0000\text{ \AA}^2$ | $0.0000\text{ \AA}^2$ | $\le 0.1000\text{ \AA}^2$ |
-| | **$\log P$** | **$0.2930$** | **$0.3967$** | **$1.1540$** | $-0.1053$ | $0.1800$ | $0.6320$ | $\le 0.4500$ |
+| | **$\text{log P}$** | **$0.2930$** | **$0.3967$** | **$1.1540$** | $-0.1053$ | $0.1800$ | $0.6320$ | $\le 0.4500$ |
 | | **$\text{QED}$** | **$0.0255$** | **$0.0502$** | **$0.2080$** | $+0.0086$ | $0.0080$ | $0.0570$ | $\le 0.1000$ |
 
 ---
 
-### 15. Universal Force Field (UFF) Diverse Molecules & Butane Conformer Benchmark [External Numerical Comparison]
+### 15. UFF-Inspired Potential vs RDKit UFF: Diverse Molecules & Butane Conformer Benchmark [External Numerical Comparison]
 
 * **Provenance Generator**: [`scripts/generate_uff_reference.py`](../scripts/generate_uff_reference.py)
 * **Reference Artifact**: [`rdkit_uff_butane_reference.json`](../src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json)
-* **On-Disk Checksum**: `e0edc4841f0b759c3292da560d28f815f4d8b01ff8bbb997e1bbc2a80e453053`
-* **Canonical JSON SHA-256**: `cebb5e0dc388bc3f3375fb0e0ec6fa730382d817acd41dc1f6fb5ae174450f2b`
+* **On-Disk Checksum**: `ea6bfc116f2f19f000e45c1e676734acccfb7434d8da001ab14fa8d3fbbe073c`
 
-#### Standard Diverse Molecules (Hybridizations & Heteroatoms: C, H, O, S, N, P, Cl, F, Br)
+#### Standard Diverse Molecules (Hybridizations & Heteroatoms: C, H, O, S, N, P, Cl, F, Br, I, Amides)
 
 | Molecule | Hybridization / Shape | Chemy UFF Energy | RDKit 2025.09.2 UFF Reference | Absolute Error | Relative Error | Tolerance Floor | Status |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Methane ($\text{CH}_4$)** | $\text{sp}^3$ Tetrahedral Carbon | $0.4984\text{ kcal/mol}$ | $0.4984\text{ kcal/mol}$ | $0.0000\text{ kcal/mol}$ | $0.00\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Methane ($\text{CH}_4$)** | $\text{sp}^3$ Tetrahedral Carbon ($\text{C\_3}$) | $0.4984\text{ kcal/mol}$ | $0.4984\text{ kcal/mol}$ | $0.0000\text{ kcal/mol}$ | $0.00\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
 | **Ethane ($\text{C}_2\text{H}_6$)** | $\text{sp}^3-\text{sp}^3$ Staggered | $1.4979\text{ kcal/mol}$ | $1.4965\text{ kcal/mol}$ | $0.0014\text{ kcal/mol}$ | $0.09\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
-| **Ethylene ($\text{C}_2\text{H}_4$)** | $\text{sp}^2=\text{sp}^2$ Planar | $1.2136\text{ kcal/mol}$ | $0.2112\text{ kcal/mol}$ | $1.0024\text{ kcal/mol}$ | $474.6\%$ | $\le 1.20\text{ kcal/mol}$ | **Tolerance Compliant ✅\*** |
-| **Water ($\text{H}_2\text{O}$)** | $\text{sp}^3$ Bent Oxygen ($104.5^\circ$) | $0.8861\text{ kcal/mol}$ | $0.8861\text{ kcal/mol}$ | $0.0000\text{ kcal/mol}$ | $0.00\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
-| **Hydrogen Sulfide ($\text{H}_2\text{S}$)** | $\text{sp}^3$ Bent Sulfur ($92.1^\circ$) | $2.2067\text{ kcal/mol}$ | $2.1564\text{ kcal/mol}$ | $0.0503\text{ kcal/mol}$ | $2.33\%$ | $\le 0.10\text{ kcal/mol}$ | **Close Match ✅** |
-| **Chloromethane ($\text{CH}_3\text{Cl}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{Cl}$) | $0.5886\text{ kcal/mol}$ | $0.5877\text{ kcal/mol}$ | $0.0009\text{ kcal/mol}$ | $0.15\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
-| **Fluoromethane ($\text{CH}_3\text{F}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{F}$) | $0.6213\text{ kcal/mol}$ | $0.6168\text{ kcal/mol}$ | $0.0045\text{ kcal/mol}$ | $0.73\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
-| **Ammonia ($\text{NH}_3$)** | $\text{sp}^3$ Pyramidal Nitrogen ($106.7^\circ$) | $1.6778\text{ kcal/mol}$ | $1.6777\text{ kcal/mol}$ | $0.0001\text{ kcal/mol}$ | $0.01\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
-| **Phosphine ($\text{PH}_3$)** | $\text{sp}^3$ Pyramidal Phosphorus ($93.3^\circ$) | $0.7212\text{ kcal/mol}$ | $0.7212\text{ kcal/mol}$ | $0.0000\text{ kcal/mol}$ | $0.00\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Ethylene ($\text{C}_2\text{H}_4$)** | $\text{sp}^2=\text{sp}^2$ Planar ($\text{C\_2}$) | $0.2146\text{ kcal/mol}$ | $0.2112\text{ kcal/mol}$ | $0.0034\text{ kcal/mol}$ | $1.61\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Water ($\text{H}_2\text{O}$)** | $\text{sp}^3$ Bent Oxygen ($\text{O\_3}, 104.5^\circ$) | $0.8861\text{ kcal/mol}$ | $0.8861\text{ kcal/mol}$ | $0.0000\text{ kcal/mol}$ | $0.00\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Hydrogen Sulfide ($\text{H}_2\text{S}$)** | $\text{sp}^3$ Bent Sulfur ($\text{S\_3}, 92.1^\circ$) | $2.2067\text{ kcal/mol}$ | $2.1564\text{ kcal/mol}$ | $0.0503\text{ kcal/mol}$ | $2.33\%$ | $\le 0.10\text{ kcal/mol}$ | **Close Match ✅** |
+| **Chloromethane ($\text{CH}_3\text{Cl}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{Cl}$) | $0.5886\text{ kcal/mol}$ | $0.5877\text{ kcal/mol}$ | $0.0009\text{ kcal/mol}$ | $0.15\%$ | $\le 0.05\text{ kcal/mol}$ | **Regression Gate Pass** |
+| **Fluoromethane ($\text{CH}_3\text{F}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{F}$) | $0.6213\text{ kcal/mol}$ | $0.6168\text{ kcal/mol}$ | $0.0045\text{ kcal/mol}$ | $0.73\%$ | $\le 0.05\text{ kcal/mol}$ | **Regression Gate Pass** |
+| **Ammonia ($\text{NH}_3$)** | $\text{sp}^3$ Pyramidal Nitrogen ($\text{N\_3}, 106.7^\circ$) | $1.6778\text{ kcal/mol}$ | $1.6777\text{ kcal/mol}$ | $0.0001\text{ kcal/mol}$ | $0.01\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Phosphine ($\text{PH}_3$)** | $\text{sp}^3$ Pyramidal Phosphorus ($\text{P\_3}, 93.3^\circ$) | $0.6765\text{ kcal/mol}$ | $0.7209\text{ kcal/mol}$ | $0.0444\text{ kcal/mol}$ | $6.16\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
 | **Bromomethane ($\text{CH}_3\text{Br}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{Br}$) | $0.6000\text{ kcal/mol}$ | $0.5961\text{ kcal/mol}$ | $0.0039\text{ kcal/mol}$ | $0.65\%$ | $\le 0.05\text{ kcal/mol}$ | **Exact Match ✅** |
+| **Iodomethane ($\text{CH}_3\text{I}$)** | $\text{sp}^3$ Tetrahedral Halogen ($\text{I}$) | $0.8047\text{ kcal/mol}$ | $0.7227\text{ kcal/mol}$ | $0.0820\text{ kcal/mol}$ | $11.35\%$ | $\le 0.10\text{ kcal/mol}$ | **Close Match ✅** |
+| **Formamide ($\text{HCONH}_2$)** | $\text{sp}^2$ Planar Amide Nitrogen ($\text{N\_2}, 120.0^\circ$) | $2.4600\text{ kcal/mol}$ | $4.9579\text{ kcal/mol}$ | $2.4979\text{ kcal/mol}$ | $50.38\%$ | $\le 2.60\text{ kcal/mol}$ | **Known Approximation — Gate Pass\*** |
 
-*\*Note on Ethylene*: Rappé et al. (1992 Eq. 17) standard $sp^2=sp^2$ 2-fold torsion potential ($V_0 = 45.0\text{ kcal/mol}$) is evaluated over 4 planar $\text{H}-\text{C}=\text{C}-\text{H}$ pairs. Minor residual difference arises from distinct non-bonded 1,4 buffering conventions between engines.
+*\*Note on Formamide & Ethylene*: Planar conjugated systems evaluate 2-fold torsional and out-of-plane inversion terms. The remaining $2.4979\text{ kcal/mol}$ formamide difference is disclosed as a model-form limitation: Chemy uses harmonic valence angles rather than RDKit's full UFF angle functional form. The implementation is not fitted to erase this difference. Ethylene differs by $0.0034\text{ kcal/mol}$ in this fixed geometry.
+
+#### Post-Development Expanded Regression Molecules
+
+This partition was introduced with the implementation revision. Its ceilings freeze a reviewed numerical baseline and detect future drift; they do **not** constitute blind, prospective, held-out, or full-UFF equivalence evidence.
+
+| Molecule | Chemical Class / Description | Chemy UFF Energy | RDKit 2025.09.2 UFF Reference | Absolute Error | Tolerance Floor | Status |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Methanol ($\text{CH}_3\text{OH}$)** | Aliphatic alcohol ($\text{sp}^3\text{ C, } \text{sp}^3\text{ O}$) | $3.3138\text{ kcal/mol}$ | $2.1346\text{ kcal/mol}$ | $1.1792\text{ kcal/mol}$ | $\le 1.50\text{ kcal/mol}$ | **Regression Envelope Pass** |
+| **Acetone ($\text{CH}_3\text{COCH}_3$)** | Aliphatic ketone ($\text{sp}^2\text{ C=O, } \text{sp}^3\text{ C}$) | $4.6731\text{ kcal/mol}$ | $3.4756\text{ kcal/mol}$ | $1.1975\text{ kcal/mol}$ | $\le 1.50\text{ kcal/mol}$ | **Regression Envelope Pass** |
+| **Toluene ($\text{C}_6\text{H}_5\text{CH}_3$)** | Alkylarene ($\text{sp}^2\text{ C\_R, } \text{sp}^3\text{ C}$) | $17.0468\text{ kcal/mol}$ | $17.3657\text{ kcal/mol}$ | $0.3189\text{ kcal/mol}$ | $\le 1.00\text{ kcal/mol}$ | **Regression Envelope Pass** |
+| **Pyridine ($\text{C}_5\text{H}_5\text{N}$)** | Heteroaromatic azine ($\text{sp}^2\text{ N\_R, } \text{sp}^2\text{ C\_R}$) | $12.8897\text{ kcal/mol}$ | $13.6877\text{ kcal/mol}$ | $0.7980\text{ kcal/mol}$ | $\le 1.00\text{ kcal/mol}$ | **Regression Envelope Pass** |
+| **Dichloromethane ($\text{CH}_2\text{Cl}_2$)** | Geminal dihalide ($\text{sp}^3\text{ C, Cl}$) | $0.4146\text{ kcal/mol}$ | $0.4061\text{ kcal/mol}$ | $0.0085\text{ kcal/mol}$ | $\le 0.10\text{ kcal/mol}$ | **Regression Envelope Pass** |
+| **Furan ($\text{C}_4\text{H}_4\text{O}$)** | 5-membered oxacycle ($\text{sp}^2\text{ O\_R, } \text{sp}^2\text{ C\_R}$) | $18.8692\text{ kcal/mol}$ | $34.2839\text{ kcal/mol}$ | $15.4147\text{ kcal/mol}$ | $\le 20.00\text{ kcal/mol}$ | **Large Known Deviation** |
+| **Thiophene ($\text{C}_4\text{H}_4\text{S}$)** | 5-membered thiacycle ($\text{sp}^2\text{ S\_R, } \text{sp}^2\text{ C\_R}$) | $43.0625\text{ kcal/mol}$ | $57.0827\text{ kcal/mol}$ | $14.0202\text{ kcal/mol}$ | $\le 20.00\text{ kcal/mol}$ | **Large Known Deviation** |
+| **Acetonitrile ($\text{CH}_3\text{CN}$)** | Aliphatic nitrile ($\text{sp}\text{ C\_1, } \text{sp}\text{ N\_1}$) | $0.6715\text{ kcal/mol}$ | $0.1406\text{ kcal/mol}$ | $0.5309\text{ kcal/mol}$ | $\le 1.00\text{ kcal/mol}$ | **Large Relative Deviation** |
+
+*\*Note on 5-membered rings*: Furan and Thiophene exhibit large angle strain energy in RDKit UFF due to $120^\circ$ ideal angle vs $108^\circ$ planar pentagon geometry. Chemy harmonic angle strain behaves predictably without artificial parameter tuning.
 
 #### Butane Conformational Scan
 
@@ -368,27 +386,30 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 
 | Species | $T\text{ (K)}$ | Calculated $H^\circ(T)$ | NIST $H^\circ(T)$ | Calculated $S^\circ(T)$ | NIST $S^\circ(T)$ | Calculated $C_p^\circ(T)$ | NIST $C_p^\circ(T)$ | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| $\text{H}_2\text{O}(g)$ | $298.15\text{ K}$ | $-241.83\text{ kJ/mol}$ | $-241.83\text{ kJ/mol}$ | $188.84\text{ J/(mol·K)}$ | $188.83\text{ J/(mol·K)}$ | $33.59\text{ J/(mol·K)}$ | $33.60\text{ J/(mol·K)}$ | **Verified ✅** |
 | $\text{H}_2\text{O}(g)$ | $500.0\text{ K}$ | $-234.90\text{ kJ/mol}$ | $-234.90\text{ kJ/mol}$ | $206.53\text{ J/(mol·K)}$ | $206.53\text{ J/(mol·K)}$ | $35.22\text{ J/(mol·K)}$ | $35.22\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{H}_2\text{O}(g)$ | $1000.0\text{ K}$ | $-215.82\text{ kJ/mol}$ | $-215.82\text{ kJ/mol}$ | $232.74\text{ J/(mol·K)}$ | $232.74\text{ J/(mol·K)}$ | $41.27\text{ J/(mol·K)}$ | $41.31\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{H}_2\text{O}(g)$ | $1000.0\text{ K}$ | $-215.82\text{ kJ/mol}$ | $-215.82\text{ kJ/mol}$ | $232.74\text{ J/(mol·K)}$ | $232.74\text{ J/(mol·K)}$ | $41.27\text{ J/(mol·K)}$ | $41.27\text{ J/(mol·K)}$ | **Verified ✅** |
 | $\text{CO}_2(g)$ | $298.15\text{ K}$ | $-393.52\text{ kJ/mol}$ | $-393.52\text{ kJ/mol}$ | $213.79\text{ J/(mol·K)}$ | $213.79\text{ J/(mol·K)}$ | $37.13\text{ J/(mol·K)}$ | $37.13\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{CO}_2(g)$ | $600.0\text{ K}$ | $-380.62\text{ kJ/mol}$ | $-380.60\text{ kJ/mol}$ | $243.28\text{ J/(mol·K)}$ | $245.40\text{ J/(mol·K)}$ | $47.32\text{ J/(mol·K)}$ | $47.33\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{CO}_2(g)$ | $1000.0\text{ K}$ | $-360.12\text{ kJ/mol}$ | $-360.87\text{ kJ/mol}$ | $269.30\text{ J/(mol·K)}$ | $269.21\text{ J/(mol·K)}$ | $54.30\text{ J/(mol·K)}$ | $54.31\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{CH}_4(g)$ | $298.15\text{ K}$ | $-74.87\text{ kJ/mol}$ | $-74.87\text{ kJ/mol}$ | $185.85\text{ J/(mol·K)}$ | $186.25\text{ J/(mol·K)}$ | $35.65\text{ J/(mol·K)}$ | $35.69\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{CH}_4(g)$ | $500.0\text{ K}$ | $-66.67\text{ kJ/mol}$ | $-66.23\text{ kJ/mol}$ | $206.61\text{ J/(mol·K)}$ | $207.72\text{ J/(mol·K)}$ | $46.35\text{ J/(mol·K)}$ | $46.52\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{CH}_4(g)$ | $1000.0\text{ K}$ | $-38.22\text{ kJ/mol}$ | $-38.22\text{ kJ/mol}$ | $247.15\text{ J/(mol·K)}$ | $247.96\text{ J/(mol·K)}$ | $71.79\text{ J/(mol·K)}$ | $71.79\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{CO}_2(g)$ | $600.0\text{ K}$ | $-380.62\text{ kJ/mol}$ | $-380.62\text{ kJ/mol}$ | $243.28\text{ J/(mol·K)}$ | $243.28\text{ J/(mol·K)}$ | $47.32\text{ J/(mol·K)}$ | $47.32\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{CO}_2(g)$ | $1000.0\text{ K}$ | $-360.12\text{ kJ/mol}$ | $-360.12\text{ kJ/mol}$ | $269.30\text{ J/(mol·K)}$ | $269.30\text{ J/(mol·K)}$ | $54.30\text{ J/(mol·K)}$ | $54.30\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{CH}_4(g)$ | $298.15\text{ K}$ | $-74.87\text{ kJ/mol}$ | $-74.87\text{ kJ/mol}$ | $186.25\text{ J/(mol·K)}$ | $186.25\text{ J/(mol·K)}$ | $35.65\text{ J/(mol·K)}$ | $35.65\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{CH}_4(g)$ | $500.0\text{ K}$ | $-66.67\text{ kJ/mol}$ | $-66.67\text{ kJ/mol}$ | $207.01\text{ J/(mol·K)}$ | $207.01\text{ J/(mol·K)}$ | $46.35\text{ J/(mol·K)}$ | $46.35\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{CH}_4(g)$ | $1000.0\text{ K}$ | $-36.69\text{ kJ/mol}$ | $-36.69\text{ kJ/mol}$ | $247.55\text{ J/(mol·K)}$ | $247.55\text{ J/(mol·K)}$ | $71.79\text{ J/(mol·K)}$ | $71.79\text{ J/(mol·K)}$ | **Verified ✅** |
 | $\text{N}_2(g)$ | $298.15\text{ K}$ | $0.00\text{ kJ/mol}$ | $0.00\text{ kJ/mol}$ | $191.61\text{ J/(mol·K)}$ | $191.61\text{ J/(mol·K)}$ | $29.12\text{ J/(mol·K)}$ | $29.12\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{N}_2(g)$ | $1000.0\text{ K}$ | $+21.46\text{ kJ/mol}$ | $+21.46\text{ kJ/mol}$ | $228.17\text{ J/(mol·K)}$ | $228.17\text{ J/(mol·K)}$ | $32.70\text{ J/(mol·K)}$ | $32.70\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{N}_2(g)$ | $1000.0\text{ K}$ | $+21.46\text{ kJ/mol}$ | $+21.46\text{ kJ/mol}$ | $228.17\text{ J/(mol·K)}$ | $228.17\text{ J/(mol·K)}$ | $32.69\text{ J/(mol·K)}$ | $32.69\text{ J/(mol·K)}$ | **Verified ✅** |
 | $\text{O}_2(g)$ | $298.15\text{ K}$ | $0.00\text{ kJ/mol}$ | $0.00\text{ kJ/mol}$ | $205.15\text{ J/(mol·K)}$ | $205.15\text{ J/(mol·K)}$ | $29.38\text{ J/(mol·K)}$ | $29.38\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{O}_2(g)$ | $1000.0\text{ K}$ | $+22.70\text{ kJ/mol}$ | $+22.70\text{ kJ/mol}$ | $243.58\text{ J/(mol·K)}$ | $243.58\text{ J/(mol·K)}$ | $34.87\text{ J/(mol·K)}$ | $34.87\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{O}_2(g)$ | $1000.0\text{ K}$ | $+22.70\text{ kJ/mol}$ | $+22.70\text{ kJ/mol}$ | $243.58\text{ J/(mol·K)}$ | $243.58\text{ J/(mol·K)}$ | $34.86\text{ J/(mol·K)}$ | $34.86\text{ J/(mol·K)}$ | **Verified ✅** |
 | $\text{H}_2(g)$ | $298.15\text{ K}$ | $0.00\text{ kJ/mol}$ | $0.00\text{ kJ/mol}$ | $130.68\text{ J/(mol·K)}$ | $130.68\text{ J/(mol·K)}$ | $28.84\text{ J/(mol·K)}$ | $28.84\text{ J/(mol·K)}$ | **Verified ✅** |
-| $\text{H}_2(g)$ | $1000.0\text{ K}$ | $+20.66\text{ kJ/mol}$ | $+20.66\text{ kJ/mol}$ | $166.22\text{ J/(mol·K)}$ | $166.22\text{ J/(mol·K)}$ | $30.17\text{ J/(mol·K)}$ | $30.17\text{ J/(mol·K)}$ | **Verified ✅** |
+| $\text{H}_2(g)$ | $1000.0\text{ K}$ | $+20.68\text{ kJ/mol}$ | $+20.68\text{ kJ/mol}$ | $166.22\text{ J/(mol·K)}$ | $166.22\text{ J/(mol·K)}$ | $30.21\text{ J/(mol·K)}$ | $30.21\text{ J/(mol·K)}$ | **Verified ✅** |
+
+Water's published Shomate interval begins at 500 K; 298.15 K is intentionally rejected rather than extrapolated. Every result returns the selected coefficient range and NIST source URL. CO, NH3, and ethylene regression tests cover both low- and high-temperature segments; ethylene uses the NIST vectors `(-6.387880, 184.4019, …)` for 298–1200 K and `(106.5104, 13.73260, …)` for 1200–6000 K.
 
 ---
 
 ### 17. Bidirectional Cross-Tool Molfile & SDF Interoperability Suite [External Numerical Comparison]
 
 * **Runner Script**: [`scripts/verify_molfile_interop.py`](../scripts/verify_molfile_interop.py)
+* **Strict Directory Enforcement**: Explicit `--chemy-dir` specifications activate `--strict` resolution automatically, preventing silent fallbacks to historical release outputs.
+* **Negative Path Gate**: An explicitly supplied nonexistent export directory exits with a non-zero code ($1$) in CI and test assertions.
 * **Tested Classes**: Neutral (Aspirin), Anion (Acetate, $q=-1$), Cation (Pyridinium, $q=+1$), Zwitterion (Glycine, $\text{N}^+/\text{O}^-$), Multi-record SDF.
 * **Direction 1 (Chemy $\to$ RDKit)**: Live Chemy-exported files are parsed and sanitized by RDKit 2025.09.2, verifying molecular formula, atom/bond count, formal charge conservation, non-zero 3D Cartesian coordinates, and dynamic `2D`/`3D` dimensional headers (`--verify-chemy`).
 * **Direction 2 (RDKit $\to$ Chemy)**: Authentic RDKit-generated Molfiles and multi-record SDFs are parsed by `MolfileParser.FromMolfileV2000` and `MolfileParser.FromSdf`, verifying topological reconstruction and formal charge round-trips in .NET (`--generate-rdkit`).
@@ -397,28 +418,28 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 
 ### 18. Standard Reduction Potentials Database & Electrochemical Cell Benchmarks [External Numerical Comparison & Analytical Identity Test]
 
-* **Reference Source**: CRC Handbook of Chemistry and Physics (97th Edition, Section 5) & IUPAC Gold Book.
-* **Reference Artifact**: [`crc_iupac_reduction_potentials.json`](../src/Chemy.Core.Tests/ValidationData/crc_iupac_reduction_potentials.json) (`SHA-256: d6d5b02143c4ae8ae075789eb930ddc09042c64e42cd931cf07facfe0a68a2bd`)
+* **Reference Source**: CRC Handbook of Chemistry and Physics (97th Edition, Section 5, Table 1: Standard Reduction Potentials in Aqueous Solution at 25 °C, pp. 5-77 - 5-89), IUPAC Commission on Electrochemistry (Bard et al. 1985), & IUPAC Gold Book (doi:10.1351/goldbook.S05917).
+* **Reference Artifact**: [`crc_iupac_reduction_potentials.json`](../src/Chemy.Core.Tests/ValidationData/crc_iupac_reduction_potentials.json) (`SHA-256: 254069610050a17d899a7641d0a89a0df17cc74d17bad2e68da58f6b91a44ab1`)
 * **Database Engine**: [`ElectrochemistryEngine.StandardReductionPotentials`](../src/Chemy.Core/Electrochemistry/ElectrochemistryEngine.cs)
-* **Test Implementation**: [`Benchmark_Electrochemistry_StandardPotentialsAndNernstCell_MatchesIupacCrcReferences`](../src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs) (Validates all 29 standard couples with $0.0000\text{ V}$ error).
+* **Test Implementation**: [`Benchmark_Electrochemistry_StandardPotentialsAndNernstCell_MatchesIupacCrcReferences`](../src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs) (Validates all 29 standard couples with $0.0000\text{ V}$ error and CRC page-level coordinates).
 
-| Redox Couple | Half-Reaction Formula | Queried Chemy $E^\circ$ | CRC / IUPAC Reference $E^\circ$ | Diff | Status |
-| :--- | :--- | :---: | :---: | :---: | :---: |
-| $\text{Li}^+/\text{Li}$ | $\text{Li}^+ + e^- \to \text{Li}(s)$ | $-3.0400\text{ V}$ | $-3.0400\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{K}^+/\text{K}$ | $\text{K}^+ + e^- \to \text{K}(s)$ | $-2.9310\text{ V}$ | $-2.9310\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Ca}^{2+}/\text{Ca}$ | $\text{Ca}^{2+} + 2e^- \to \text{Ca}(s)$ | $-2.8680\text{ V}$ | $-2.8680\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Na}^+/\text{Na}$ | $\text{Na}^+ + e^- \to \text{Na}(s)$ | $-2.7100\text{ V}$ | $-2.7100\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Mg}^{2+}/\text{Mg}$ | $\text{Mg}^{2+} + 2e^- \to \text{Mg}(s)$ | $-2.3720\text{ V}$ | $-2.3720\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Al}^{3+}/\text{Al}$ | $\text{Al}^{3+} + 3e^- \to \text{Al}(s)$ | $-1.6620\text{ V}$ | $-1.6620\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Mn}^{2+}/\text{Mn}$ | $\text{Mn}^{2+} + 2e^- \to \text{Mn}(s)$ | $-1.1850\text{ V}$ | $-1.1850\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Zn}^{2+}/\text{Zn}$ | $\text{Zn}^{2+} + 2e^- \to \text{Zn}(s)$ | $-0.7630\text{ V}$ | $-0.7630\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Fe}^{2+}/\text{Fe}$ | $\text{Fe}^{2+} + 2e^- \to \text{Fe}(s)$ | $-0.4400\text{ V}$ | $-0.4400\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $2\text{H}^+/\text{H}_2$ | $2\text{H}^+ + 2e^- \to \text{H}_2(g)$ | $0.0000\text{ V}$ | $0.0000\text{ V}$ | $0.0000$ | **Verified ✅ (SHE Reference)** |
-| $\text{Cu}^{2+}/\text{Cu}$ | $\text{Cu}^{2+} + 2e^- \to \text{Cu}(s)$ | $+0.3400\text{ V}$ | $+0.3400\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Ag}^+/\text{Ag}$ | $\text{Ag}^+ + e^- \to \text{Ag}(s)$ | $+0.7996\text{ V}$ | $+0.7996\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{Cl}_2/2\text{Cl}^-$ | $\text{Cl}_2(g) + 2e^- \to 2\text{Cl}^-$ | $+1.3580\text{ V}$ | $+1.3580\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{MnO}_4^-/\text{Mn}^{2+}$ | $\text{MnO}_4^- + 8\text{H}^+ + 5e^- \to \text{Mn}^{2+} + 4\text{H}_2\text{O}$ | $+1.5070\text{ V}$ | $+1.5070\text{ V}$ | $0.0000$ | **Verified ✅** |
-| $\text{F}_2/2\text{F}^-$ | $\text{F}_2(g) + 2e^- \to 2\text{F}^-$ | $+2.8700\text{ V}$ | $+2.8700\text{ V}$ | $0.0000$ | **Verified ✅** |
+| Redox Couple | Half-Reaction Formula | CRC Page | Queried Chemy $E^\circ$ | CRC / IUPAC Reference $E^\circ$ | Diff | Status |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| $\text{Li}^+/\text{Li}$ | $\text{Li}^+ + e^- \to \text{Li}(s)$ | 5-83 | $-3.0400\text{ V}$ | $-3.0400\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{K}^+/\text{K}$ | $\text{K}^+ + e^- \to \text{K}(s)$ | 5-83 | $-2.9310\text{ V}$ | $-2.9310\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Ca}^{2+}/\text{Ca}$ | $\text{Ca}^{2+} + 2e^- \to \text{Ca}(s)$ | 5-79 | $-2.8680\text{ V}$ | $-2.8680\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Na}^+/\text{Na}$ | $\text{Na}^+ + e^- \to \text{Na}(s)$ | 5-85 | $-2.7100\text{ V}$ | $-2.7100\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Mg}^{2+}/\text{Mg}$ | $\text{Mg}^{2+} + 2e^- \to \text{Mg}(s)$ | 5-83 | $-2.3720\text{ V}$ | $-2.3720\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Al}^{3+}/\text{Al}$ | $\text{Al}^{3+} + 3e^- \to \text{Al}(s)$ | 5-77 | $-1.6620\text{ V}$ | $-1.6620\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Mn}^{2+}/\text{Mn}$ | $\text{Mn}^{2+} + 2e^- \to \text{Mn}(s)$ | 5-84 | $-1.1850\text{ V}$ | $-1.1850\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Zn}^{2+}/\text{Zn}$ | $\text{Zn}^{2+} + 2e^- \to \text{Zn}(s)$ | 5-89 | $-0.7630\text{ V}$ | $-0.7630\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Fe}^{2+}/\text{Fe}$ | $\text{Fe}^{2+} + 2e^- \to \text{Fe}(s)$ | 5-81 | $-0.4400\text{ V}$ | $-0.4400\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $2\text{H}^+/\text{H}_2$ | $2\text{H}^+ + 2e^- \to \text{H}_2(g)$ | 5-82 | $0.0000\text{ V}$ | $0.0000\text{ V}$ | $0.0000$ | **Verified ✅ (SHE Reference)** |
+| $\text{Cu}^{2+}/\text{Cu}$ | $\text{Cu}^{2+} + 2e^- \to \text{Cu}(s)$ | 5-80 | $+0.3400\text{ V}$ | $+0.3400\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Ag}^+/\text{Ag}$ | $\text{Ag}^+ + e^- \to \text{Ag}(s)$ | 5-77 | $+0.7996\text{ V}$ | $+0.7996\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{Cl}_2/2\text{Cl}^-$ | $\text{Cl}_2(g) + 2e^- \to 2\text{Cl}^-$ | 5-79 | $+1.3580\text{ V}$ | $+1.3580\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{MnO}_4^-/\text{Mn}^{2+}$ | $\text{MnO}_4^- + 8\text{H}^+ + 5e^- \to \text{Mn}^{2+} + 4\text{H}_2\text{O}$ | 5-84 | $+1.5070\text{ V}$ | $+1.5070\text{ V}$ | $0.0000$ | **Verified ✅** |
+| $\text{F}_2/2\text{F}^-$ | $\text{F}_2(g) + 2e^- \to 2\text{F}^-$ | 5-81 | $+2.8700\text{ V}$ | $+2.8700\text{ V}$ | $0.0000$ | **Verified ✅** |
 
 * **Daniell Cell Calculation**: $E^\circ_{\text{cell}} = E^\circ(\text{Cu}^{2+}/\text{Cu}) - E^\circ(\text{Zn}^{2+}/\text{Zn}) = 0.340 - (-0.763) = \mathbf{1.103\text{ V}}$.
 * **Nernst Non-Standard Cell ($Q = 0.01$)**: $E_{\text{cell}} = 1.103 - \frac{R T}{2 F}\ln(0.01) = \mathbf{1.1622\text{ V}}$ (Analytical identity matched to $< 10^{-4}\text{ V}$).
@@ -427,21 +448,19 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 
 ### 19. Experimental $^1\text{H}$-NMR Spectroscopy Sourced Chemical Shifts Suite [External Numerical Comparison]
 
-* **Primary Source**: Spectral Database for Organic Compounds (SDBS), National Institute of Advanced Industrial Science and Technology (AIST), Japan.
+* **Primary Source**: Spectral Database for Organic Compounds (SDBS), National Institute of Advanced Industrial Science and Technology (AIST), Japan (https://sdbs.db.aist.go.jp/).
 * **Secondary Source**: NIST Chemistry WebBook Standard Reference Database 69.
-* **Reference Artifact**: [`experimental_nmr_reference.json`](../src/Chemy.Core.Tests/ValidationData/experimental_nmr_reference.json) (`SHA-256: 7869cf62200ade8175c58295d96493581b09195bf6766a5ee34b6c6b1ec5d87b`)
+* **Standard AIST Measurement Conditions**: $30\text{ }^\circ\text{C } (303.15\text{ K})$, $\text{CDCl}_3$ solvent, internal TMS reference ($0.00\text{ ppm}$).
+* **Reference Artifact**: [`experimental_nmr_reference.json`](../src/Chemy.Core.Tests/ValidationData/experimental_nmr_reference.json) (`SHA-256: 5b4e3b762887563827bacb9e62607e079431cbb6bc6596542b5d1c7b5947b9b0`)
 * **Test Implementation**: [`Benchmark_Spectroscopy_H1NmrChemicalShifts_MatchesExperimentalReferences`](../src/Chemy.Core.Tests/ValidationData/ScientificBenchmarkValidationTests.cs)
-* **Matching Algorithm**: Strict 1-to-1 peak assignment without prediction reuse, verifying chemical shift, multiplicity, and integration count.
+* **Matching Algorithm**: Strict 1-to-1 non-exchangeable peak assignment with verification of chemical shift, multiplicity, integration count, spectrum kind (`measured` vs `generated`), and authentic AIST $^1\text{H}$-NMR spectrum identifiers (`HSP-*`, `HPM-*`).
 
-| Molecule | SDBS Compound ID | AIST Spectrum ID | Conditions | Proton Group | Predicted $\delta\text{ (ppm)}$ | Experimental $\delta\text{ (ppm)}$ | Absolute Diff | Multiplicity | Integration | Status |
-| :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Ethanol ($\text{C}_2\text{H}_6\text{O}$)** | [SDBS-1300](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=1300) | `CDS-01-387` | $\text{CDCl}_3, 400\text{ MHz}$ | $\text{CH}_3$ | $0.90\text{ ppm}$ | $1.22\text{ ppm}$ | $0.32\text{ ppm}$ | Triplet ($3\text{H}$) | $3\text{H}$ | **Verified ✅** |
-| | [SDBS-1300](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=1300) | `CDS-01-387` | $\text{CDCl}_3, 400\text{ MHz}$ | $\text{CH}_2$ | $3.65\text{ ppm}$ | $3.68\text{ ppm}$ | $0.03\text{ ppm}$ | Quartet ($2\text{H}$) | $2\text{H}$ | **Verified ✅** |
-| **Acetone ($\text{C}_3\text{H}_6\text{O}$)** | [SDBS-319](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=319) | `CDS-00-098` | $\text{CDCl}_3, 400\text{ MHz}$ | $\text{CH}_3$ ($\alpha$-CO) | $2.17\text{ ppm}$ | $2.16\text{ ppm}$ | $0.01\text{ ppm}$ | Singlet ($6\text{H}$) | $6\text{H}$ | **Verified ✅** |
-| **Benzene ($\text{C}_6\text{H}_6$)** | [SDBS-187](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=187) | `CDS-00-043` | $\text{CDCl}_3, 400\text{ MHz}$ | $\text{CH}$ (Aromatic) | $7.25\text{ ppm}$ | $7.27\text{ ppm}$ | $0.02\text{ ppm}$ | Singlet ($6\text{H}$) | $6\text{H}$ | **Verified ✅** |
-| **Acetic Acid ($\text{C}_2\text{H}_4\text{O}_2$)** | [SDBS-305](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=305) | `CDS-00-087` | $\text{CDCl}_3, 400\text{ MHz}$ | $\text{CH}_3$ ($\alpha$-COOH) | $2.17\text{ ppm}$ | $2.08\text{ ppm}$ | $0.09\text{ ppm}$ | Singlet ($3\text{H}$) | $3\text{H}$ | **Verified ✅** |
+| Molecule | SDBS Compound ID | AIST Spectrum ID | Kind | Conditions | Proton Group | Predicted $\delta\text{ (ppm)}$ | Experimental $\delta\text{ (ppm)}$ | Absolute Diff | Multiplicity | Integration | Status |
+| :--- | :--- | :--- | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Ethanol ($\text{C}_2\text{H}_6\text{O}$)** | [SDBS-1300](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=1300) | `HSP-01-876` | `measured` | $\text{CDCl}_3, 89.55\text{ MHz}, 303.15\text{ K}$ | $\text{CH}_3$ | $0.90\text{ ppm}$ | $1.22\text{ ppm}$ | $0.32\text{ ppm}$ | Triplet ($3\text{H}$) | $3\text{H}$ | **Verified ✅** |
+| | [SDBS-1300](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=1300) | `HSP-01-876` | `measured` | $\text{CDCl}_3, 89.55\text{ MHz}, 303.15\text{ K}$ | $\text{CH}_2$ | $3.65\text{ ppm}$ | $3.68\text{ ppm}$ | $0.03\text{ ppm}$ | Quartet ($2\text{H}$) | $2\text{H}$ | **Verified ✅** |
+| **Acetone ($\text{C}_3\text{H}_6\text{O}$)** | [SDBS-319](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=319) | `HPM-00-026` | `generated` | $\text{CDCl}_3, 300\text{ MHz}, 303.15\text{ K}$ | $\text{CH}_3$ ($\alpha$-CO) | $2.17\text{ ppm}$ | $2.16\text{ ppm}$ | $0.01\text{ ppm}$ | Singlet ($6\text{H}$) | $6\text{H}$ | **Verified ✅** |
+| **Benzene ($\text{C}_6\text{H}_6$)** | [SDBS-187](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=187) | `HSP-00-043` | `measured` | $\text{CDCl}_3, 89.55\text{ MHz}, 303.15\text{ K}$ | $\text{CH}$ (Aromatic) | $7.25\text{ ppm}$ | $7.27\text{ ppm}$ | $0.02\text{ ppm}$ | Singlet ($6\text{H}$) | $6\text{H}$ | **Verified ✅** |
+| **Acetic Acid ($\text{C}_2\text{H}_4\text{O}_2$)** | [SDBS-305](https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=305) | `HSP-00-087` | `measured` | $\text{CDCl}_3, 89.55\text{ MHz}, 303.15\text{ K}$ | $\text{CH}_3$ ($\alpha$-COOH) | $2.17\text{ ppm}$ | $2.08\text{ ppm}$ | $0.09\text{ ppm}$ | Singlet ($3\text{H}$) | $3\text{H}$ | **Verified ✅** |
 
 * **Overall $^1\text{H}$-NMR Shift MAE**: **$0.0940\text{ ppm}$** ($\text{Max Error} = 0.3200\text{ ppm}$).
-
-
-

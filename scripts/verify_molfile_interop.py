@@ -129,7 +129,10 @@ def verify_chemy_exports(input_dir: str, strict: bool = False) -> bool:
             break
 
     if actual_dir is None:
-        print(f"  FAIL: Chemy export directory '{input_dir}' not found or missing aspirin_neutral.mol. Run `dotnet test` first.", file=sys.stderr)
+        if strict:
+            print(f"  FAIL: Explicit Chemy export directory '{input_dir}' does not exist or is missing required export files.", file=sys.stderr)
+        else:
+            print(f"  FAIL: Chemy export directory '{input_dir}' not found or missing aspirin_neutral.mol. Run `dotnet test` first.", file=sys.stderr)
         return False
 
     print(f"  Using Chemy export directory: '{actual_dir}'")
@@ -237,9 +240,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Bidirectional Chemy <-> RDKit Molfile/SDF Interoperability Suite")
     parser.add_argument("--generate-rdkit", action="store_true", help="Generate RDKit fixtures only (Direction 2)")
     parser.add_argument("--verify-chemy", action="store_true", help="Verify Chemy exports only (Direction 1)")
+    parser.add_argument("--strict", action="store_true", help="Enforce strict directory resolution without falling back to other build outputs")
     parser.add_argument("--rdkit-dir", metavar="DIR", default=RDKIT_EXPORT_DIR, help="Directory for RDKit fixtures")
     parser.add_argument("--chemy-dir", metavar="DIR", default=CHEM_EXPORT_DIR, help="Directory for Chemy exports")
     args = parser.parse_args()
+
+    # If --chemy-dir was explicitly supplied on the command line or --strict was set, enforce strict mode
+    is_strict = args.strict or any(arg.startswith("--chemy-dir") for arg in sys.argv)
 
     run_generate = args.generate_rdkit or (not args.generate_rdkit and not args.verify_chemy)
     run_verify = args.verify_chemy or (not args.generate_rdkit and not args.verify_chemy)
@@ -248,7 +255,7 @@ def main() -> None:
         generate_rdkit_fixtures(args.rdkit_dir)
 
     if run_verify:
-        success = verify_chemy_exports(args.chemy_dir)
+        success = verify_chemy_exports(args.chemy_dir, strict=is_strict)
         if not success:
             sys.exit(1)
 

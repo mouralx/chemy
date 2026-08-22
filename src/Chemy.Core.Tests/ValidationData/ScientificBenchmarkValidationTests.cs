@@ -73,6 +73,14 @@ public class ScientificBenchmarkValidationTests
     [Fact]
     public void Benchmark_Dataset_ContainsAtLeast30Compounds()
     {
+        string path = Path.Combine(AppContext.BaseDirectory, "ValidationData", "reference_compounds.json");
+        if (!File.Exists(path)) path = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "reference_compounds.json");
+        if (!File.Exists(path)) path = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "reference_compounds.json");
+
+        const string expectedSha256 = "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5";
+        string actualSha256 = ComputeFileSha256(path);
+        Assert.Equal(expectedSha256, actualSha256);
+
         var dataset = LoadedBenchmarkDataset.Value;
         Assert.True(dataset.Count >= 30, $"Expected at least 30 reference compounds, found {dataset.Count}");
     }
@@ -420,6 +428,14 @@ public class ScientificBenchmarkValidationTests
         double eEclipsed = ForceFieldEngine.CalculateTotalEnergy(eclipsedConformer);
         double eSyn = ForceFieldEngine.CalculateTotalEnergy(synConformer);
 
+        string uffJsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "rdkit_uff_butane_reference.json");
+
+        const string expectedUffSha256 = "ea6bfc116f2f19f000e45c1e676734acccfb7434d8da001ab14fa8d3fbbe073c";
+        string actualUffSha256 = ComputeFileSha256(uffJsonPath);
+        Assert.Equal(expectedUffSha256, actualUffSha256);
+
         // Pinned RDKit 2025.09.2 UFF reference energies (kcal/mol), calculated with identical coordinates:
         const double rdkitUffAnti = 7.3147;
         const double rdkitUffGauche = 16.1286;
@@ -449,7 +465,7 @@ public class ScientificBenchmarkValidationTests
         Assert.True(eEclipsed < eGauche, "Eclipsed 120° must have lower energy than gauche 60° in UFF (VdW dominated).");
         Assert.True(eGauche < eSyn, "Gauche must have lower energy than syn-eclipsed 0° in UFF.");
 
-        // Assert steepest-descent optimization relaxes the high-energy conformer downhill
+        // Assert numerical optimization relaxes the high-energy conformer downhill
         var relaxedSyn = ForceFieldEngine.MinimizeEnergy(synConformer, maxIterations: 100);
         Assert.True(relaxedSyn.FinalEnergyKcalPerMol < eSyn, "Energy minimization must relax syn-eclipsed butane downhill.");
     }
@@ -556,6 +572,27 @@ public class ScientificBenchmarkValidationTests
             new Atom3D(ch3brMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
         ], ch3brMol);
 
+        // 11. Iodomethane (CH3I, halogen I)
+        var ch3iMol = Molecule.FromSmiles("CI", "Iodomethane");
+        var ch3i3D = new Molecule3D("Iodomethane", "CH3I", "Tetrahedral", 109.47, [
+            new Atom3D(ch3iMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),
+            new Atom3D(ch3iMol.Atoms[1], new Vector3D(2.16, 0.0, 0.0)),
+            new Atom3D(ch3iMol.Atoms[2], new Vector3D(-0.36, 1.02, 0.0)),
+            new Atom3D(ch3iMol.Atoms[3], new Vector3D(-0.36, -0.51, 0.89)),
+            new Atom3D(ch3iMol.Atoms[4], new Vector3D(-0.36, -0.51, -0.89))
+        ], ch3iMol);
+
+        // 12. Formamide (HCONH2, planar 3-coordinate sp2 Nitrogen regression)
+        var famMol = Molecule.FromSmiles("C(=O)N", "Formamide");
+        var fam3D = new Molecule3D("Formamide", "CH3NO", "Planar", 120.0, [
+            new Atom3D(famMol.Atoms[0], new Vector3D(0.0, 0.0, 0.0)),       // C
+            new Atom3D(famMol.Atoms[1], new Vector3D(1.22, 0.0, 0.0)),      // O
+            new Atom3D(famMol.Atoms[2], new Vector3D(-0.68, 1.18, 0.0)),    // N (planar sp2)
+            new Atom3D(famMol.Atoms[3], new Vector3D(-0.55, -0.953, 0.0)),  // H(formyl)
+            new Atom3D(famMol.Atoms[4], new Vector3D(-0.175, 2.055, 0.0)),  // H1(amide)
+            new Atom3D(famMol.Atoms[5], new Vector3D(-1.69, 1.18, 0.0))     // H2(amide)
+        ], famMol);
+
         double eMethane = ForceFieldEngine.CalculateTotalEnergy(methane3D);
         double eEthane = ForceFieldEngine.CalculateTotalEnergy(ethane3D);
         double eEthylene = ForceFieldEngine.CalculateTotalEnergy(ethylene3D);
@@ -566,6 +603,8 @@ public class ScientificBenchmarkValidationTests
         double eNH3 = ForceFieldEngine.CalculateTotalEnergy(nh33D);
         double ePH3 = ForceFieldEngine.CalculateTotalEnergy(ph33D);
         double eCH3Br = ForceFieldEngine.CalculateTotalEnergy(ch3br3D);
+        double eCH3I = ForceFieldEngine.CalculateTotalEnergy(ch3i3D);
+        double eFormamide = ForceFieldEngine.CalculateTotalEnergy(fam3D);
 
         // Pinned RDKit 2025.09.2 UFF reference energies (kcal/mol):
         const double rdkitUffMethane = 0.4984;
@@ -576,8 +615,10 @@ public class ScientificBenchmarkValidationTests
         const double rdkitUffCH3Cl = 0.5877;
         const double rdkitUffCH3F = 0.6168;
         const double rdkitUffNH3 = 1.6777;
-        const double rdkitUffPH3 = 0.7212;
+        const double rdkitUffPH3 = 0.7209;
         const double rdkitUffCH3Br = 0.5961;
+        const double rdkitUffCH3I = 0.7227;
+        const double rdkitUffFormamide = 4.9579;
 
         _output.WriteLine("\n=== DIVERSE HYBRIDIZATION & HETEROATOM UFF FORCE FIELD BENCHMARKS ===");
         _output.WriteLine($"Methane       (sp3 C,   N=5): Chemy = {eMethane:F4} kcal/mol, RDKit Ref = {rdkitUffMethane:F4} kcal/mol, Diff = {Math.Abs(eMethane - rdkitUffMethane):F4}");
@@ -590,18 +631,241 @@ public class ScientificBenchmarkValidationTests
         _output.WriteLine($"Ammonia       (sp3 N,   N=4): Chemy = {eNH3:F4} kcal/mol, RDKit Ref = {rdkitUffNH3:F4} kcal/mol, Diff = {Math.Abs(eNH3 - rdkitUffNH3):F4}");
         _output.WriteLine($"Phosphine     (sp3 P,   N=4): Chemy = {ePH3:F4} kcal/mol, RDKit Ref = {rdkitUffPH3:F4} kcal/mol, Diff = {Math.Abs(ePH3 - rdkitUffPH3):F4}");
         _output.WriteLine($"Bromomethane  (sp3 Br,  N=5): Chemy = {eCH3Br:F4} kcal/mol, RDKit Ref = {rdkitUffCH3Br:F4} kcal/mol, Diff = {Math.Abs(eCH3Br - rdkitUffCH3Br):F4}");
+        _output.WriteLine($"Iodomethane   (sp3 I,   N=5): Chemy = {eCH3I:F4} kcal/mol, RDKit Ref = {rdkitUffCH3I:F4} kcal/mol, Diff = {Math.Abs(eCH3I - rdkitUffCH3I):F4}");
+        _output.WriteLine($"Formamide     (sp2 N,   N=6): Chemy = {eFormamide:F4} kcal/mol, RDKit Ref = {rdkitUffFormamide:F4} kcal/mol, Diff = {Math.Abs(eFormamide - rdkitUffFormamide):F4}");
 
-        // Validate within tolerance across all distinct atom types & hybridizations
-        Assert.InRange(Math.Abs(eMethane - rdkitUffMethane), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eEthane - rdkitUffEthane), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eEthylene - rdkitUffEthylene), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eWater - rdkitUffWater), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eH2S - rdkitUffH2S), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eCH3Cl - rdkitUffCH3Cl), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eCH3F - rdkitUffCH3F), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eNH3 - rdkitUffNH3), 0.0, 1.20);
-        Assert.InRange(Math.Abs(ePH3 - rdkitUffPH3), 0.0, 1.20);
-        Assert.InRange(Math.Abs(eCH3Br - rdkitUffCH3Br), 0.0, 1.20);
+        // Molecule-specific scale-aware tolerance gates matching published benchmark table
+        Assert.InRange(Math.Abs(eMethane - rdkitUffMethane), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eEthane - rdkitUffEthane), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eEthylene - rdkitUffEthylene), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eWater - rdkitUffWater), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eH2S - rdkitUffH2S), 0.0, 0.10);
+        Assert.InRange(Math.Abs(eCH3Cl - rdkitUffCH3Cl), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eCH3F - rdkitUffCH3F), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eNH3 - rdkitUffNH3), 0.0, 0.05);
+        Assert.InRange(Math.Abs(ePH3 - rdkitUffPH3), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eCH3Br - rdkitUffCH3Br), 0.0, 0.05);
+        Assert.InRange(Math.Abs(eCH3I - rdkitUffCH3I), 0.0, 0.10);
+        Assert.InRange(Math.Abs(eFormamide - rdkitUffFormamide), 0.0, 2.60); // Scale-aware tolerance for the documented harmonic-angle subset vs RDKit UFF
+    }
+
+    [Fact]
+    public void Benchmark_ForceField_ExpandedRegressionMolecules_RecordsRDKitUffDeviationEnvelope()
+    {
+        string uffJsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "rdkit_uff_butane_reference.json");
+
+        const string expectedUffSha256 = "ea6bfc116f2f19f000e45c1e676734acccfb7434d8da001ab14fa8d3fbbe073c";
+        string actualUffSha256 = ComputeFileSha256(uffJsonPath);
+        Assert.Equal(expectedUffSha256, actualUffSha256);
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(uffJsonPath));
+        var expandedRegression = doc.RootElement.GetProperty("expanded_regression_molecules");
+
+        // 1. Methanol (CO)
+        var meOH = Molecule.FromSmiles("CO", "Methanol");
+        var meOH3D = new Molecule3D("Methanol", "CH4O", "Tetrahedral", 109.47, [
+            new Atom3D(meOH.Atoms[0], new Vector3D(-0.3698, 0.0026, 0.0028)),
+            new Atom3D(meOH.Atoms[1], new Vector3D(0.898, -0.5748, -0.1191)),
+            new Atom3D(meOH.Atoms[2], new Vector3D(-0.6741, -0.1194, 1.0508)),
+            new Atom3D(meOH.Atoms[3], new Vector3D(-0.3142, 1.0665, -0.3155)),
+            new Atom3D(meOH.Atoms[4], new Vector3D(-1.083, -0.5246, -0.643)),
+            new Atom3D(meOH.Atoms[5], new Vector3D(1.5432, 0.1497, 0.024))
+        ], meOH);
+
+        // 2. Acetone (CC(=O)C)
+        var acetone = Molecule.FromSmiles("CC(=O)C", "Acetone");
+        var acetone3D = new Molecule3D("Acetone", "C3H6O", "TrigonalPlanar", 120.0, [
+            new Atom3D(acetone.Atoms[0], new Vector3D(-1.2921, 0.094, 0.0502)),
+            new Atom3D(acetone.Atoms[1], new Vector3D(0.0407, -0.0575, -0.5919)),
+            new Atom3D(acetone.Atoms[2], new Vector3D(0.1083, -0.1835, -1.8178)),
+            new Atom3D(acetone.Atoms[3], new Vector3D(1.2863, -0.0553, 0.257)),
+            new Atom3D(acetone.Atoms[4], new Vector3D(-1.8439, 0.9295, -0.4098)),
+            new Atom3D(acetone.Atoms[5], new Vector3D(-1.1567, 0.3216, 1.1165)),
+            new Atom3D(acetone.Atoms[6], new Vector3D(-1.8581, -0.8567, -0.0294)),
+            new Atom3D(acetone.Atoms[7], new Vector3D(1.308, -1.0314, 0.7436)),
+            new Atom3D(acetone.Atoms[8], new Vector3D(2.184, 0.0957, -0.3374)),
+            new Atom3D(acetone.Atoms[9], new Vector3D(1.2235, 0.7437, 1.0189))
+        ], acetone);
+
+        // 3. Toluene (Cc1ccccc1)
+        var toluene = Molecule.FromSmiles("Cc1ccccc1", "Toluene");
+        var toluene3D = new Molecule3D("Toluene", "C7H8", "PlanarAromatic", 120.0, [
+            new Atom3D(toluene.Atoms[0], new Vector3D(2.1804, -0.165, 0.0752)),
+            new Atom3D(toluene.Atoms[1], new Vector3D(0.7078, -0.0235, 0.0201)),
+            new Atom3D(toluene.Atoms[2], new Vector3D(0.0736, 1.198, 0.1285)),
+            new Atom3D(toluene.Atoms[3], new Vector3D(-1.301, 1.319, 0.0758)),
+            new Atom3D(toluene.Atoms[4], new Vector3D(-2.0273, 0.1606, -0.0912)),
+            new Atom3D(toluene.Atoms[5], new Vector3D(-1.4224, -1.0903, -0.2044)),
+            new Atom3D(toluene.Atoms[6], new Vector3D(-0.0254, -1.1889, -0.148)),
+            new Atom3D(toluene.Atoms[7], new Vector3D(2.4281, -0.6299, 1.0537)),
+            new Atom3D(toluene.Atoms[8], new Vector3D(2.6489, 0.8197, 0.0482)),
+            new Atom3D(toluene.Atoms[9], new Vector3D(2.5634, -0.8913, -0.6749)),
+            new Atom3D(toluene.Atoms[10], new Vector3D(0.6773, 2.0978, 0.2602)),
+            new Atom3D(toluene.Atoms[11], new Vector3D(-1.7888, 2.2867, 0.1624)),
+            new Atom3D(toluene.Atoms[12], new Vector3D(-3.0899, 0.2465, -0.1328)),
+            new Atom3D(toluene.Atoms[13], new Vector3D(-2.0224, -1.9779, -0.3345)),
+            new Atom3D(toluene.Atoms[14], new Vector3D(0.3975, -2.1616, -0.2383))
+        ], toluene);
+
+        // 4. Pyridine (c1ccncc1)
+        var pyridine = Molecule.FromSmiles("c1ccncc1", "Pyridine");
+        var pyridine3D = new Molecule3D("Pyridine", "C5H5N", "PlanarAromatic", 120.0, [
+            new Atom3D(pyridine.Atoms[0], new Vector3D(-0.1131, 1.1762, 0.0098)),
+            new Atom3D(pyridine.Atoms[1], new Vector3D(-1.2281, 0.3529, 0.01)),
+            new Atom3D(pyridine.Atoms[2], new Vector3D(-1.0897, -1.0219, -0.0016)),
+            new Atom3D(pyridine.Atoms[3], new Vector3D(0.1271, -1.5612, -0.0129)),
+            new Atom3D(pyridine.Atoms[4], new Vector3D(1.2543, -0.831, -0.0138)),
+            new Atom3D(pyridine.Atoms[5], new Vector3D(1.1348, 0.5505, -0.0024)),
+            new Atom3D(pyridine.Atoms[6], new Vector3D(-0.1737, 2.2543, 0.0186)),
+            new Atom3D(pyridine.Atoms[7], new Vector3D(-2.2125, 0.8149, 0.0193)),
+            new Atom3D(pyridine.Atoms[8], new Vector3D(-1.9904, -1.629, -0.001)),
+            new Atom3D(pyridine.Atoms[9], new Vector3D(2.2322, -1.2518, -0.0229)),
+            new Atom3D(pyridine.Atoms[10], new Vector3D(2.0591, 1.146, -0.0031))
+        ], pyridine);
+
+        // 5. Dichloromethane (ClCCl)
+        var dcm = Molecule.FromSmiles("ClCCl", "Dichloromethane");
+        var dcm3D = new Molecule3D("Dichloromethane", "CH2Cl2", "Tetrahedral", 109.47, [
+            new Atom3D(dcm.Atoms[0], new Vector3D(1.4555, 0.8698, 0.0164)),
+            new Atom3D(dcm.Atoms[1], new Vector3D(0.0034, -0.139, -0.0093)),
+            new Atom3D(dcm.Atoms[2], new Vector3D(-1.4527, 0.8722, -0.0555)),
+            new Atom3D(dcm.Atoms[3], new Vector3D(0.0553, -0.8463, -0.8678)),
+            new Atom3D(dcm.Atoms[4], new Vector3D(-0.0614, -0.7567, 0.9163))
+        ], dcm);
+
+        // 6. Furan (c1ccoc1)
+        var furan = Molecule.FromSmiles("c1ccoc1", "Furan");
+        var furan3D = new Molecule3D("Furan", "C4H4O", "PlanarHeteroaromatic", 120.0, [
+            new Atom3D(furan.Atoms[0], new Vector3D(-0.6894, 0.7099, -0.3354)),
+            new Atom3D(furan.Atoms[1], new Vector3D(0.6965, 0.702, -0.2795)),
+            new Atom3D(furan.Atoms[2], new Vector3D(1.0387, -0.6292, -0.1963)),
+            new Atom3D(furan.Atoms[3], new Vector3D(-0.0099, -1.3983, -0.1982)),
+            new Atom3D(furan.Atoms[4], new Vector3D(-1.0602, -0.6179, -0.281)),
+            new Atom3D(furan.Atoms[5], new Vector3D(-1.3305, 1.5821, -0.4066)),
+            new Atom3D(furan.Atoms[6], new Vector3D(1.3446, 1.5542, -0.298)),
+            new Atom3D(furan.Atoms[7], new Vector3D(2.0848, -0.9431, -0.138)),
+            new Atom3D(furan.Atoms[8], new Vector3D(-2.0745, -0.9597, -0.3038))
+        ], furan);
+
+        // 7. Thiophene (c1ccsc1)
+        var thiophene = Molecule.FromSmiles("c1ccsc1", "Thiophene");
+        var thiophene3D = new Molecule3D("Thiophene", "C4H4S", "PlanarHeteroaromatic", 120.0, [
+            new Atom3D(thiophene.Atoms[0], new Vector3D(-0.6517, -0.6596, 0.0211)),
+            new Atom3D(thiophene.Atoms[1], new Vector3D(0.6659, -0.6529, -0.0859)),
+            new Atom3D(thiophene.Atoms[2], new Vector3D(1.3252, 0.5458, -0.0815)),
+            new Atom3D(thiophene.Atoms[3], new Vector3D(-0.0248, 1.8049, 0.0896)),
+            new Atom3D(thiophene.Atoms[4], new Vector3D(-1.3173, 0.5566, 0.1343)),
+            new Atom3D(thiophene.Atoms[5], new Vector3D(-1.2684, -1.5869, 0.0264)),
+            new Atom3D(thiophene.Atoms[6], new Vector3D(1.2688, -1.5902, -0.1805)),
+            new Atom3D(thiophene.Atoms[7], new Vector3D(2.373, 0.8343, -0.1529)),
+            new Atom3D(thiophene.Atoms[8], new Vector3D(-2.3708, 0.7481, 0.2295))
+        ], thiophene);
+
+        // 8. Acetonitrile (CC#N)
+        var acetonitrile = Molecule.FromSmiles("CC#N", "Acetonitrile");
+        var acetonitrile3D = new Molecule3D("Acetonitrile", "C2H3N", "Linear", 180.0, [
+            new Atom3D(acetonitrile.Atoms[0], new Vector3D(-0.4891, 0.0095, -0.0117)),
+            new Atom3D(acetonitrile.Atoms[1], new Vector3D(0.9717, -0.0107, 0.0103)),
+            new Atom3D(acetonitrile.Atoms[2], new Vector3D(2.13, -0.0385, 0.0405)),
+            new Atom3D(acetonitrile.Atoms[3], new Vector3D(-0.8982, 0.0003, 1.0033)),
+            new Atom3D(acetonitrile.Atoms[4], new Vector3D(-0.8473, 0.9398, -0.5146)),
+            new Atom3D(acetonitrile.Atoms[5], new Vector3D(-0.8671, -0.9004, -0.5278))
+        ], acetonitrile);
+
+        double eMeOH = ForceFieldEngine.CalculateTotalEnergy(meOH3D);
+        double eAcetone = ForceFieldEngine.CalculateTotalEnergy(acetone3D);
+        double eToluene = ForceFieldEngine.CalculateTotalEnergy(toluene3D);
+        double ePyridine = ForceFieldEngine.CalculateTotalEnergy(pyridine3D);
+        double eDcm = ForceFieldEngine.CalculateTotalEnergy(dcm3D);
+        double eFuran = ForceFieldEngine.CalculateTotalEnergy(furan3D);
+        double eThiophene = ForceFieldEngine.CalculateTotalEnergy(thiophene3D);
+        double eAcetonitrile = ForceFieldEngine.CalculateTotalEnergy(acetonitrile3D);
+
+        double refMeOH = expandedRegression.GetProperty("methanol").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refAcetone = expandedRegression.GetProperty("acetone").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refToluene = expandedRegression.GetProperty("toluene").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refPyridine = expandedRegression.GetProperty("pyridine").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refDcm = expandedRegression.GetProperty("dichloromethane").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refFuran = expandedRegression.GetProperty("furan").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refThiophene = expandedRegression.GetProperty("thiophene").GetProperty("uff_total_kcal_mol").GetDouble();
+        double refAcetonitrile = expandedRegression.GetProperty("acetonitrile").GetProperty("uff_total_kcal_mol").GetDouble();
+
+        _output.WriteLine("\n=== POST-DEVELOPMENT EXPANDED UFF REGRESSION ===");
+        _output.WriteLine($"Methanol        (Alcohol, sp3 C/O):      Chemy = {eMeOH:F4} kcal/mol, RDKit Ref = {refMeOH:F4} kcal/mol, Diff = {Math.Abs(eMeOH - refMeOH):F4}");
+        _output.WriteLine($"Acetone         (Ketone, sp2 C=O):       Chemy = {eAcetone:F4} kcal/mol, RDKit Ref = {refAcetone:F4} kcal/mol, Diff = {Math.Abs(eAcetone - refAcetone):F4}");
+        _output.WriteLine($"Toluene         (Alkylarene):            Chemy = {eToluene:F4} kcal/mol, RDKit Ref = {refToluene:F4} kcal/mol, Diff = {Math.Abs(eToluene - refToluene):F4}");
+        _output.WriteLine($"Pyridine        (Heteroaromatic Azine):  Chemy = {ePyridine:F4} kcal/mol, RDKit Ref = {refPyridine:F4} kcal/mol, Diff = {Math.Abs(ePyridine - refPyridine):F4}");
+        _output.WriteLine($"Dichloromethane (Gem-dihalide):          Chemy = {eDcm:F4} kcal/mol, RDKit Ref = {refDcm:F4} kcal/mol, Diff = {Math.Abs(eDcm - refDcm):F4}");
+        _output.WriteLine($"Furan           (Oxacycle, sp2 O_R):     Chemy = {eFuran:F4} kcal/mol, RDKit Ref = {refFuran:F4} kcal/mol, Diff = {Math.Abs(eFuran - refFuran):F4}");
+        _output.WriteLine($"Thiophene       (Thiacycle, sp2 S_R):    Chemy = {eThiophene:F4} kcal/mol, RDKit Ref = {refThiophene:F4} kcal/mol, Diff = {Math.Abs(eThiophene - refThiophene):F4}");
+        _output.WriteLine($"Acetonitrile    (Nitrile, sp C/N):       Chemy = {eAcetonitrile:F4} kcal/mol, RDKit Ref = {refAcetonitrile:F4} kcal/mol, Diff = {Math.Abs(eAcetonitrile - refAcetonitrile):F4}");
+
+        // These ceilings freeze the reviewed numerical baseline and detect unreviewed drift.
+        // They are regression envelopes, not claims of UFF equivalence or prospective validation.
+        Assert.InRange(Math.Abs(eMeOH - refMeOH), 0.0, 1.50);
+        Assert.InRange(Math.Abs(eAcetone - refAcetone), 0.0, 1.50);
+        Assert.InRange(Math.Abs(eToluene - refToluene), 0.0, 1.00);
+        Assert.InRange(Math.Abs(ePyridine - refPyridine), 0.0, 1.00);
+        Assert.InRange(Math.Abs(eDcm - refDcm), 0.0, 0.10);
+        Assert.InRange(Math.Abs(eFuran - refFuran), 0.0, 20.0);
+        Assert.InRange(Math.Abs(eThiophene - refThiophene), 0.0, 20.0);
+        Assert.InRange(Math.Abs(eAcetonitrile - refAcetonitrile), 0.0, 1.00);
+    }
+
+    [Fact]
+    public void Benchmark_NistShomateThermodynamics_ExpandedSpeciesRegression_MatchesNistWebBookCoefficients()
+    {
+        // 1. Carbon Monoxide CO(g)
+        var co298 = ShomateThermodynamics.Evaluate("CO(g)", 298.15);
+        Assert.NotNull(co298);
+        Assert.InRange(co298.HeatCapacityCp, 29.10, 29.20);
+        Assert.InRange(co298.StandardEnthalpyH, -110.55, -110.50);
+        Assert.InRange(co298.StandardEntropyS, 197.60, 197.70);
+
+        var co1000 = ShomateThermodynamics.Evaluate("CO(g)", 1000.0);
+        Assert.NotNull(co1000);
+        Assert.InRange(co1000.HeatCapacityCp, 33.10, 33.25);
+        Assert.InRange(co1000.StandardEnthalpyH, -88.90, -88.80);
+        Assert.InRange(co1000.StandardEntropyS, 234.50, 234.60);
+
+        // 2. Ammonia NH3(g)
+        var nh3_298 = ShomateThermodynamics.Evaluate("NH3(g)", 298.15);
+        Assert.NotNull(nh3_298);
+        Assert.InRange(nh3_298.HeatCapacityCp, 35.60, 35.70);
+        Assert.InRange(nh3_298.StandardEnthalpyH, -45.95, -45.85);
+        Assert.InRange(nh3_298.StandardEntropyS, 192.70, 192.85);
+
+        var nh3_1000 = ShomateThermodynamics.Evaluate("NH3(g)", 1000.0);
+        Assert.NotNull(nh3_1000);
+        Assert.InRange(nh3_1000.HeatCapacityCp, 56.45, 56.55);
+        Assert.InRange(nh3_1000.StandardEnthalpyH, -13.30, -13.20);
+        Assert.InRange(nh3_1000.StandardEntropyS, 246.40, 246.55);
+
+        // 3. Ethylene C2H4(g)
+        var c2h4_298 = ShomateThermodynamics.Evaluate("C2H4(g)", 298.15);
+        Assert.NotNull(c2h4_298);
+        Assert.InRange(c2h4_298.HeatCapacityCp, 42.84, 42.87);
+        Assert.InRange(c2h4_298.StandardEnthalpyH, 52.45, 52.48);
+        Assert.InRange(c2h4_298.StandardEntropyS, 219.31, 219.34);
+
+        var c2h4_1000 = ShomateThermodynamics.Evaluate("C2H4(g)", 1000.0);
+        Assert.NotNull(c2h4_1000);
+        Assert.InRange(c2h4_1000.HeatCapacityCp, 93.84, 93.87);
+        Assert.InRange(c2h4_1000.StandardEnthalpyH, 103.12, 103.16);
+        Assert.InRange(c2h4_1000.StandardEntropyS, 300.40, 300.43);
+
+        // Exercise each new species' high-temperature coefficient segment.
+        var co2000 = ShomateThermodynamics.Evaluate("CO(g)", 2000.0);
+        var nh3_2000 = ShomateThermodynamics.Evaluate("NH3(g)", 2000.0);
+        var c2h4_2000 = ShomateThermodynamics.Evaluate("C2H4(g)", 2000.0);
+        Assert.NotNull(co2000);
+        Assert.NotNull(nh3_2000);
+        Assert.NotNull(c2h4_2000);
+        Assert.InRange(co2000.HeatCapacityCp, 36.20, 36.23);
+        Assert.InRange(nh3_2000.HeatCapacityCp, 72.80, 72.83);
+        Assert.InRange(c2h4_2000.HeatCapacityCp, 118.31, 118.34);
     }
 
     [Fact]
@@ -834,26 +1098,25 @@ public class ScientificBenchmarkValidationTests
         var referenceData = new (string Formula, double T, double ExpH, double ExpS, double ExpCp, double HTol, double STol, double CpTol)[]
         {
             // Water gas H2O(g)
-            ("H2O(g)", 298.15, -241.83, 188.83, 33.60, 0.5, 0.5, 0.5),
-            ("H2O(g)", 500.0,  -234.90, 206.53, 35.22, 1.0, 1.0, 0.5),
-            ("H2O(g)", 1000.0, -215.82, 232.74, 41.31, 1.5, 1.5, 0.8),
+            ("H2O(g)", 500.0,  -234.9018, 206.5341, 35.2184, 0.01, 0.01, 0.01),
+            ("H2O(g)", 1000.0, -215.8240, 232.7400, 41.2656, 0.01, 0.01, 0.01),
             // Carbon dioxide CO2(g)
-            ("CO2(g)", 298.15, -393.52, 213.79, 37.13, 0.5, 0.5, 0.5),
-            ("CO2(g)", 600.0,  -380.60, 245.40, 47.33, 1.5, 2.5, 0.8),
-            ("CO2(g)", 1000.0, -360.87, 269.21, 54.31, 2.0, 2.5, 1.0),
+            ("CO2(g)", 298.15, -393.5253, 213.7876, 37.1300, 0.01, 0.01, 0.01),
+            ("CO2(g)", 600.0,  -380.6160, 243.2836, 47.3179, 0.01, 0.01, 0.01),
+            ("CO2(g)", 1000.0, -360.1234, 269.3022, 54.3047, 0.01, 0.01, 0.01),
             // Methane CH4(g)
-            ("CH4(g)", 298.15, -74.87,  186.25, 35.69, 0.5, 0.5, 0.5),
-            ("CH4(g)", 500.0,  -66.23,  207.72, 46.52, 1.0, 1.5, 0.8),
-            ("CH4(g)", 1000.0, -38.22,  247.96, 71.79, 2.0, 2.5, 1.0),
+            ("CH4(g)", 298.15, -74.8719, 186.2547, 35.6484, 0.01, 0.01, 0.01),
+            ("CH4(g)", 500.0,  -66.6729, 207.0142, 46.3523, 0.01, 0.01, 0.01),
+            ("CH4(g)", 1000.0, -36.6949, 247.5478, 71.7941, 0.01, 0.01, 0.01),
             // Nitrogen N2(g)
-            ("N2(g)",  298.15, 0.0,     191.61, 29.12, 0.5, 0.5, 0.5),
-            ("N2(g)",  1000.0, 21.46,   228.17, 32.70, 1.0, 1.0, 0.8),
+            ("N2(g)",  298.15, 0.0000, 191.6089, 29.1238, 0.01, 0.01, 0.01),
+            ("N2(g)",  1000.0, 21.4628, 228.1706, 32.6917, 0.01, 0.01, 0.01),
             // Oxygen O2(g)
-            ("O2(g)",  298.15, 0.0,     205.15, 29.38, 0.5, 0.5, 0.5),
-            ("O2(g)",  1000.0, 22.70,   243.58, 34.87, 1.0, 1.0, 0.8),
+            ("O2(g)",  298.15, -0.0003, 205.1473, 29.3826, 0.01, 0.01, 0.01),
+            ("O2(g)",  1000.0, 22.7035, 243.5788, 34.8639, 0.01, 0.01, 0.01),
             // Hydrogen H2(g)
-            ("H2(g)",  298.15, 0.0,     130.68, 28.84, 0.5, 0.5, 0.5),
-            ("H2(g)",  1000.0, 20.66,   166.22, 30.17, 1.0, 1.0, 0.8)
+            ("H2(g)",  298.15, 0.0001, 130.6802, 28.8373, 0.01, 0.01, 0.01),
+            ("H2(g)",  1000.0, 20.6801, 166.2160, 30.2069, 0.01, 0.01, 0.01)
         };
 
         var hErrors = new List<double>();
@@ -919,6 +1182,14 @@ public class ScientificBenchmarkValidationTests
         Assert.Equal(2.0, bzHmo.DewarResonanceEnergyBetaCoeff, precision: 3);
     }
 
+    private static string ComputeFileSha256(string filePath)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        using var stream = File.OpenRead(filePath);
+        byte[] hash = sha256.ComputeHash(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
     [Fact]
     public void Benchmark_Electrochemistry_StandardPotentialsAndNernstCell_MatchesIupacCrcReferences()
     {
@@ -929,23 +1200,42 @@ public class ScientificBenchmarkValidationTests
         }
         Assert.True(File.Exists(jsonPath), $"Required external electrochemistry reference '{jsonPath}' not found.");
 
+        // Enforce hash-locked external reference artifact integrity
+        const string expectedSha256 = "254069610050a17d899a7641d0a89a0df17cc74d17bad2e68da58f6b91a44ab1";
+        string actualSha256 = ComputeFileSha256(jsonPath);
+        Assert.Equal(expectedSha256, actualSha256);
+
         using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var metadata = doc.RootElement.GetProperty("metadata");
+        Assert.Equal("CRC Handbook / IUPAC Standard Reduction Potentials at 298.15 K", metadata.GetProperty("title").GetString());
+        Assert.Contains("CRC Handbook of Chemistry and Physics", metadata.GetProperty("primary_source").GetString()!);
+        Assert.Contains("IUPAC Commission on Electrochemistry", metadata.GetProperty("secondary_source").GetString()!);
+        Assert.Contains("Stockholm convention", metadata.GetProperty("iupac_convention").GetString()!);
+        Assert.False(string.IsNullOrWhiteSpace(metadata.GetProperty("derivation_note").GetString()));
+        Assert.Equal(298.15, metadata.GetProperty("temperature_k").GetDouble());
+
         var couplesArray = doc.RootElement.GetProperty("standard_reduction_potentials").EnumerateArray().ToList();
         Assert.Equal(29, couplesArray.Count);
 
         _output.WriteLine("\n=== ELECTROCHEMISTRY STANDARD REDUCTION POTENTIALS BENCHMARK ===");
-        _output.WriteLine("| Redox Couple | Queried Chemy E° | CRC/IUPAC Ref E° | Diff | Status |");
-        _output.WriteLine("| :--- | :---: | :---: | :---: | :---: |");
+        _output.WriteLine("| Redox Couple | Queried Chemy E° | CRC/IUPAC Ref E° | Diff | CRC Page | Status |");
+        _output.WriteLine("| :--- | :---: | :---: | :---: | :---: | :---: |");
 
         foreach (var item in couplesArray)
         {
             string couple = item.GetProperty("couple").GetString()!;
             double expE0 = item.GetProperty("potential_volts").GetDouble();
             int electrons = item.GetProperty("electrons").GetInt32();
+            string crcPage = item.GetProperty("crc_page").GetString()!;
+            string crcTable = item.GetProperty("crc_table").GetString()!;
+
+            Assert.True(electrons > 0, $"Electron transfer count for {couple} must be positive.");
+            Assert.False(string.IsNullOrWhiteSpace(crcPage), $"CRC page coordinate missing for {couple}.");
+            Assert.Equal("Table 1", crcTable);
 
             double chemyE0 = ElectrochemistryEngine.GetStandardReductionPotential(couple);
             double diff = Math.Abs(chemyE0 - expE0);
-            _output.WriteLine($"| {couple} | {chemyE0:+0.0000;-0.0000;0.0000} V | {expE0:+0.0000;-0.0000;0.0000} V | {diff:F4} | Verified ✅ |");
+            _output.WriteLine($"| {couple} | {chemyE0:+0.0000;-0.0000;0.0000} V | {expE0:+0.0000;-0.0000;0.0000} V | {diff:F4} | {crcPage} | Verified ✅ |");
             Assert.InRange(diff, 0.0, 1e-4);
         }
 
@@ -979,14 +1269,26 @@ public class ScientificBenchmarkValidationTests
         }
         Assert.True(File.Exists(jsonPath), $"Required external NMR reference '{jsonPath}' not found.");
 
+        // Enforce hash-locked external reference artifact integrity
+        const string expectedSha256 = "5b4e3b762887563827bacb9e62607e079431cbb6bc6596542b5d1c7b5947b9b0";
+        string actualSha256 = ComputeFileSha256(jsonPath);
+        Assert.Equal(expectedSha256, actualSha256);
+
         using var doc = JsonDocument.Parse(File.ReadAllText(jsonPath));
+        var metadata = doc.RootElement.GetProperty("metadata");
+        Assert.Equal("SDBS / NIST Experimental 1H-NMR Reference Chemical Shifts", metadata.GetProperty("title").GetString());
+        Assert.Contains("Spectral Database for Organic Compounds (SDBS)", metadata.GetProperty("primary_source").GetString()!);
+        Assert.Equal("2026-08-21", metadata.GetProperty("retrieval_date").GetString());
+        Assert.Equal("2.0", metadata.GetProperty("version").GetString());
+        Assert.Contains("30 °C (303.15 K)", metadata.GetProperty("standard_conditions").GetString()!);
+
         var compoundsArray = doc.RootElement.GetProperty("compounds").EnumerateArray().ToList();
         Assert.Equal(4, compoundsArray.Count);
 
         var errors = new List<double>();
         _output.WriteLine("\n=== 1H-NMR SPECTROSCOPY EXPERIMENTAL CHEMICAL SHIFTS BENCHMARK ===");
-        _output.WriteLine("| Molecule | SDBS ID | Spectrum ID | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Multiplicity | Integration |");
-        _output.WriteLine("| :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |");
+        _output.WriteLine("| Molecule | SDBS ID | Spectrum ID | Kind | Frequency | Proton Group | Calc δ (ppm) | Exp δ (ppm) | Diff (ppm) | Multiplicity | Integration |");
+        _output.WriteLine("| :--- | :--- | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |");
 
         foreach (var comp in compoundsArray)
         {
@@ -994,15 +1296,41 @@ public class ScientificBenchmarkValidationTests
             string smiles = comp.GetProperty("smiles").GetString()!;
             string sdbsCompoundId = comp.GetProperty("sdbs_compound_id").GetString()!;
             string sdbsSpectrumId = comp.GetProperty("sdbs_spectrum_id").GetString()!;
+            string spectrumKind = comp.GetProperty("spectrum_kind").GetString()!;
             string solvent = comp.GetProperty("solvent").GetString()!;
+            string frequency = comp.GetProperty("frequency").GetString()!;
+            double tempK = comp.GetProperty("temperature_k").GetDouble();
+            string derivationNote = comp.GetProperty("derivation_note").GetString()!;
+            string sourceUrl = comp.GetProperty("source_url").GetString()!;
+
+            // Strict metadata verification
+            Assert.Matches(@"^SDBS-\d+$", sdbsCompoundId);
+            Assert.True(sdbsSpectrumId.StartsWith("HSP-") || sdbsSpectrumId.StartsWith("HPM-"), $"Spectrum ID '{sdbsSpectrumId}' must be an authentic 1H record (HSP-* or HPM-*), not 13C (CDS-*).");
+            Assert.False(sdbsSpectrumId.StartsWith("CDS-"), $"Spectrum ID '{sdbsSpectrumId}' is a 13C NMR record, invalid for 1H benchmark.");
+            Assert.True(spectrumKind is "measured" or "generated", $"Spectrum kind '{spectrumKind}' must be explicitly 'measured' or 'generated'.");
+            if (sdbsSpectrumId.StartsWith("HSP-")) Assert.Equal("measured", spectrumKind);
+            if (sdbsSpectrumId.StartsWith("HPM-")) Assert.Equal("generated", spectrumKind);
+            Assert.Equal("CDCl3", solvent);
+            Assert.False(string.IsNullOrWhiteSpace(frequency));
+            Assert.Equal(303.15, tempK);
+            Assert.False(string.IsNullOrWhiteSpace(derivationNote));
+            Assert.Contains("sdbs.db.aist.go.jp", sourceUrl);
 
             var mol = SmilesParser.Parse(smiles, name);
+            Assert.Equal(comp.GetProperty("formula").GetString(), mol.ChemicalFormula);
+
             var prediction = SpectroscopyEngine.Predict(mol);
             Assert.NotEmpty(prediction.H1NmrPeaks);
 
-            var availablePredicted = prediction.H1NmrPeaks.ToList();
+            // Separate non-exchangeable peaks from exchangeable (-OH, -COOH)
+            var nonExchangeablePredicted = prediction.H1NmrPeaks
+                .Where(p => !p.Multiplet.Contains("Exchangeable", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            foreach (var peak in comp.GetProperty("peaks").EnumerateArray())
+            var expectedPeaks = comp.GetProperty("peaks").EnumerateArray().ToList();
+            Assert.Equal(expectedPeaks.Count, nonExchangeablePredicted.Count);
+
+            foreach (var peak in expectedPeaks)
             {
                 string group = peak.GetProperty("group").GetString()!;
                 double expPpm = peak.GetProperty("experimental_shift_ppm").GetDouble();
@@ -1011,11 +1339,11 @@ public class ScientificBenchmarkValidationTests
                 double tolPpm = peak.GetProperty("tolerance_ppm").GetDouble();
 
                 // Strict 1-to-1 matching: match with closest unused peak
-                Assert.NotEmpty(availablePredicted);
-                var matched = availablePredicted.MinBy(p => Math.Abs(p.ChemicalShiftPpm - expPpm));
+                Assert.NotEmpty(nonExchangeablePredicted);
+                var matched = nonExchangeablePredicted.MinBy(p => Math.Abs(p.ChemicalShiftPpm - expPpm));
                 Assert.NotNull(matched);
 
-                availablePredicted.Remove(matched);
+                nonExchangeablePredicted.Remove(matched);
 
                 double diff = Math.Abs(matched.ChemicalShiftPpm - expPpm);
                 errors.Add(diff);
@@ -1026,11 +1354,50 @@ public class ScientificBenchmarkValidationTests
                 Assert.Equal(expIntegration, matched.HydrogenCount);
                 Assert.InRange(diff, 0.0, tolPpm);
             }
+
+            // Assert no unexplained non-exchangeable predictions remain
+            Assert.Empty(nonExchangeablePredicted);
         }
 
         double mae = errors.Average();
         _output.WriteLine($"\n1H-NMR Chemical Shift Mean Absolute Error: {mae:F4} ppm (Max Error: {errors.Max():F4} ppm)");
         Assert.True(mae < 0.25, $"1H-NMR MAE {mae:F4} ppm exceeds threshold of 0.25 ppm");
+    }
+
+    [Fact]
+    public void Benchmark_MolfileInteroperability_NegativePath_RejectsMissingExplicitDirectory()
+    {
+        string scriptPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts", "verify_molfile_interop.py");
+        if (!File.Exists(scriptPath))
+        {
+            scriptPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../scripts/verify_molfile_interop.py"));
+        }
+        if (!File.Exists(scriptPath))
+        {
+            scriptPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../scripts/verify_molfile_interop.py"));
+        }
+
+        Assert.True(File.Exists(scriptPath), $"Required verification script '{scriptPath}' not found.");
+
+        string nonExistentDir = Path.Combine(Path.GetTempPath(), "definitely-missing-chemy-audit-" + Guid.NewGuid().ToString("N"));
+
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = "python3",
+            Arguments = $"\"{scriptPath}\" --verify-chemy --strict --chemy-dir \"{nonExistentDir}\"",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        using var proc = System.Diagnostics.Process.Start(psi);
+        Assert.NotNull(proc);
+        proc.WaitForExit(10000);
+        string stderr = proc.StandardError.ReadToEnd();
+        _output.WriteLine($"Negative path test stderr: {stderr}");
+        Assert.NotEqual(0, proc.ExitCode);
+        Assert.Contains("FAIL", stderr);
     }
 
     [Fact]

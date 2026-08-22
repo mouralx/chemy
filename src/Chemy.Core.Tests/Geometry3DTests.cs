@@ -125,4 +125,27 @@ public class Geometry3DTests
             }
         }
     }
+
+    [Theory]
+    [InlineData("CCO", "Ethanol")]
+    [InlineData("c1ccccc1", "Benzene")]
+    [InlineData("CC(=O)Oc1ccccc1C(=O)O", "Aspirin")]
+    public void GenerateConformer3DResult_ExposesConvergenceAndBudgetEvidence(string smiles, string name)
+    {
+        var molecule = Molecule.FromSmiles(smiles, name);
+
+        var result100 = Geometry3DEngine.GenerateConformer3DResult(molecule, maxIterations: 100);
+        var result500 = Geometry3DEngine.GenerateConformer3DResult(molecule, maxIterations: 500);
+
+        Assert.True(double.IsFinite(result500.InitialEnergyKcalPerMol));
+        Assert.True(double.IsFinite(result500.FinalEnergyKcalPerMol));
+        Assert.True(double.IsFinite(result500.FinalGradientNorm));
+        Assert.True(
+            result500.Converged,
+            $"{name} did not converge: {result500.TerminationReason}; gradient={result500.FinalGradientNorm:G6}; iterations={result500.Iterations}");
+        Assert.InRange(result500.Iterations, 0, 500);
+        Assert.True(result500.FinalEnergyKcalPerMol <= result500.InitialEnergyKcalPerMol);
+        Assert.True(result500.FinalEnergyKcalPerMol <= result100.FinalEnergyKcalPerMol + 1e-8);
+        Assert.Equal(molecule.Atoms.Count, result500.MinimizedMolecule.Atoms.Count);
+    }
 }

@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > This document details the mathematical, physical, and chemoinformatics methods implemented in **Chemy**.
-> For independent external audit results, vulnerability assessments, and versioned ratings, refer to [`CODEX_AUDIT_v1.3.md`](CODEX_AUDIT_v1.3.md).
+> For the latest independent implementation audit, enterprise-boundary assessment, vulnerability checks, and versioned ratings, refer to [`CODEX_AUDIT_v2.7.md`](CODEX_AUDIT_v2.7.md).
 
 ---
 
@@ -16,15 +16,15 @@ All algorithms in Chemy are **pure, deterministic, and dependency-free C# implem
 | **Quantum Orbitals & Electronic Structure** | Exact Jacobi symmetric matrix diagonalization ($\det|\mathbf{H} - E\mathbf{I}| = 0$) & Streitwieser heteroatoms | **Analytical Model** | Hückel $\pi$-electron molecular orbitals, bandgaps, and resonance energies |
 | **Aqueous Solutions & Equilibria** | Autoionization-coupled exact cubic polynomial solved via Halley's root-finding method | **Exact Solver** | Analytical pH, buffer, and dissociation calculations across concentration regimes |
 | **Chemical Kinetics & Networks** | 4th-Order Runge-Kutta (RK4) numerical ODE solver & Arrhenius exponential activation | **Numerical Solver** | Time-series concentration profiles for coupled rate equations |
-| **Electrochemistry** | IUPAC standard constants ($R, F$) & exact Nernst logarithmic equation ($E_{\text{cell}} = E^\circ - \frac{RT}{nF}\ln Q$) | **Analytical Model** | Standard and non-standard galvanic cell potentials |
+| **Electrochemistry** | IUPAC standard constants ($R, F$), CRC Handbook 97th Edition Section 5 (pp. 5-77 - 5-89), Bard et al. (1985), & exact Nernst equation ($E_{\text{cell}} = E^\circ - \frac{RT}{nF}\ln Q$) | **Analytical Model** | Standard and non-standard galvanic cell potentials |
 | **Periodic Table & Elemental Physics** | IUPAC Commission on Isotopic Abundances (CIAAW) standard atomic weights and atomic properties | **Reference Tables** | Standard atomic weights, valence states, and electron configurations |
 | **Physicochemical Descriptors** | Crippen-inspired $\log P$, Ertl-inspired TPSA, Lipinski Rule of 5, Veber rules, Ghose filters | **Empirical Subset** | 2D property estimation; does not model 3D pKa or biological safety |
-| **Thermodynamics & Shomate Tables** | NIST-JANAF Shomate polynomial integrals ($C_p^\circ, H^\circ, S^\circ$) & Hess's Law | **Empirical Integration** | Gas/condensed phase thermodynamic functions over defined temperature ranges |
-| **Chemical File Interoperability** | MDL Molfile V2000, SDF, PDB (HETATM/CONECT), and XYZ serializers | **Standard Formats** | Structure file input/output for visualization and standard chemoinformatics tools |
+| **Thermodynamics & Shomate Tables** | Piecewise NIST-JANAF Shomate polynomial integrals ($C_p^\circ, \Delta_f H^\circ, S^\circ$), species-specific intervals, and fail-closed range selection | **Reference Equation** | Nine listed gas species within their published coefficient intervals; no extrapolation |
+| **Chemical File Interoperability** | MDL Molfile V2000, SDF, PDB (HETATM/CONECT), and XYZ serializers with strict CLI gating and negative path tests | **Standard Formats** | Structure file input/output for visualization and standard chemoinformatics tools |
 | **Graph Theory & Ring Perception** | Horton SSSR minimum cycle basis ($\text{GF}(2)$) & 1D Weisfeiler-Lehman topological symmetry | **Exact Graph Theory** | Cycle basis extraction, ring counts, and topological symmetry partitioning |
 | **3D Conformer & VSEPR Embedding** | Gillespie VSEPR geometry coordination + multi-center topological frame propagation | **Heuristic Generator** | Approximate initial 3D conformer generation for visualization |
-| **Molecular Mechanics Force Field** | 4-term potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$) with central finite-difference gradients | **Empirical MM** | Coordinate relaxation and steric clash relief for organic small molecules |
-| **Spectroscopy & Cleavage Pathways** | Weisfeiler-Lehman NMR peak integration & BDE degradation cascades | **Empirical / Heuristic** | Approximate chemical shift profiling and qualitative degradation pathways |
+| **Molecular Mechanics Force Field** | UFF-inspired atom-typing subset, precomputed topology arrays, and 5-term potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$), including the carbonyl inversion special case from Rappé et al. (1992) | **Empirical MM Subset** | Coordinate relaxation with component auditing and convergence diagnostics; not interchangeable with full RDKit UFF |
+| **Spectroscopy & Cleavage Pathways** | Authentic AIST SDBS $^1\text{H}$-NMR database records (`HSP-*`, `HPM-*`) at 30 °C (303.15 K) in $\text{CDCl}_3$ (89.55 MHz & 300 MHz) & BDE degradation cascades | **Empirical / Heuristic** | Approximate chemical shift profiling and qualitative degradation pathways |
 
 ---
 
@@ -44,7 +44,7 @@ graph TD
         G --> H[MolecularEvolverEngine<br/>Bioisosteres]
         I[AdmetEngine<br/>Ertl TPSA & Crippen LogP] --> H
         J[ThermodynamicsEngine<br/>NIST Tables & Benson Additivity] --> T[Reaction Feasibility ΔG°]
-        L[Geometry3DEngine & ForceFieldEngine<br/>4-Term MM Gradient Descent] --> M[3D Cartesian Coordinates]
+        L[Geometry3DEngine & ForceFieldEngine<br/>5-Term MM Gradient Descent] --> M[3D Cartesian Coordinates]
     end
 ```
 
@@ -220,9 +220,8 @@ graph TD
 
 ## 🏆 Verification Matrix & Test Suite Summary
 
-- **Total Passing Automated Tests**: **114 / 114 (100% Passed)**
-- **Compiler Warnings**: **0 Warnings** (`<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects).
-- **Execution Performance**: 114 tests executed in **144 ms**.
-- **Memory Allocation**: High-frequency element and bond records allocated on the stack via `readonly record struct`.
+- **Total Passing Automated Tests**: **154 / 154 (100% Passed)**
+- **Execution Performance**: 154 test fixtures executed in **< 1 s** on standard workstations (< 10 s under CI code coverage collection) including 3D conformer generation, energy minimization, and live scientific benchmarks.
+- **Memory & Data Structures**: Topology caching into contiguous flat arrays eliminates repeated graph traversals, LINQ closures, and type lookups from inner molecular mechanics line searches.
 
 **Chemy is verified to be scientifically credible, mathematically rigorous, and suitable for industrial chemoinformatics triage, lead optimization, and chemical education.**

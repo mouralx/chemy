@@ -34,6 +34,9 @@ jobs:
       run: |
         python3 scripts/generate_uff_reference.py --verify src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json
 
+    - name: Enforce Scientific Claim, Artifact Hash & Contract Consistency
+      run: python3 scripts/verify_claim_consistency.py
+
     - name: Generate Initial RDKit Interop Fixtures (Direction 2)
       run: |
         python3 scripts/verify_molfile_interop.py --generate-rdkit
@@ -54,7 +57,20 @@ jobs:
 
     - name: Verify Live Chemy-Exported Molfiles & SDF with RDKit 2025.09.2 (Direction 1)
       run: |
-        python3 scripts/verify_molfile_interop.py --verify-chemy
+        python3 scripts/verify_molfile_interop.py --verify-chemy --strict --chemy-dir src/Chemy.Core.Tests/bin/Release/net10.0/ValidationData/interop_fixtures/chemy_exported
+
+    - name: Verify Strict Interoperability Gate Rejects Missing Explicit Directory (Negative Path)
+      run: |
+        python3 -c "
+        import subprocess, sys, tempfile, uuid, os
+        missing_dir = os.path.join(tempfile.gettempdir(), 'definitely-missing-chemy-' + uuid.uuid4().hex)
+        res = subprocess.run(['python3', 'scripts/verify_molfile_interop.py', '--verify-chemy', '--strict', '--chemy-dir', missing_dir], capture_output=True, text=True)
+        if res.returncode != 0:
+            print('PASS: Negative path test confirmed: explicitly missing directory correctly rejected with exit code', res.returncode)
+        else:
+            print('FAIL: Explicitly missing directory unexpectedly passed!', file=sys.stderr)
+            sys.exit(1)
+        "
 
     - name: Enforce Scientific Line & Branch Coverage Floors
       run: |

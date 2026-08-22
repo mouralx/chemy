@@ -12,7 +12,7 @@ graph TD
         Graph["ChemicalGraph (Adjacency Lists & DFS Rings)"]
         Matcher["SubgraphMatcher (VF2 Isomorphism)"]
         Rewriter["GraphRewriter (Topological Transformations)"]
-        ForceField["Multi-Term Molecular Mechanics Force Field (MMFF/UFF)"]
+        ForceField["Five-Term UFF-Inspired Molecular Mechanics"]
         ADMET["Standard ADMET (Ertl TPSA, Crippen LogP, Veber Rules)"]
         Molfile["MolfileExporter (MDL Molfile V2000 & SDF)"]
         Elements["Elements (FrozenDictionary, O(1))"]
@@ -61,9 +61,9 @@ graph TD
 
 ## 2. Multi-Term Molecular Mechanics Force Field (`ForceFieldEngine.cs`)
 
-`ForceFieldEngine` calculates a 4-term analytical potential energy function:
+`ForceFieldEngine` calculates a 5-term UFF-inspired potential energy function:
 
-$$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$$
+$$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$$
 
 ### 1. Covalent Bond Stretching Potential (Harmonic)
 $$E_{\text{bond}} = \sum_{bonds} \frac{1}{2} k_r (r_{ij} - r_0)^2$$
@@ -74,11 +74,16 @@ $$E_{\text{angle}} = \sum_{angles} \frac{1}{2} k_\theta (\theta_{ijk} - \theta_0
 ### 3. Dihedral Torsional Strain
 $$E_{\text{torsion}} = \sum_{dihedrals} \frac{V_n}{2} [1 + \cos(n\phi - \gamma)]$$
 
-### 4. Non-Bonded Steric van der Waals (Lennard-Jones 12-6)
+### 4. Out-of-Plane Inversion
+$$E_{\text{inv}} = \sum_{centers}\sum_{permutations}\frac{K_{\text{inv}}}{3}[1 - \cos(\omega)]$$
+
+Trivalent planar C/N/O centers use three permutations. Carbonyl carbon uses the UFF special force constant of 50 kcal/mol; other supported planar centers use 6 kcal/mol.
+
+### 5. Non-Bonded Steric van der Waals (Lennard-Jones 12-6)
 $$E_{\text{vdw}} = \sum_{i < j, \text{ non-bonded}} \epsilon_{ij} \left[ \left( \frac{r_m}{r_{ij}} \right)^{12} - 2 \left( \frac{r_m}{r_{ij}} \right)^6 \right]$$
 
 ### Energy Optimization
-Minimization computes spatial analytical force gradients $\vec{F}_i = -\nabla_i E$ and relaxes 3D Cartesian coordinates via **adaptive step-size gradient descent** with convergence threshold $|\Delta E| < 10^{-4}\text{ kcal/mol}$.
+Minimization computes central finite-difference gradients and relaxes 3D Cartesian coordinates with bounded-memory L-BFGS and a monotonic Armijo line search. `EnergyMinimizationResult` reports the exact termination reason, iteration count, final gradient norm, and convergence flag. `Geometry3DEngine.GenerateConformer3DResult` preserves those diagnostics for production callers; the production default budget is 500 iterations.
 
 ---
 
@@ -151,3 +156,15 @@ $$y_{n+1} = y_n + \frac{\Delta t}{6}(k_1 + 2k_2 + 2k_3 + k_4)$$
    - Returns standard HTTP 200 OK with timestamp for Kubernetes liveness and readiness probes.
 3. **Strict Compiler Policy**:
    - `src/Directory.Build.props` enforces `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` and `<Nullable>enable</Nullable>`.
+
+## 8. Enterprise API Boundary
+
+The API applies defense-in-depth controls before computational endpoints execute:
+
+1. **Fail-closed production authentication**: `/api/v1` requires `X-Api-Key`; Production startup fails when the configured secret is missing. Secrets are supplied through environment variables or a deployment secret provider, never source control.
+2. **Abuse resistance**: per-client fixed-window limiting, zero request queue, a 64 KiB default request-body ceiling, and an explicit 1–2,000 force-field iteration budget.
+3. **Network boundary**: CORS emits no cross-origin allowance unless exact origins are configured; host filtering defaults to loopback and must be set explicitly by each deployment.
+4. **Operational diagnostics**: accepted correlation IDs are sanitized and echoed, structured logging scopes include the correlation ID, unhandled exceptions return generic problem details with a trace ID, and standard security headers are emitted.
+5. **Reduced production exposure**: OpenAPI, Scalar, and Swagger are disabled outside Development unless explicitly enabled. Health checks remain unauthenticated for orchestrators.
+
+An API key is the repository's deployable baseline, not a substitute for enterprise IAM. Regulated or multi-tenant deployments should terminate OAuth2/OIDC, workload identity, authorization policy, TLS, audit retention, and secret rotation at the approved gateway/platform layer.
