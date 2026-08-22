@@ -1,6 +1,8 @@
 # Chemy API Reference Manual
 
-Welcome to the definitive **Chemy API Reference**. This document provides an exhaustive specification for both the **`Chemy.Core` C# Class Library** and the **`Chemy.Api` HTTP REST API Microservice**.
+[Documentation home](README.md) · [Getting started](GETTING_STARTED.md) · [Cookbook](COOKBOOK.md) · [Architecture](ARCHITECTURE.md)
+
+This document summarizes the public **`Chemy.Core` C# library** and **`Chemy.Api` HTTP API** surfaces. The generated Scalar/OpenAPI interface is the runtime source for exact HTTP schemas.
 
 ---
 
@@ -12,10 +14,10 @@ Welcome to the definitive **Chemy API Reference**. This document provides an exh
    - [Molecules & SMILES](#molecule--smilesparser)
    - [3D Geometry & VSEPR](#geometry3dengine--molecule3d)
    - [Multi-Term Molecular Mechanics Force Field](#forcefieldengine)
-   - [Standard ADMET, Ertl TPSA & Veber Rules](#admetengine)
+   - [Physicochemical Descriptors, TPSA, LogP & QED](#admetengine)
    - [MDL Molfile (V2000) & SDF Exporter](#molfileexporter)
-   - [Autonomous Bioisosteric Molecular Evolver](#molecularevolverengine)
-   - [EcoClean Biocleavage Solver](#ecocleanengine)
+   - [Rule-Based Molecular Explorer](#molecularevolverengine)
+   - [EcoClean Qualitative Pathways](#ecocleanengine)
    - [NMR & IR Spectroscopy](#spectroscopyengine)
    - [PubChem Live Cloud Integrator](#pubchemclient)
    - [Kinetics & RK4 Networks](#reactionnetworkengine--kineticsengine)
@@ -26,14 +28,15 @@ Welcome to the definitive **Chemy API Reference**. This document provides an exh
    - [Service Health & Observability](#system-health--observability)
    - [Periodic Table Endpoints](#periodic-table-endpoints)
    - [Molecular Structure & 3D Endpoints](#molecular-structure--3d-endpoints)
-   - [Autonomous Molecular Evolution Endpoints](#molecular-evolution--lead-optimization-endpoints)
-   - [Pharmacology & ADMET Endpoints](#pharmacology--admet-endpoints)
-   - [Environmental EcoClean Endpoints](#environmental--ecoclean-endpoints)
+   - [Molecular Exploration Endpoints](#molecular-exploration-endpoints)
+   - [Physicochemical Profile Endpoints](#physicochemical-profile-endpoints)
+   - [Environmental Hypothesis Endpoints](#environmental-hypothesis-endpoints)
    - [Spectroscopy & Force Field Endpoints](#spectroscopy--physics-endpoints)
    - [PubChem Cloud Query Endpoints](#pubchem-cloud-endpoints)
    - [Kinetics & Reaction Network Endpoints](#chemical-kinetics-endpoints)
    - [Stoichiometry & Balancer Endpoints](#stoichiometry--reactions-endpoints)
    - [Solutions & Electrochemistry Endpoints](#solutions--electrochemistry-endpoints)
+   - [Quantum & Molecular Orbitals Endpoints](#quantum--molecular-orbitals-endpoints)
 
 ---
 
@@ -194,7 +197,7 @@ public record Molecule(string Name, IReadOnlyList<Atom> Atoms, IReadOnlyList<Bon
 ---
 
 ### `MolecularEvolverEngine`
-Autonomous multi-objective optimization using topological graph rewrites (tetrazole bioisosteres, fluorine metabolic shielding, azetidines, morpholines, deuterium KIE).
+Deterministic exploration using bounded topological graph rewrites and QED/LogP ranking. Returned structures are hypotheses for expert review, not optimized biological leads.
 
 ```csharp
 namespace Chemy.Core.Evolution;
@@ -208,7 +211,7 @@ public static class MolecularEvolverEngine
 ---
 
 ### `EcoCleanEngine`
-Calculates bond dissociation energies ($\text{BDE}$) and generates step-by-step catalytic and enzymatic mineralization cascades for PFAS and microplastics.
+Uses characteristic bond dissociation energies ($\text{BDE}$) to construct qualitative catalytic or enzymatic cleavage-pathway hypotheses. It does not calculate kinetics, yield, or mineralization efficiency.
 
 ```csharp
 namespace Chemy.Core.Environmental;
@@ -222,7 +225,7 @@ public static class EcoCleanEngine
 ---
 
 ### `SpectroscopyEngine`
-Predicts $^1\text{H}$-NMR chemical shifts ($\delta$ ppm), peak multiplets ($N+1$ coupling rule), $^{13}\text{C}$-NMR shifts, and Infrared (IR) absorption spectrum bands across 20+ functional groups.
+Estimates $^1\text{H}$-NMR chemical shifts ($\delta$ ppm), first-order multiplets, $^{13}\text{C}$-NMR shifts, and Infrared (IR) bands. Only the narrow pinned $^1\text{H}$ subset currently has a numerical calibration envelope.
 
 ```csharp
 namespace Chemy.Core.Spectroscopy;
@@ -257,7 +260,7 @@ public static class ReactionNetworkEngine
 
 ## 2. HTTP REST API Endpoints (`Chemy.Api`)
 
-Base URL: `http://localhost:5000` (or `https://localhost:5001`)
+Default Development URLs: `http://localhost:5192` or `https://localhost:7199`
 
 ### System Health & Observability
 
@@ -284,10 +287,10 @@ Executes registered health checks and returns service liveness/readiness status 
 
 ---
 
-### Molecular Evolution & Lead Optimization Endpoints
+### Molecular Exploration Endpoints
 
 #### `POST /api/v1/evolution/evolve`
-Autonomously evolves 5 optimized drug candidates from a baseline molecule using bioisosteric transformations.
+Explores rule-based graph mutations and ranks candidates by bounded physicochemical descriptors.
 * **Tags**: `Molecular Evolution & Lead Optimization`
 * **Request Payload**:
 ```json
@@ -301,29 +304,31 @@ Autonomously evolves 5 optimized drug candidates from a baseline molecule using 
 {
   "baselineMolecule": "C9H8O4",
   "baselineSmiles": "CC(=O)Oc1ccccc1C(=O)O",
-  "baselineQed": 0.704,
+  "baselineQed": 0.534,
   "generationsRun": 50,
   "candidates": [
     {
-      "candidateName": "Candidate Alpha (Tetrazole Bioisostere)",
+      "candidateName": "Lead-01 (1H-Tetrazole Bioisostere)",
       "smiles": "CC(=O)Oc1ccccc1c1nnn[nH]1",
       "chemicalFormula": "C10H9N4O2",
       "molecularWeight": 204.16,
-      "qedScore": 0.884,
-      "calculatedLogP": 0.95,
-      "rationale": "Replaced metabolic liability (-COOH) with non-classical 1H-tetrazole 5-membered aromatic ring.",
-      "toxicityImprovement": "Eliminates reactive acyl-glucuronide hepatotoxicity and extends metabolic half-life."
+      "qedScore": 0.590,
+      "calculatedLogP": 1.05,
+      "rationale": "Substituted the carboxylic acid with a 1H-tetrazole graph motif.",
+      "toxicityImprovement": "Carboxylic acid to 1H-tetrazole bioisosteric substitution; modulates acidity while preserving hydrogen-bonding topology."
     }
   ]
 }
 ```
 
+The historical JSON property name `toxicityImprovement` carries a structural-property rationale. It is not a toxicity prediction.
+
 ---
 
-### Pharmacology & ADMET Endpoints
+### Physicochemical Profile Endpoints
 
 #### `POST /api/v1/pharmacology/admet`
-Screens Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber rules, Ghose filter, and QED score.
+Calculates the implemented TPSA, LogP, Lipinski, Veber, Ghose, and QED physicochemical descriptors. This endpoint does not predict ADME, toxicity, efficacy, or safety.
 * **Tags**: `Pharmacology & ADMET`
 * **Request Payload**:
 ```json
@@ -356,10 +361,10 @@ Screens Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber rules, Ghose 
 
 ---
 
-### Environmental & EcoClean Endpoints
+### Environmental Hypothesis Endpoints
 
 #### `POST /api/v1/environmental/ecoclean`
-Calculates bond dissociation energies and generates step-by-step enzymatic/electrochemical mineralization cascades for PFAS and microplastics.
+Constructs qualitative bond-cleavage pathway hypotheses using characteristic bond dissociation energies and rule-based catalyst labels.
 * **Tags**: `Environmental & EcoClean`
 * **Request Payload**:
 ```json

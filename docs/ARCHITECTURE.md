@@ -1,5 +1,7 @@
 # Chemy Architecture & Mathematical Foundations
 
+[Documentation home](README.md) · [Getting started](GETTING_STARTED.md) · [API reference](API_REFERENCE.md) · [Scientific approach](SCIENTIFIC_APPROACH.md)
+
 This document provides a comprehensive breakdown of the internal architectural patterns, domain object graph hierarchy, computational algorithms, and observability models implemented in **Chemy**.
 
 ---
@@ -12,8 +14,8 @@ graph TD
         Graph["ChemicalGraph (Adjacency Lists & DFS Rings)"]
         Matcher["SubgraphMatcher (VF2 Isomorphism)"]
         Rewriter["GraphRewriter (Topological Transformations)"]
-        ForceField["Five-Term UFF-Inspired Molecular Mechanics"]
-        ADMET["Standard ADMET (Ertl TPSA, Crippen LogP, Veber Rules)"]
+        ForceField["UFF-Compatible Organic-Subset Molecular Mechanics"]
+        ADMET["Physicochemical Descriptors (TPSA, LogP, QED)"]
         Molfile["MolfileExporter (MDL Molfile V2000 & SDF)"]
         Elements["Elements (FrozenDictionary, O(1))"]
         Parsing["Formula & SMILES Parsers"]

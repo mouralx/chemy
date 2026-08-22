@@ -1,5 +1,7 @@
 # Scientific Foundations & Computational Algorithms in Chemy
 
+[Documentation home](README.md) · [Credibility report](SCIENTIFIC_CREDIBILITY_REPORT.md) · [Verification](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) · [Current audit](CODEX_AUDIT_v2.8.md)
+
 This document provides a rigorous breakdown of the scientific theories, physical chemistry equations, chemoinformatics principles, and mathematical algorithms implemented in **Chemy**.
 
 ---
@@ -7,7 +9,7 @@ This document provides a rigorous breakdown of the scientific theories, physical
 ## 1. Bioisosteric Graph Mutations & Lead Optimization
 
 The `MolecularEvolverEngine` implements graph-traversing bioisosteric optimization:
-- Evaluates candidate lead structures against Quantitative Estimate of Drug-Likeness (QED), calculated lipophilicity ($\log P$), and structural toxicity liabilities.
+- Evaluates candidate structures with Quantitative Estimate of Drug-Likeness (QED), calculated lipophilicity ($\log P$), and bounded structural-property rules. It does not predict toxicity, efficacy, metabolism, or synthesis feasibility.
 
 ### Bioisosteric Graph Transformations
 - **Carboxylic Acid $\to$ 1H-Tetrazole Bioisosterism**: Substituted via `GraphRewriter.ReplaceCarboxylWithTetrazole` to explore carboxylic acid isosteric acidic proton binding.
@@ -123,5 +125,5 @@ Solved via **Halley's high-order root-finding method**, providing machine-precis
 Scientific calculations expose `ScientificMethodInfo`; predictive results additionally expose applicability, validation evidence, calibrated reference-agreement envelopes where available, or numerical residual diagnostics. Evidence records explicitly state whether a dataset is independently curated and prospectively frozen. The v2.8 internal artifacts intentionally report `false` for those certification fields.
 
 Every active gate is exercised by automated tests in `Chemy.Core.Tests` with zero compiler warnings.
-- Consult the exhaustive [**Scientific Credibility & Technical Audit Report**](SCIENTIFIC_CREDIBILITY_REPORT.md) for full mathematical proofs, algorithm evaluations, and domain scorecards.
-- Consult the [**Scientific Verification Benchmarks Suite**](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) for empirical benchmark tables across 21 standard chemical systems.
+- Consult the current [**Scientific Credibility Report**](SCIENTIFIC_CREDIBILITY_REPORT.md) for the capability matrix, evidence interpretation, and active limitations.
+- Consult the [**Scientific Verification Benchmarks Suite**](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) for the executable evidence matrix, datasets, and acceptance thresholds.

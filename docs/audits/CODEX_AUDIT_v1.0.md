@@ -141,7 +141,7 @@ The `Element` XML summary calls a record struct “stack-allocated.” A value t
 
 The formula parser handles nested groups, several bracket types, hydrate separators, multipliers, and charge suffixes. Its compositional functionality is useful.
 
-The critical problem is that an empirical formula does not determine molecular connectivity, yet `AutoGenerateBonds` connects every atom to the first non-hydrogen atom ([`FormulaParser.cs`](../src/Chemy.Core/Parsing/FormulaParser.cs#L117)). For most polyatomic formulas this creates an arbitrary star graph that can violate realistic valence and structure.
+The critical problem is that an empirical formula does not determine molecular connectivity, yet `AutoGenerateBonds` connects every atom to the first non-hydrogen atom ([`FormulaParser.cs`](../../src/Chemy.Core/Parsing/FormulaParser.cs#L117)). For most polyatomic formulas this creates an arbitrary star graph that can violate realistic valence and structure.
 
 Every topology-dependent engine can then consume that invented graph: functional-group detection, 3D coordinates, force field, spectroscopy, ADMET, thermodynamics fallback, and environmental classification.
 
@@ -158,7 +158,7 @@ The parser supports a useful educational subset: atoms, branches, basic bracket 
 
 It is not standards-compliant and does not fail safely:
 
-- unknown characters fall into an `else` branch and are silently skipped ([`SmilesParser.cs`](../src/Chemy.Core/Structure/SmilesParser.cs#L131));
+- unknown characters fall into an `else` branch and are silently skipped ([`SmilesParser.cs`](../../src/Chemy.Core/Structure/SmilesParser.cs#L131));
 - unmatched closing branches are ignored;
 - unclosed branches and ring openings are not checked at end of input;
 - `@`/`@@` stereochemistry and `/`/`\` bond direction are discarded;
@@ -185,7 +185,7 @@ The documentation says stereochemical symbols are “parsed as standard bonds,�
 
 The reaction balancer builds an element-and-charge conservation matrix and performs rational row reduction. For the common nullity-one equations in the tests, this is a legitimate exact-arithmetic approach.
 
-The global guarantee of a unique minimal positive solution is too broad. The solver finds only one free column, assigns it one, and leaves other free variables zero ([`MatrixSolver.cs`](../src/Chemy.Core/Reactions/MatrixSolver.cs#L79)). It does not solve for a positive combination of a multi-dimensional nullspace basis.
+The global guarantee of a unique minimal positive solution is too broad. The solver finds only one free column, assigns it one, and leaves other free variables zero ([`MatrixSolver.cs`](../../src/Chemy.Core/Reactions/MatrixSolver.cs#L79)). It does not solve for a positive combination of a multi-dimensional nullspace basis.
 
 Independent probe:
 
@@ -261,7 +261,7 @@ Hess-law summation is correctly coded once valid species properties are availabl
 
 The broader scientific claims fail for several reasons:
 
-- species are resolved primarily by empirical formula ([`ThermodynamicsEngine.cs`](../src/Chemy.Core/Thermodynamics/ThermodynamicsEngine.cs#L90));
+- species are resolved primarily by empirical formula ([`ThermodynamicsEngine.cs`](../../src/Chemy.Core/Thermodynamics/ThermodynamicsEngine.cs#L90));
 - structural isomers therefore receive the same data;
 - phases are absent, despite large phase dependence in enthalpy and entropy;
 - temperature dependence and heat capacities are absent;
@@ -276,7 +276,7 @@ The fallback labeled “true Benson group additivity” begins with:
 double s = 150.0 + (1.5 * 8.314 * Math.Log(Math.Max(10.0, molecule.MolecularWeight)));
 ```
 
-([`ThermodynamicsEngine.cs`](../src/Chemy.Core/Thermodynamics/ThermodynamicsEngine.cs#L98)) and then applies a small set of local rules. This is not evidence of a complete Benson group-definition and correction system. Its entropy and Gibbs calculations are particularly weakly founded.
+([`ThermodynamicsEngine.cs`](../../src/Chemy.Core/Thermodynamics/ThermodynamicsEngine.cs#L98)) and then applies a small set of local rules. This is not evidence of a complete Benson group-definition and correction system. Its entropy and Gibbs calculations are particularly weakly founded.
 
 #### Required remediation
 
@@ -307,7 +307,7 @@ The engine is credible as a deterministic educational Hückel calculator for sup
 
 This is a confirmed mathematical contradiction.
 
-The energy function excludes both 1–2 and 1–3 nonbonded pairs ([`ForceFieldEngine.cs`](../src/Chemy.Core/Physics/ForceFieldEngine.cs#L201)). The force function excludes only directly bonded 1–2 pairs ([`ForceFieldEngine.cs`](../src/Chemy.Core/Physics/ForceFieldEngine.cs#L390)). Consequently, the returned forces cannot be the exact gradient of the returned energy.
+The energy function excludes both 1–2 and 1–3 nonbonded pairs ([`ForceFieldEngine.cs`](../../src/Chemy.Core/Physics/ForceFieldEngine.cs#L201)). The force function excludes only directly bonded 1–2 pairs ([`ForceFieldEngine.cs`](../../src/Chemy.Core/Physics/ForceFieldEngine.cs#L390)). Consequently, the returned forces cannot be the exact gradient of the returned energy.
 
 Additional inconsistencies:
 
@@ -367,7 +367,7 @@ The code contains a small set of approximate atom contributions, not a demonstra
 
 #### Hydrogen-bond acceptors
 
-The implementation counts every O, N, or F atom as an acceptor ([`AdmetEngine.cs`](../src/Chemy.Core/Pharmacology/AdmetEngine.cs#L430)). This mishandles standard cases including amide nitrogen, pyrrolic nitrogen, protonated/quaternary nitrogen, acidic hydroxyls, and organic fluorine.
+The implementation counts every O, N, or F atom as an acceptor ([`AdmetEngine.cs`](../../src/Chemy.Core/Pharmacology/AdmetEngine.cs#L430)). This mishandles standard cases including amide nitrogen, pyrrolic nitrogen, protonated/quaternary nitrogen, acidic hydroxyls, and organic fluorine.
 
 #### QED
 
@@ -411,7 +411,7 @@ The documented acetone benchmark claims one six-proton singlet at 2.15 ppm. Actu
 3H triplet at 1.15 ppm
 ```
 
-The discrepancy follows directly from adding a fixed three-hydrogen ketone peak and assigning all remaining protons to a generic aliphatic peak ([`SpectroscopyEngine.cs`](../src/Chemy.Core/Spectroscopy/SpectroscopyEngine.cs#L143)). Aromatic hydrogen counts are capped at five, and carbon environments are similarly assigned by broad remainder rules.
+The discrepancy follows directly from adding a fixed three-hydrogen ketone peak and assigning all remaining protons to a generic aliphatic peak ([`SpectroscopyEngine.cs`](../../src/Chemy.Core/Spectroscopy/SpectroscopyEngine.cs#L143)). Aromatic hydrogen counts are capped at five, and carbon environments are similarly assigned by broad remainder rules.
 
 This is a functional-group hint engine. Calling it complete NMR/IR prediction is not credible.
 
@@ -419,7 +419,7 @@ This is a functional-group hint engine. Calling it complete NMR/IR prediction is
 
 The subgraph matcher performs injective backtracking with element and required-bond checks. It is useful for small motifs, but it is not the VF2 algorithm claimed by the evolution-engine documentation. It lacks query atom/bond expressions, aromatic normalization, charge/isotope matching, stereochemistry, and advanced pruning.
 
-Ring perception uses DFS back edges ([`ChemicalGraph.cs`](../src/Chemy.Core/Graph/ChemicalGraph.cs#L108)). This is not a demonstrated SSSR/Hansch implementation and can behave poorly on fused, bridged, and polycyclic graphs.
+Ring perception uses DFS back edges ([`ChemicalGraph.cs`](../../src/Chemy.Core/Graph/ChemicalGraph.cs#L108)). This is not a demonstrated SSSR/Hansch implementation and can behave poorly on fused, bridged, and polycyclic graphs.
 
 Graph rewriting performs concrete edits, but chemical validity is not comprehensively checked after mutation. Formula equality is sometimes used as structural identity, collapsing isomers.
 
@@ -436,7 +436,7 @@ The engine is deterministic scripted analogue enumeration, not a demonstrated ge
 - baseline duplicates are added until five candidates exist;
 - requested generation count is reported even if little search occurred.
 
-The code makes unsupported causal claims, including eliminating hepatotoxicity, blocking CYP3A4 metabolism, increasing plasma half-life, improving receptor binding, improving bioavailability, and minimizing off-target toxicity ([`MolecularEvolverEngine.cs`](../src/Chemy.Core/Evolution/MolecularEvolverEngine.cs#L97)). None of those endpoints is modelled.
+The code makes unsupported causal claims, including eliminating hepatotoxicity, blocking CYP3A4 metabolism, increasing plasma half-life, improving receptor binding, improving bioavailability, and minimizing off-target toxicity ([`MolecularEvolverEngine.cs`](../../src/Chemy.Core/Evolution/MolecularEvolverEngine.cs#L97)). None of those endpoints is modelled.
 
 Outputs should be called enumerated structural hypotheses, not optimized or non-toxic leads.
 
@@ -453,7 +453,7 @@ double efficiency = Math.Round(
     99.0 + Math.Clamp(10.0 / secondaryBde, 0.2, 0.8), 1);
 ```
 
-([`EcoCleanEngine.cs`](../src/Chemy.Core/Environmental/EcoCleanEngine.cs#L268)). This formula guarantees a result near 99% and is not derived from kinetics, conversion data, catalyst loading, pH, temperature, medium, energy input, competing pathways, or experimental calibration.
+([`EcoCleanEngine.cs`](../../src/Chemy.Core/Environmental/EcoCleanEngine.cs#L268)). This formula guarantees a result near 99% and is not derived from kinetics, conversion data, catalyst loading, pH, temperature, medium, energy input, competing pathways, or experimental calibration.
 
 Environmental half-lives are fixed class constants such as 1,000 years for PFAS and 450 years for synthetic polyesters. End products are assembled from the elements present and labeled “100% Mineralized” without a balanced reaction.
 
@@ -536,7 +536,7 @@ Confirmed documentation/configuration contradictions include:
 
 | Documentation claim | Repository evidence |
 |---|---|
-| Warnings treated as errors | `TreatWarningsAsErrors` is `false` in [`Directory.Build.props`](../src/Directory.Build.props#L5) |
+| Warnings treated as errors | `TreatWarningsAsErrors` is `false` in [`Directory.Build.props`](../../src/Directory.Build.props#L5) |
 | 100% scientific verification | Coverage is 79.3% line / 68.1% branch; coverage itself is not scientific validation |
 | Zero dependency | API directly depends on Microsoft OpenAPI, Scalar, and Swashbuckle packages |
 | Zero allocations | Lists, arrays, strings, dictionaries, immutable collections, records, and LINQ allocate throughout |
@@ -545,7 +545,7 @@ Confirmed documentation/configuration contradictions include:
 | Live benchmark parity | Ibuprofen and acetone documented outputs differ from runtime output |
 | Complete end-to-end verification | Several major components have no independent validation or integration tests |
 
-The API project explicitly suppresses `NU1903` ([`Chemy.Api.csproj`](../src/Chemy.Api/Chemy.Api.csproj#L7)). NuGet reported high-severity advisory `GHSA-v5pm-xwqc-g5wc` for transitive `Microsoft.OpenApi 2.0.0` during this audit.
+The API project explicitly suppresses `NU1903` ([`Chemy.Api.csproj`](../../src/Chemy.Api/Chemy.Api.csproj#L7)). NuGet reported high-severity advisory `GHSA-v5pm-xwqc-g5wc` for transitive `Microsoft.OpenApi 2.0.0` during this audit.
 
 ## 7. Risk register
 

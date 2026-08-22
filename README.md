@@ -1,274 +1,140 @@
-# 🧪 Chemy — Computational Chemistry Engine & REST API
+# Chemy
 
 <div align="center">
 
-![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![Chemy CI](https://github.com/mouralx/chemy/actions/workflows/ci.yml/badge.svg)](https://github.com/mouralx/chemy/actions/workflows/ci.yml)
-![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen?logo=xunit)
-![Coverage Gate](https://img.shields.io/badge/Coverage%20Gate-%E2%89%A580%25%20Line%20%7C%20%E2%89%A570%25%20Branch-blue)
-![Zero Warnings](https://img.shields.io/badge/Compiler-0%20Warnings-success)
-![Implementation](https://img.shields.io/badge/Implementation-Pure%20C%23%20%7C%20Zero%20Native%20Dependencies-blue)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
-![Architecture](https://img.shields.io/badge/Architecture-Clean%20Microservice-orange)
+![Coverage Gate](https://img.shields.io/badge/Coverage-%E2%89%A580%25%20line%20%7C%20%E2%89%A570%25%20branch-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**High-performance, pure C# computational chemistry, chemoinformatics, and molecular analysis toolkit for .NET (zero runtime scientific library dependencies).**  
-*From exact mass/charge rational nullspace balancing and finite-difference molecular mechanics to multi-center 3D conformer embedding, Hückel molecular orbital quantum theory, atom-additive Crippen LogP, Ertl TPSA, NIST Shomate thermodynamics, Weisfeiler-Lehman topological graph symmetry, and Horton SSSR minimum cycle bases.*
+Pure C# computational chemistry, chemoinformatics, and molecular-analysis components for .NET 10.
 
-[🖼️ Visual Tour](#-visual-tour--workstation-ui) • [✨ Key Features](#-key-features-at-a-glance) • [🚀 Quick Start](#-quick-start) • [📖 Documentation](#-documentation) • [🏗️ Project Structure](#️-project-structure)
+[Get started](docs/GETTING_STARTED.md) · [Documentation](docs/README.md) · [API reference](docs/API_REFERENCE.md) · [Scientific evidence](docs/SCIENTIFIC_CREDIBILITY_REPORT.md) · [Latest audit](docs/CODEX_AUDIT_v2.8.md)
 
 </div>
 
----
+## What Chemy provides
 
-## 🖼️ Visual Tour & Workstation UI
+Chemy combines a reusable domain library, an HTTP API, and a browser-based molecular workstation. Its scientific outputs are separated into exact equations, numerical approximations, calibrated empirical models, and explicitly qualitative heuristics.
 
-### 1. Interactive 3D Molecular Laboratory Workstation (`Chemy.Web`)
-*Explore rotatable 3D ball-and-stick conformations, real-time VSEPR geometries, 50+ curated reference compounds, and chemoinformatics property profiles.*
+- **Chemical foundations:** formula and bounded SMILES parsing, molecular graphs, ring perception, subgraph matching, exact mass/charge reaction balancing, and common chemical file formats.
+- **Physical models:** a UFF-compatible organic molecular-mechanics subset, 3D coordinate generation, Hückel molecular orbitals, NIST Shomate thermodynamics, electrochemistry, acid/base equilibria, and RK4 reaction networks.
+- **Chemoinformatics:** TPSA, LogP, QED, hydrogen bonding, rotatable bonds, physicochemical filters, spectroscopy estimates, and rule-based molecular exploration.
+- **Interfaces:** `Chemy.Core`, the `Chemy.Api` REST service with OpenAPI/Scalar, and the `Chemy.Web` interactive workstation.
 
-<div align="center">
+Approximate and heuristic results expose applicability, evidence, uncertainty, or numerical diagnostics as appropriate. Unsupported scientific inputs fail closed where the implementation cannot justify a result.
 
-![Chemy 3D Molecular Laboratory Workstation](docs/images/3d_workstation_nicotine.png)
+## Start in five minutes
 
-</div>
+Prerequisite: [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
----
-
-### 2. Interactive Scalar REST API Explorer (`Chemy.Api`)
-*Live interactive API testing console powered by Scalar with full OpenAPI specification, parameter inspection, and zero-latency local execution.*
-
-<div align="center">
-
-![Chemy Scalar REST API Explorer](docs/images/scalar_api_reference.png)
-
-</div>
-
----
-
-### 3. In-App C# Reflection & Class Docstring API Explorer
-*Live reflection-driven docstring and type signature browser exposing all 68+ computational chemistry and chemoinformatics classes.*
-
-<div align="center">
-
-![Chemy C# Reflection API Explorer](docs/images/csharp_reflection_api_explorer.png)
-
-</div>
-
----
-
-## 💡 What is Chemy?
-
-**Chemy** is a modern, high-performance computational chemistry platform built for developers, scientists, students, and computational chemists. 
-
-All algorithms in Chemy are **pure, deterministic C# implementations** without external Python, cloud AI, or black-box dependencies:
-- ⚛️ **Quantum Electronic Structure & Hückel Molecular Orbitals**: Solves the secular equation $\det|\mathbf{H} - E\mathbf{I}| = 0$ via Jacobi symmetric matrix eigensolver. Computes HOMO, LUMO, bandgaps, UV-Vis $\lambda_{\max}$, Dewar aromatic resonance energy, Coulson bond orders, and Fukui reactivity indices (`HuckelEngine`).
-- 🌿 **Chemical Graph Theory & Ring Perception**: Implements Horton Minimum Cycle Basis (SSSR, `CycleBasis`), 1D Weisfeiler-Lehman topological symmetry partitioning (`WeisfeilerLehman`), and subgraph isomorphism (`SubgraphMatcher`).
-- ⚛️ **UFF-Compatible Molecular Mechanics Subset**: Published five-term UFF functional forms for the declared H/C/N/O/P/S/F/Cl/Br/I organic subset, with auditable components, central finite-difference gradients, L-BFGS relaxation, applicability preflight, and pinned RDKit energy/gradient/geometry comparisons (`ForceFieldEngine`).
-- 📐 **3D Multi-Center Conformer Embedding**: Generates 3D Cartesian coordinates for branched and cyclic molecules via topological coordinate propagation and VSEPR coordinate frames (`Geometry3DEngine`).
-- 🛡️ **Physicochemical Descriptors & Drug-Likeness**: Crippen-inspired $\log P$, Ertl-inspired TPSA, Bickerton QED, and rule-based filters with machine-readable applicability and calibration envelopes from a pinned 48-molecule RDKit benchmark (`AdmetEngine`).
-- 🧬 **Heuristic Lead Candidate Exploration**: Explores graph mutations ranked by QED and $\log P$; results are explicitly marked heuristic and are not toxicity, efficacy, or synthesis recommendations (`MolecularEvolverEngine`).
-- ⚖️ **Exact Mass & Redox Charge Balancer**: Solves chemical equations using exact rational Gaussian elimination nullspace matrix algebra ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger` and charge conservation (`Reaction`).
-- 💧 **Exact Weak Electrolyte Cubic Equilibria**: Solves exact polynomial equilibrium equations ($[\text{H}^+]^3 + K_a [\text{H}^+]^2 - (K_w + K_a C)[\text{H}^+] - K_a K_w = 0$) via Halley's method across arbitrary dilution regimes (`SolutionsEngine`).
-- 🔥 **NIST Shomate Thermodynamics**: Selects piecewise NIST coefficient intervals by species and evaluates formation enthalpy ($\Delta_f H^\circ$), entropy ($S^\circ$), heat capacity ($C_p^\circ$), and formation Gibbs energy ($\Delta_f G^\circ$) without out-of-range extrapolation (`ShomateThermodynamics`).
-- 🛡️ **Enterprise API Boundary**: Production starts fail-closed without an externally supplied API credential, denies unconfigured cross-origin callers, rate-limits by client, bounds request bodies, emits correlation IDs and generic problem responses, and hides interactive documentation unless explicitly enabled.
-- ♻️ **EcoClean Qualitative Degradation Cascades**: Models topological Bond Dissociation Energies ($\text{BDE}$) and constructs enzymatic/electrochemical catalytic degradation cascades for persistent pollutants (`EcoCleanEngine`).
-- 📉 **Empirical Spectroscopy Estimator**: Estimates $^1\text{H}$-NMR and $^{13}\text{C}$-NMR chemical shifts with Weisfeiler-Lehman peak integration and IR vibrational absorption bands (`SpectroscopyEngine`).
-- ⏱️ **Reaction Network RK4 Solver**: Fourth-order Runge-Kutta integration with finite-input checks, fail-closed invalid trajectories, and analytical residual/mass-conservation diagnostics for consecutive cascades (`ReactionNetworkEngine`).
-- 📁 **Standard Chemical File Exporter**: Full support for MDL Molfile (V2000), Structure-Data Files (SDF), Protein Data Bank (PDB), and XYZ formats (`MolfileExporter`).
-- 🌐 **NCBI PubChem Integrator**: Live REST query client for 110M+ real compounds.
-
----
-
-## 🌟 Key Features at a Glance
-
-| Feature | What It Does (In Plain English) | Exact Scientific Implementation |
-| :--- | :--- | :--- |
-| **⚛️ Hückel Quantum Molecular Orbitals** | Computes electron orbitals, HOMO/LUMO bandgap, UV-Vis color absorption, and aromaticity. | Secular determinant $\det\|\mathbf{H} - E\mathbf{I}\| = 0$ via Jacobi symmetric matrix eigensolver (`HuckelEngine`). |
-| **🌿 Graph Cycle Basis & Symmetry** | Computes shortest cycle bases and identifies topologically equivalent atoms. | Horton minimum cycle basis over $\text{GF}(2)$ (`CycleBasis`) and 1D Weisfeiler-Lehman color refinement (`WeisfeilerLehman`). |
-| **⚛️ Molecular Mechanics Force Field** | Relaxes supported organic molecules and reports numerical quality. | Published five-term UFF forms for the declared organic subset, component output, finite-difference gradients, applicability checks, and RDKit equivalence gates (`ForceFieldEngine`). |
-| **🛡️ Ertl TPSA & Drug-Likeness** | Computes topological polar surface area and physicochemical filters. | Ertl-inspired polar surface area fragment subset, Crippen-inspired $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
-| **🧬 Bioisosteric Graph Evolver** | Generates review candidates across rule-based mutations. | Explicitly heuristic graph operators evaluated by bounded physicochemical descriptors (`MolecularEvolverEngine`). |
-| **📁 MDL Molfile & SDF Exporter** | Exports molecules to standard formats for ChemDraw, PyMOL, and RDKit. | Standard MDL Molfile V2000 and multi-record SDF serializer (`MolfileExporter`). |
-| **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger`. |
-| **📐 3D Multi-Center Builder** | Converts bonded molecular structures into 3D atomic coordinates. | Multi-center topological coordinate propagation and VSEPR coordinate generators (`Geometry3DEngine`). |
-| **📉 NMR & IR Spectroscopy** | Estimates chemical shifts and Infrared absorption frequencies. | Weisfeiler-Lehman topological symmetry grouping with additive shift correlation tables (`SpectroscopyEngine`). |
-| **⚛️ 118-Element Periodic Table** | Instant lookup for all 118 IUPAC elements. | $O(1)$ constant-time lookup backed by .NET `FrozenDictionary`. |
-| **🔥 Thermodynamics & Feasibility** | Evaluates heat capacity ($C_p$), enthalpy ($H^\circ$), and entropy ($S^\circ$). | Analytical NIST-JANAF Shomate polynomial integrals and Hess's Law (`ShomateThermodynamics`). |
-| **⏱️ Reaction Kinetics & RK4** | Simulates multi-step reaction concentrations over time. | 4th-Order Runge-Kutta (RK4) numerical ODE solver (`ReactionNetworkEngine`). |
-| **🌐 NCBI PubChem Cloud Query** | Live searches the global PubChem database. | Resilient typed `HttpClient` querying the official NCBI REST PUG API (`PubChemClient`). |
-
----
-
-## 🚀 Quick Start
-
-### 1. Topological Graph Pattern Matching & Rewriting
-
-```csharp
-using Chemy.Core;
-using Chemy.Core.Graph;
-
-// Build molecular graph from Aspirin
-var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
-var graph = ChemicalGraph.FromMolecule(aspirin);
-
-// Detect carboxylic acid motif and replace with 1H-tetrazole ring
-var matches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylicAcidQuery);
-Console.WriteLine($"Found {matches.Count} carboxyl motif(s)");
-
-var tetrazoleLead = GraphRewriter.ReplaceCarboxylWithTetrazole(aspirin);
-Console.WriteLine($"New Lead Formula: {tetrazoleLead.ChemicalFormula}");
+```bash
+git clone https://github.com/mouralx/chemy.git
+cd chemy
+dotnet restore src/Chemy.slnx
+dotnet build src/Chemy.slnx --configuration Release
+dotnet test src/Chemy.slnx --configuration Release --no-build
 ```
 
-### 2. Multi-Term Molecular Mechanics Energy Minimization
-
-```csharp
-using Chemy.Core;
-using Chemy.Core.Physics;
-
-// Relax 3D Cartesian coordinates inside the declared UFF-compatible subset
-var water3D = Molecule.Water.To3D();
-var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 500);
-
-Console.WriteLine($"Initial Energy: {result.InitialEnergyKcalPerMol:F3} kcal/mol");
-Console.WriteLine($"Relaxed Energy: {result.FinalEnergyKcalPerMol:F3} kcal/mol (Converged: {result.Converged})");
-Console.WriteLine($"Applicability: {result.Applicability.Status}; |grad|max = {result.FinalGradientNorm:G4}");
-```
-
-### 3. Compute Physicochemical Drug-Likeness Descriptors
-
-```csharp
-using Chemy.Core;
-using Chemy.Core.Pharmacology;
-
-var molecule = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
-var admet = AdmetEngine.Analyze(molecule);
-
-Console.WriteLine($"Ertl TPSA: {admet.TpsaAngstrom2} Å² (Veber Limit: <= 140 Å²)");
-Console.WriteLine($"Wildman-Crippen LogP: {admet.CalculatedLogP:F2}");
-Console.WriteLine($"Bickerton QED Score: {admet.QedDrugLikenessScore:F2}");
-Console.WriteLine($"Passes Lipinski Rule of 5: {admet.PassesLipinskiRuleOf5}");
-Console.WriteLine($"Applicability: {admet.Applicability.Status}");
-Console.WriteLine($"Calibrated LogP envelope: ±{admet.DescriptorUncertainty["CalculatedLogP"].AbsoluteErrorEnvelope:F3}");
-```
-
-### 4. Export to Standard MDL Molfile (V2000)
-
-```csharp
-using Chemy.Core;
-using Chemy.Core.IO;
-
-var aspirin3D = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin").To3D();
-string molfileV2000 = MolfileExporter.ToMolfileV2000(aspirin3D);
-
-Console.WriteLine(molfileV2000);
-```
-
----
-
-## 🧬 Societal Breakthroughs
-
-Chemy is engineered to deliver immediate real-world value for drug discovery, green chemistry, and environmental remediation:
-
-1. 💊 **AI-Guided *De Novo* Molecular Evolution**: Multi-generational genetic algorithm mutating compounds to bypass toxicity liabilities (e.g. acyl-glucuronide hepatotoxicity, hERG potassium channel cardiotoxicity).
-2. 🛡️ **Early ADMET Toxicity Shield**: Real-time evaluation of solubility, lipophilicity, polar surface area, and PAINS toxicophores before laboratory synthesis.
-3. ♻️ **EcoClean PFAS & Plastic Biocleavage**: Calculates Bond Dissociation Energies ($\text{BDE}$) to formulate targeted biocatalytic and electrochemical degradation pathways for persistent organohalides and polyesters.
-
-Explore complete societal case studies in the [Breakthroughs Showcase](docs/BREAKTHROUGHS_SHOWCASE.md).
-
----
-
-## 📖 Documentation
-
-Comprehensive guides, mathematical specifications, and developer documentation:
-
-* 📚 [**Getting Started Tutorial**](docs/GETTING_STARTED.md) — Step-by-step developer onboarding and C# usage patterns.
-* 🔬 [**Scientific Credibility & Technical Audit Report**](docs/SCIENTIFIC_CREDIBILITY_REPORT.md) — Comprehensive technical audit, mathematical proofs, and domain verification scorecard.
-* 🧪 [**Scientific Approach & Foundations**](docs/SCIENTIFIC_APPROACH.md) — Detailed physical chemistry equations, thermo models, and chemoinformatics standards.
-* 📊 [**Scientific Verification & Benchmarks**](docs/SCIENTIFIC_VERIFICATION_BENCHMARKS.md) — Experimental validation matrix across 21 standard chemical benchmarks.
-* 📑 [**API Reference Manual**](docs/API_REFERENCE.md) — Complete C# class reference and REST API endpoint catalog.
-* 🏛️ [**Architecture & Design**](docs/ARCHITECTURE.md) — System architecture, mathematical solvers, and microservice topologies.
-* 🧬 [**Breakthroughs Showcase**](docs/BREAKTHROUGHS_SHOWCASE.md) — Real-world case studies in drug optimization and environmental remediation.
-
----
-
-## 🏗️ Project Structure
-
-The codebase is organized cleanly following enterprise .NET architecture:
-
-```text
-chemy/
-├── docs/                        # Comprehensive technical documentation
-│   ├── API_REFERENCE.md         # Exhaustive C# and REST API guide
-│   ├── ARCHITECTURE.md          # Mathematics, linear algebra, and diagrams
-│   ├── BREAKTHROUGHS_SHOWCASE.md # Aspirin, Cocaine, and PFOA case studies
-│   ├── GETTING_STARTED.md       # Step-by-step developer tutorial
-│   ├── SCIENTIFIC_APPROACH.md   # Physical chemistry and computational principles
-│   ├── SCIENTIFIC_CREDIBILITY_REPORT.md # Technical audit and mathematical proofs
-│   ├── SCIENTIFIC_VERIFICATION_BENCHMARKS.md # 21 experimental verification benchmarks
-│   └── images/                  # High-resolution UI screenshots & diagrams
-├── src/                         # All project source code
-│   ├── Chemy.slnx               # Modern solution file
-│   ├── Directory.Build.props    # Global zero-warning compiler rules
-│   ├── Chemy.Core/              # Pure computational chemistry library
-│   │   ├── Graph/               # ChemicalGraph, SubgraphMatcher, GraphRewriter
-│   │   ├── Physics/             # Multi-term ForceFieldEngine (UFF/MMFF)
-│   │   ├── Pharmacology/        # Ertl TPSA, Crippen LogP, Veber/Ghose rules
-│   │   ├── IO/                  # MDL Molfile V2000 & SDF serializers
-│   │   ├── Spatial/             # Multi-center 3D coordinates & VSEPR
-│   │   ├── Evolution/           # MolecularEvolverEngine (Genetic Algorithm)
-│   │   ├── Environmental/       # EcoCleanEngine (BDE & Mineralization)
-│   │   └── ...                  # Reactions, Kinetics, Solutions, Thermodynamics
-│   ├── Chemy.Api/               # Pure REST API microservice (Scalar & Swagger)
-│   ├── Chemy.Web/               # Interactive 3D laboratory workstation
-│   └── Chemy.Core.Tests/        # Complete xUnit test suite (114 tests)
-└── README.md                    # Project overview
-```
-
----
-
-## 🌐 Running the REST API Microservice
-
-Chemy includes a lightweight, ultra-fast **REST API microservice** (`Chemy.Api`) with built-in interactive documentation:
+Run the REST API in Development:
 
 ```bash
 dotnet run --project src/Chemy.Api
 ```
 
-Once running, open your browser:
-* **Interactive Scalar UI**: [http://localhost:5000/scalar/v1](http://localhost:5000/scalar/v1) *(or automatically at `/`)*
-* **Swagger UI**: [http://localhost:5000/swagger](http://localhost:5000/swagger)
-* **Health Probe**: [http://localhost:5000/healthz](http://localhost:5000/healthz)
+Open `http://localhost:5192/scalar/v1` for the interactive API reference or `http://localhost:5192/healthz` for the health probe.
 
----
-
-## 🧪 Running the 3D Web Workstation
-
-To launch the full visual 3D laboratory workstation:
+Run the web workstation:
 
 ```bash
 dotnet run --project src/Chemy.Web
 ```
 
-Visit `http://localhost:5002` to explore rotatable 3D molecular structures, interactive reaction balancers, and spectroscopy charts.
+Open `http://localhost:5045`.
 
----
+For project references, configuration, and the first library example, continue with [Getting Started](docs/GETTING_STARTED.md). For focused C# examples, use the [Cookbook](docs/COOKBOOK.md).
 
-## 🛡️ Testing & Quality
+## Minimal library example
 
-Chemy is built to the highest enterprise standards:
-- **Automated Scientific and Engineering Gates**: 171/171 tests passing in the v2.8 audit run.
-- **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
-- **Reduced Hot-Loop Allocations**: Topology and atom typing are precomputed once per evaluation; optimization still allocates bounded working arrays and result objects.
+```csharp
+using Chemy.Core;
+using Chemy.Core.Pharmacology;
 
-```bash
-dotnet test src/Chemy.slnx
+var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
+var profile = AdmetEngine.Analyze(aspirin);
+
+Console.WriteLine($"Formula: {aspirin.ChemicalFormula}");
+Console.WriteLine($"TPSA: {profile.TpsaAngstrom2:F2} Å²");
+Console.WriteLine($"LogP: {profile.CalculatedLogP:F2}");
+Console.WriteLine($"Applicability: {profile.Applicability.Status}");
 ```
+
+## Choose the right document
+
+| If you want to… | Start here |
+| :--- | :--- |
+| Install, build, and run Chemy | [Getting Started](docs/GETTING_STARTED.md) |
+| Copy focused C# examples | [Cookbook](docs/COOKBOOK.md) |
+| Find a C# type or HTTP endpoint | [API Reference](docs/API_REFERENCE.md) |
+| Understand components and data flow | [Architecture](docs/ARCHITECTURE.md) |
+| Understand equations and model boundaries | [Scientific Approach](docs/SCIENTIFIC_APPROACH.md) |
+| Evaluate current scientific credibility | [Scientific Credibility Report](docs/SCIENTIFIC_CREDIBILITY_REPORT.md) |
+| Inspect benchmark design and results | [Verification and Benchmarks](docs/SCIENTIFIC_VERIFICATION_BENCHMARKS.md) |
+| Review the current score and remaining work | [Scientific Audit v2.8](docs/CODEX_AUDIT_v2.8.md) |
+| Browse every document and historical audit | [Documentation Home](docs/README.md) |
+
+## Projects
 
 ```text
-Passed! - Failed: 0, Passed: 171, Skipped: 0, Total: 171
+src/
+├── Chemy.Core/          Scientific models, parsers, graph algorithms, and I/O
+├── Chemy.Api/           ASP.NET Core REST API and interactive OpenAPI reference
+├── Chemy.Web/           Razor-based molecular workstation
+└── Chemy.Core.Tests/    Unit, contract, benchmark, and interoperability tests
 ```
 
----
+The core library has no native scientific runtime dependency. External tools such as RDKit are used to generate and verify pinned reference artifacts, not to execute normal `Chemy.Core` calculations.
 
-<div align="center">
-Built with ❤️ for science, education, and humanity.
-</div>
+## Scientific status
+
+The v2.8 audit assigns **9.7/10 internal scientific implementation readiness** within the declared applicability domains. The remaining 0.3 is reserved for prospective evaluation, independent reproduction, and identifiable chemistry-domain review; it is not represented as completed certification.
+
+The evidence chain is intentionally split by purpose:
+
+1. [Scientific Approach](docs/SCIENTIFIC_APPROACH.md) — implemented methods and equations.
+2. [Verification and Benchmarks](docs/SCIENTIFIC_VERIFICATION_BENCHMARKS.md) — executable comparisons and datasets.
+3. [Scientific Credibility Report](docs/SCIENTIFIC_CREDIBILITY_REPORT.md) — current capability and boundary summary.
+4. [Scientific Audit v2.8](docs/CODEX_AUDIT_v2.8.md) and [acceptance manifest](docs/SCIENTIFIC_ACCEPTANCE_v2.8.json) — score, gates, and machine-readable evidence.
+
+## Visual interfaces
+
+<details>
+<summary>View the web workstation and API explorers</summary>
+
+### Molecular workstation
+
+![Chemy 3D molecular workstation](docs/images/3d_workstation_nicotine.png)
+
+### Scalar REST API explorer
+
+![Chemy Scalar REST API explorer](docs/images/scalar_api_reference.png)
+
+### C# type explorer
+
+![Chemy C# reflection API explorer](docs/images/csharp_reflection_api_explorer.png)
+
+</details>
+
+## Quality gates
+
+The v2.8 audited state has 171 passing tests, zero Release compiler warnings, 85.47% line coverage, and 76.42% branch coverage. CI enforces minimum floors of 80% line and 70% branch coverage.
+
+```bash
+dotnet build src/Chemy.slnx --configuration Release -warnaserror
+dotnet test src/Chemy.slnx --configuration Release --no-build
+python3 scripts/verify_claim_consistency.py
+```
+
+## License and citation
+
+Chemy is available under the [MIT License](LICENSE). Citation metadata is provided in [CITATION.cff](CITATION.cff).

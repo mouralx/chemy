@@ -1,8 +1,10 @@
 # Chemy Scientific Implementation Audit — v2.8
 
+[Documentation home](README.md) · [Credibility report](SCIENTIFIC_CREDIBILITY_REPORT.md) · [Verification](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) · [Audit archive](audits/README.md)
+
 **Audit date:** 2026-08-22
 **Audited state:** v2.8 candidate based on `3fced36edf4755b176ce7653193a8d0a8eb638d6`
-**Previous audit:** [`CODEX_AUDIT_v2.7.md`](CODEX_AUDIT_v2.7.md)
+**Previous audit:** [`CODEX_AUDIT_v2.7.md`](audits/CODEX_AUDIT_v2.7.md)
 **Scope:** Scientific implementation, numerical correctness, reference agreement, applicability, uncertainty, and claim integrity. Authentication, authorization, security, tenancy, deployment, and platform operations are excluded at the user's direction.
 **Acceptance manifest:** [`SCIENTIFIC_ACCEPTANCE_v2.8.json`](SCIENTIFIC_ACCEPTANCE_v2.8.json)
 

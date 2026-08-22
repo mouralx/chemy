@@ -1,5 +1,7 @@
 # Chemy Scientific Verification & Empirical Benchmark Suite
 
+[Documentation home](README.md) · [Scientific approach](SCIENTIFIC_APPROACH.md) · [Credibility report](SCIENTIFIC_CREDIBILITY_REPORT.md) · [Current audit](CODEX_AUDIT_v2.8.md)
+
 This document records the scientific verification suite for Chemy's computational algorithms and HTTP REST API microservices. Each verification entry belongs to one of four evidence categories:
 
 - **Analytical Identity Test** — exact symbolic/numerical result derivable from first principles (e.g., stoichiometric balancing, molar mass, pH of strong acid).
@@ -173,16 +175,16 @@ Not all domains have equal evidence depth. Subsystems without external numerical
 
 ---
 
-### 9. UFF-Inspired Force Field Minimization [External Numerical Comparison]
+### 9. UFF-Compatible Force Field Minimization [External Numerical Comparison]
 * **Sample Request**: `{"formula": "H2O", "maxIterations": 30}`
 * **Energy Potential**:
-  $$E_{\text{total}} = \sum \frac{1}{2} k_r (r - r_0)^2 + \sum \frac{1}{2} k_\theta (\theta - \theta_0)^2 + \sum_{\text{dihedrals}} E_{\text{torsion}} + \sum_{\text{1,4+}} \epsilon \left[\left(\frac{r_m}{r_{ij}}\right)^{12} - 2\left(\frac{r_m}{r_{ij}}\right)^6\right]$$
+  $$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inversion}} + E_{\text{vdW}}$$
 * **Non-Bonded Exclusion Rule**: Directly bonded (1,2) and geminal (1,3) pairs are excluded from van der Waals steric sums to prevent unphysical repulsive divergence.
 * **Live Response**:
   ```json
   { "formula": "H2O", "initialEnergyKcalPerMol": 0.0, "finalEnergyKcalPerMol": 0.0, "converged": true }
   ```
-* **Scientific Assessment**: Energy of equilibrium geometry evaluates in quantitative agreement with RDKit 2025.09.2 UFF reference. ✅
+* **Scientific Assessment**: This water case is part of the broader pinned RDKit 2025.09.2 energy, gradient, and optimized-geometry reference-agreement suite for the declared atom-type subset. ✅
 
 ---
 

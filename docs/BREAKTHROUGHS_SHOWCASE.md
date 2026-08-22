@@ -1,9 +1,13 @@
-# Chemy Breakthroughs Showcase: Case Studies & Applications
+# Chemy Use Cases and Demonstrations
+
+[Documentation home](README.md) · [Cookbook](COOKBOOK.md) · [Scientific approach](SCIENTIFIC_APPROACH.md) · [Credibility report](SCIENTIFIC_CREDIBILITY_REPORT.md)
 
 This document demonstrates three computational chemistry capabilities provided in **Chemy**:
 1. 🧬 **Bioisosteric Lead Exploration Engine** (Pharmacophore Substitution & Graph Rewriting)
 2. 🛡️ **Physicochemical Descriptors & Drug-Likeness** (Lipinski, Veber, Ghose, Ertl TPSA, Crippen LogP, QED)
 3. ♻️ **EcoClean Qualitative Degradation Pathways** (Bond Dissociation Thermodynamics & Cleavage Cascades)
+
+> These are illustrative software workflows. Molecular exploration and EcoClean outputs are hypotheses for expert review, not validated safety, efficacy, synthesis, kinetic, or environmental-outcome predictions.
 
 ---
 

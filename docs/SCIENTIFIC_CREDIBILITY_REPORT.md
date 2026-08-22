@@ -1,5 +1,7 @@
 # Chemy Scientific Credibility Report
 
+[Documentation home](README.md) · [Scientific approach](SCIENTIFIC_APPROACH.md) · [Verification](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) · [Current audit](CODEX_AUDIT_v2.8.md)
+
 > Current implementation report for v2.8. For the versioned assessment and score, see [`CODEX_AUDIT_v2.8.md`](CODEX_AUDIT_v2.8.md).
 
 ## Scientific contract
