@@ -139,14 +139,37 @@ public static class Geometry3DEngine
     /// Generates an energy-minimized 3D Cartesian conformer for a bonded molecular graph (e.g. from SMILES or Molfile).
     /// </summary>
     public static Molecule3D GenerateConformer3D(Molecule bondedMolecule)
+        => GenerateConformer3DResult(bondedMolecule).MinimizedMolecule;
+
+    /// <summary>
+    /// Generates a 3D conformer and returns optimization convergence, termination, gradient, and energy diagnostics.
+    /// Production callers should use this method when non-convergence must be handled explicitly.
+    /// </summary>
+    public static Physics.EnergyMinimizationResult GenerateConformer3DResult(
+        Molecule bondedMolecule,
+        int maxIterations = 500,
+        double gradientTolerance = 1e-3)
+        => GenerateConformer3DResult(bondedMolecule, overrideShape: null, maxIterations, gradientTolerance);
+
+    /// <summary>
+    /// Generates a 3D conformer from an optional initial shape and returns complete optimization diagnostics.
+    /// </summary>
+    public static Physics.EnergyMinimizationResult GenerateConformer3DResult(
+        Molecule bondedMolecule,
+        string? overrideShape,
+        int maxIterations = 500,
+        double gradientTolerance = 1e-3)
     {
         ArgumentNullException.ThrowIfNull(bondedMolecule);
         if (!bondedMolecule.HasBondedTopology)
         {
             throw new InvalidOperationException($"Molecule '{bondedMolecule.Name}' has no bonded topology. 3D conformer embedding requires a bonded molecular graph (e.g. from SMILES or Molfile).");
         }
-        return Generate3D(bondedMolecule);
+
+        var embedded = Generate3DInternal(bondedMolecule, overrideShape, minimizeBonded: false);
+        return Physics.ForceFieldEngine.MinimizeEnergy(embedded, maxIterations, gradientTolerance);
     }
+
     /// <summary>
     /// Generates 3D Cartesian coordinates for a molecule.
     /// </summary>
@@ -154,6 +177,9 @@ public static class Geometry3DEngine
     /// <param name="overrideShape">Optional VSEPR shape override (e.g. "Linear", "Tetrahedral").</param>
     /// <returns>Molecule3D with assigned atomic Cartesian positions.</returns>
     public static Molecule3D Generate3D(Molecule molecule, string? overrideShape = null)
+        => Generate3DInternal(molecule, overrideShape, minimizeBonded: true);
+
+    private static Molecule3D Generate3DInternal(Molecule molecule, string? overrideShape, bool minimizeBonded)
     {
         ArgumentNullException.ThrowIfNull(molecule);
 
@@ -181,7 +207,7 @@ public static class Geometry3DEngine
 
         if (heavyAtomCount > 1 && isAuto)
         {
-            return GenerateMultiCenter3D(molecule);
+            return GenerateMultiCenter3D(molecule, minimizeBonded);
         }
 
         var centerAtom = molecule.Atoms.FirstOrDefault(a => a.Element.Symbol != "H") ?? molecule.Atoms[0];
@@ -290,18 +316,18 @@ public static class Geometry3DEngine
         }
 
         var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, shape, angle, atom3DArray, molecule);
-        if (molecule.HasBondedTopology)
+        if (molecule.HasBondedTopology && minimizeBonded)
         {
-            return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 80).MinimizedMolecule;
+            return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, maxIterations: 500).MinimizedMolecule;
         }
         return unoptimized;
     }
 
     /// <summary>
     /// Embeds realistic, energy-minimized 3D coordinates for arbitrary branched, cyclic, or polycyclic organic molecules
-    /// using ring-scaffold template embedding, valence-directed tetrahedral branching, and Universal Force Field (UFF) relaxation.
+    /// using ring-scaffold template embedding, valence-directed tetrahedral branching, and UFF-inspired relaxation.
     /// </summary>
-    private static Molecule3D GenerateMultiCenter3D(Molecule molecule)
+    private static Molecule3D GenerateMultiCenter3D(Molecule molecule, bool minimizeBonded)
     {
         int nAtoms = molecule.Atoms.Count;
         var coords = new Vector3D?[nAtoms];
@@ -502,8 +528,13 @@ public static class Geometry3DEngine
 
         var unoptimized = new Molecule3D(molecule.Name, molecule.ChemicalFormula, "Conformer", 109.5, atom3DList, molecule);
 
-        // Relax coordinates with Universal Force Field minimization (150 iterations)
-        return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, 150).MinimizedMolecule;
+        if (!minimizeBonded)
+        {
+            return unoptimized;
+        }
+
+        // The detailed companion API exposes convergence metadata to production callers.
+        return Physics.ForceFieldEngine.MinimizeEnergy(unoptimized, maxIterations: 500).MinimizedMolecule;
     }
 
     private static Vector3D GetOrthogonalVector(Vector3D v)

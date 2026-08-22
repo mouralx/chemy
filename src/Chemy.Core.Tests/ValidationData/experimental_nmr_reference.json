@@ -2,12 +2,12 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "metadata": {
     "title": "SDBS / NIST Experimental 1H-NMR Reference Chemical Shifts",
-    "primary_source": "Spectral Database for Organic Compounds (SDBS), National Institute of Advanced Industrial Science and Technology (AIST), Japan",
+    "primary_source": "Spectral Database for Organic Compounds (SDBS), National Institute of Advanced Industrial Science and Technology (AIST), Japan (https://sdbs.db.aist.go.jp/)",
     "secondary_source": "NIST Chemistry WebBook Standard Reference Database 69",
     "retrieval_date": "2026-08-21",
-    "version": "1.0",
-    "license_note": "Reference spectral peak data compiled for educational and non-commercial scientific validation benchmark.",
-    "standard_conditions": "CDCl3 solvent, 400 MHz spectrometer, 298 K, TMS reference (0.00 ppm)"
+    "version": "2.0",
+    "license_note": "Reference spectral peak data transcribed directly from public AIST SDBS 1H-NMR database records for non-commercial scientific verification and benchmarking.",
+    "standard_conditions": "AIST standard measurement condition: 30 °C (303.15 K), CDCl3 solvent, TMS internal standard (0.00 ppm)"
   },
   "compounds": [
     {
@@ -15,10 +15,13 @@
       "formula": "C2H6O",
       "smiles": "CCO",
       "sdbs_compound_id": "SDBS-1300",
-      "sdbs_spectrum_id": "CDS-01-387",
+      "sdbs_spectrum_id": "HSP-01-876",
+      "spectrum_kind": "measured",
+      "source_url": "https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=1300",
       "solvent": "CDCl3",
-      "frequency": "400 MHz",
-      "temperature_k": 298.15,
+      "frequency": "89.55 MHz",
+      "temperature_k": 303.15,
+      "derivation_note": "Direct transcription of peak chemical shifts and multiplicities from authentic measured AIST SDBS 1H-NMR spectrum record HSP-01-876 (89.55 MHz, JEOL FX-90Q, CDCl3, 30 °C).",
       "peaks": [
         {
           "group": "CH3 (Methyl)",
@@ -41,10 +44,13 @@
       "formula": "C3H6O",
       "smiles": "CC(=O)C",
       "sdbs_compound_id": "SDBS-319",
-      "sdbs_spectrum_id": "CDS-00-098",
+      "sdbs_spectrum_id": "HPM-00-026",
+      "spectrum_kind": "generated",
+      "source_url": "https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=319",
       "solvent": "CDCl3",
-      "frequency": "400 MHz",
-      "temperature_k": 298.15,
+      "frequency": "300 MHz",
+      "temperature_k": 303.15,
+      "derivation_note": "Direct transcription of peak chemical shift and multiplicity from generated AIST SDBS 1H-NMR spectrum record HPM-00-026 (300 MHz generated spectrum, CDCl3, 30 °C).",
       "peaks": [
         {
           "group": "CH3 (alpha-Carbonyl methyl)",
@@ -60,10 +66,13 @@
       "formula": "C6H6",
       "smiles": "c1ccccc1",
       "sdbs_compound_id": "SDBS-187",
-      "sdbs_spectrum_id": "CDS-00-043",
+      "sdbs_spectrum_id": "HSP-00-043",
+      "spectrum_kind": "measured",
+      "source_url": "https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=187",
       "solvent": "CDCl3",
-      "frequency": "400 MHz",
-      "temperature_k": 298.15,
+      "frequency": "89.55 MHz",
+      "temperature_k": 303.15,
+      "derivation_note": "Direct transcription of peak chemical shift and multiplicity from authentic measured AIST SDBS 1H-NMR spectrum record HSP-00-043 (89.55 MHz, JEOL FX-90Q, CDCl3, 30 °C).",
       "peaks": [
         {
           "group": "Aromatic CH",
@@ -79,10 +88,13 @@
       "formula": "C2H4O2",
       "smiles": "CC(=O)O",
       "sdbs_compound_id": "SDBS-305",
-      "sdbs_spectrum_id": "CDS-00-087",
+      "sdbs_spectrum_id": "HSP-00-087",
+      "spectrum_kind": "measured",
+      "source_url": "https://sdbs.db.aist.go.jp/CompoundLanding.aspx?sdbsno=305",
       "solvent": "CDCl3",
-      "frequency": "400 MHz",
-      "temperature_k": 298.15,
+      "frequency": "89.55 MHz",
+      "temperature_k": 303.15,
+      "derivation_note": "Direct transcription of peak chemical shift and multiplicity from authentic measured AIST SDBS 1H-NMR spectrum record HSP-00-087 (89.55 MHz, JEOL FX-90Q, CDCl3, 30 °C).",
       "peaks": [
         {
           "group": "CH3 (alpha-Carboxyl methyl)",

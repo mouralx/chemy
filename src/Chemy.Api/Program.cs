@@ -14,9 +14,26 @@ using Chemy.Core.Spatial;
 using Chemy.Core.Spectroscopy;
 using Chemy.Core.Structure;
 using Chemy.Core.Thermodynamics;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.RateLimiting;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
+var securityConfiguration = builder.Configuration.GetSection("ApiSecurity");
+int rateLimitPermit = Math.Clamp(securityConfiguration.GetValue<int?>("RateLimitPermit") ?? 120, 1, 10_000);
+int rateLimitWindowSeconds = Math.Clamp(securityConfiguration.GetValue<int?>("RateLimitWindowSeconds") ?? 60, 1, 3_600);
+long maxRequestBodyBytes = Math.Clamp(securityConfiguration.GetValue<long?>("MaxRequestBodyBytes") ?? 65_536, 1_024, 10_485_760);
+string[] allowedOrigins = securityConfiguration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maxRequestBodyBytes;
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+});
 
 // ============================================================================
 // 1. SERVICE REGISTRATIONS & DEPENDENCY INJECTION (Microsoft .NET Best Practices)
@@ -24,6 +41,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // OpenAPI & API Documentation services
 builder.Services.AddOpenApi();
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+        context.ProblemDetails.Extensions["traceId"] = context.HttpContext.TraceIdentifier;
+});
 
 // Health Check probes for container orchestration (Kubernetes / Docker)
 builder.Services.AddHealthChecks();
@@ -33,10 +55,52 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            policy.SetIsOriginAllowed(_ => false);
+        }
     });
+});
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        PathString path = context.Request.Path;
+        if (path.StartsWithSegments("/healthz") ||
+            path.StartsWithSegments("/openapi") ||
+            path.StartsWithSegments("/scalar") ||
+            path.StartsWithSegments("/swagger"))
+        {
+            return RateLimitPartition.GetNoLimiter("infrastructure");
+        }
+
+        string clientKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(clientKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = rateLimitPermit,
+            Window = TimeSpan.FromSeconds(rateLimitWindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
+    });
+    options.OnRejected = async (rejectionContext, cancellationToken) =>
+    {
+        rejectionContext.HttpContext.Response.Headers.RetryAfter = rateLimitWindowSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        await Results.Problem(
+            statusCode: StatusCodes.Status429TooManyRequests,
+            title: "Request rate limit exceeded",
+            detail: "Retry after the interval advertised by the Retry-After response header.",
+            extensions: new Dictionary<string, object?> { ["traceId"] = rejectionContext.HttpContext.TraceIdentifier })
+            .ExecuteAsync(rejectionContext.HttpContext);
+    };
 });
 
 // Resilient Typed HttpClient for NCBI PubChem live cloud database queries
@@ -48,6 +112,14 @@ builder.Services.AddHttpClient<PubChemClient>(client =>
 
 var app = builder.Build();
 var logger = app.Services.GetRequiredService<ILogger<Program>>();
+bool requireApiKey = !app.Environment.IsDevelopment() && securityConfiguration.GetValue("RequireApiKey", true);
+string? configuredApiKey = securityConfiguration["ApiKey"];
+
+if (requireApiKey && string.IsNullOrWhiteSpace(configuredApiKey))
+{
+    throw new InvalidOperationException(
+        "Production API authentication is enabled, but ApiSecurity:ApiKey is not configured. Supply it through a secret provider or environment variable.");
+}
 
 logger.LogInformation("Chemy Computational Chemistry & Chemoinformatics REST API initialized successfully.");
 
@@ -55,19 +127,85 @@ logger.LogInformation("Chemy Computational Chemistry & Chemoinformatics REST API
 // 2. HTTP MIDDLEWARE PIPELINE
 // ============================================================================
 
-app.UseCors();
-app.UseHealthChecks("/healthz");
-
-app.MapOpenApi();
-app.MapScalarApiReference();
-app.UseSwaggerUI(c =>
+if (!app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/openapi/v1.json", "Chemy API v1");
-    c.RoutePrefix = "swagger";
+    app.UseHsts();
+}
+
+app.UseExceptionHandler(exceptionApplication =>
+{
+    exceptionApplication.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        logger.LogError(exception, "Unhandled API exception. TraceId: {TraceId}", context.TraceIdentifier);
+        await Results.Problem(
+            statusCode: StatusCodes.Status500InternalServerError,
+            title: "An unexpected server error occurred",
+            detail: "Use the traceId when contacting support.",
+            extensions: new Dictionary<string, object?> { ["traceId"] = context.TraceIdentifier })
+            .ExecuteAsync(context);
+    });
 });
 
+app.Use(async (context, next) =>
+{
+    string? suppliedCorrelationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault();
+    bool validCorrelationId = suppliedCorrelationId is { Length: > 0 and <= 64 } &&
+        suppliedCorrelationId.All(character => char.IsLetterOrDigit(character) || character is '-' or '_' or '.');
+    string correlationId = validCorrelationId ? suppliedCorrelationId! : context.TraceIdentifier;
+    context.TraceIdentifier = correlationId;
+    context.Response.Headers["X-Correlation-ID"] = correlationId;
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+
+    using (logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
+    {
+        await next(context);
+    }
+});
+
+app.UseCors();
+app.UseRateLimiter();
+
+app.Use(async (context, next) =>
+{
+    if (requireApiKey && context.Request.Path.StartsWithSegments("/api/v1"))
+    {
+        string suppliedApiKey = context.Request.Headers["X-Api-Key"].FirstOrDefault() ?? string.Empty;
+        byte[] suppliedBytes = Encoding.UTF8.GetBytes(suppliedApiKey);
+        byte[] configuredBytes = Encoding.UTF8.GetBytes(configuredApiKey!);
+        bool authenticated = suppliedBytes.Length == configuredBytes.Length &&
+            CryptographicOperations.FixedTimeEquals(suppliedBytes, configuredBytes);
+        if (!authenticated)
+        {
+            await Results.Problem(
+                statusCode: StatusCodes.Status401Unauthorized,
+                title: "Authentication required",
+                detail: "Supply a valid API credential.",
+                extensions: new Dictionary<string, object?> { ["traceId"] = context.TraceIdentifier })
+                .ExecuteAsync(context);
+            return;
+        }
+    }
+
+    await next(context);
+});
+
+bool exposeDocumentation = app.Environment.IsDevelopment() || securityConfiguration.GetValue("ExposeDocumentation", false);
+if (exposeDocumentation)
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/openapi/v1.json", "Chemy API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
+
 // Root endpoint redirects directly to interactive Scalar API documentation
-app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+app.MapGet("/", () => exposeDocumentation ? Results.Redirect("/scalar/v1") : Results.NoContent())
    .ExcludeFromDescription();
 
 
@@ -75,10 +213,21 @@ app.MapGet("/", () => Results.Redirect("/scalar/v1"))
 // 3. SYSTEM HEALTH & MONITORING ENDPOINTS
 // ============================================================================
 
-app.MapGet("/healthz", (ILogger<Program> log) =>
+app.MapHealthChecks("/healthz", new HealthCheckOptions
 {
-    log.LogDebug("Health check probe requested.");
-    return Results.Ok(new { status = "Healthy", timestamp = DateTimeOffset.UtcNow });
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status = report.Status.ToString(),
+            timestamp = DateTimeOffset.UtcNow,
+            durationMilliseconds = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.ToDictionary(
+                entry => entry.Key,
+                entry => new { status = entry.Value.Status.ToString(), durationMilliseconds = entry.Value.Duration.TotalMilliseconds })
+        });
+    }
 })
 .WithTags("System Health")
 .WithSummary("Service Health Check")
@@ -575,14 +724,25 @@ physicsGroup.MapPost("/minimize", (ForceFieldRequest request, ILogger<Program> l
         return Results.BadRequest(new { error = $"Could not parse '{request.Formula}'" });
     }
 
-    var m3d = target.To3D(request.OverrideShape);
-    var result = ForceFieldEngine.MinimizeEnergy(m3d, request.MaxIterations ?? 50);
+    int maxIterations = request.MaxIterations ?? 500;
+    if (maxIterations is < 1 or > 2_000)
+    {
+        return Results.BadRequest(new { error = "MaxIterations must be between 1 and 2000." });
+    }
 
-    log.LogDebug("Energy minimized: {Initial} -> {Final} kcal/mol (Converged in {Iters} iterations)", result.InitialEnergyKcalPerMol, result.FinalEnergyKcalPerMol, result.Iterations);
+    var result = Geometry3DEngine.GenerateConformer3DResult(target, request.OverrideShape, maxIterations);
+
+    log.LogDebug(
+        "Energy minimized: {Initial} -> {Final} kcal/mol ({Reason} after {Iters} iterations, gradient {Gradient})",
+        result.InitialEnergyKcalPerMol,
+        result.FinalEnergyKcalPerMol,
+        result.TerminationReason,
+        result.Iterations,
+        result.FinalGradientNorm);
     return Results.Ok(result);
 })
-.WithSummary("Minimize 3D molecular energy using Universal Force Field (UFF)")
-.WithDescription("Calculates van der Waals strain and relaxes 3D Cartesian coordinates to lowest energy conformation.");
+.WithSummary("Minimize 3D molecular energy using a UFF-inspired potential")
+.WithDescription("Evaluates the five-term UFF-inspired potential and returns relaxed coordinates with explicit convergence, termination, energy, and gradient diagnostics.");
 
 // ============================================================================
 // 12. PUBCHEM LIVE CLOUD INTEGRATOR ENDPOINTS
@@ -728,8 +888,8 @@ public record ArrheniusRequest(double PreExponentialFactorA = 1e13, double Activ
 /// <summary>Request contract for NMR and IR spectroscopy spectral predictions.</summary>
 public record SpectroscopyRequest(string Formula = "CC(=O)Oc1ccccc1C(=O)O");
 
-/// <summary>Request contract for Universal Force Field 3D coordinate energy minimization.</summary>
-public record ForceFieldRequest(string Formula = "H2O", string? OverrideShape = null, int? MaxIterations = 50);
+/// <summary>Request contract for UFF-inspired 3D coordinate energy minimization.</summary>
+public record ForceFieldRequest(string Formula = "H2O", string? OverrideShape = null, int? MaxIterations = 500);
 
 /// <summary>Request contract for Runge-Kutta 4th Order (RK4) multi-step reaction cascade kinetics.</summary>
 public record NetworkKineticsRequest(double InitialConcA = 1.0, double K1 = 0.5, double K2 = 0.2, double TotalTime = 10.0, int Steps = 50);

@@ -76,18 +76,39 @@ public static class GraphRewriter
 
 ### `ForceFieldEngine`
 Multi-term Molecular Mechanics Force Field:
-$$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{vdw}}$$
-Solved via gradient descent with adaptive step size acceleration.
+$$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$$
+Solved with bounded-memory L-BFGS and a monotonic Armijo line search.
 
 ```csharp
 namespace Chemy.Core.Physics;
 
 public static class ForceFieldEngine
 {
-    public static EnergyMinimizationResult MinimizeEnergy(Molecule3D molecule3D, int maxIterations = 50);
+    public static EnergyMinimizationResult MinimizeEnergy(Molecule3D molecule3D, int maxIterations = 500, double gradientTolerance = 1e-3);
     public static double CalculateTotalEnergy(Molecule3D molecule3D);
+    public static ForceFieldEnergyComponents CalculateEnergyComponents(Molecule3D molecule3D);
 }
 ```
+
+`EnergyMinimizationResult` exposes convergence, termination reason, iterations, final gradient norm, initial/final energies, and the best resulting coordinates. Invalid iteration budgets and tolerances fail with `ArgumentOutOfRangeException`.
+
+---
+
+### `ShomateThermodynamics`
+Evaluates the NIST Shomate equations using species-specific, piecewise coefficient intervals. Published interval boundaries are selected deterministically; requests outside those intervals fail instead of silently extrapolating.
+
+```csharp
+namespace Chemy.Core.Thermodynamics;
+
+public static class ShomateThermodynamics
+{
+    public static ShomateThermoResult? Evaluate(string formula, double temperatureKelvin);
+    public static IReadOnlyList<string> SupportedSpecies { get; }
+    public static IReadOnlyList<ShomateTemperatureRange> GetSupportedTemperatureRanges(string formula);
+}
+```
+
+`ShomateThermoResult` includes heat capacity, formation enthalpy, entropy, formation Gibbs energy, the selected coefficient range, phase, method description, and primary-source URL. Temperature must be positive and finite; an unknown species returns `null`, while a known species outside its published intervals raises `ArgumentOutOfRangeException`.
 
 ---
 
@@ -238,8 +259,18 @@ Base URL: `http://localhost:5000` (or `https://localhost:5001`)
 
 ### System Health & Observability
 
+Production API routes under `/api/v1` require the `X-Api-Key` header. Supply the secret through `ApiSecurity__ApiKey` or an equivalent configuration-backed secret provider; the service refuses to start in Production when authentication is enabled and the secret is absent. Never commit the credential to `appsettings.json`.
+
+The service also enforces configured-origin CORS, fixed-window client rate limiting, a bounded request body, correlation propagation through `X-Correlation-ID`, generic `application/problem+json` failures, and hidden production OpenAPI/Scalar/Swagger endpoints by default. Configure deployments with:
+
+- `ApiSecurity__AllowedOrigins__0` (and subsequent indexed origins)
+- `ApiSecurity__RateLimitPermit` and `ApiSecurity__RateLimitWindowSeconds`
+- `ApiSecurity__MaxRequestBodyBytes`
+- `ApiSecurity__ExposeDocumentation=true` only when deliberately required
+- `AllowedHosts` for the deployment's exact public/internal hostnames
+
 #### `GET /healthz`
-Returns service liveness and readiness probe status.
+Executes registered health checks and returns service liveness/readiness status without requiring an API credential.
 * **Tags**: `System Health`
 * **Response (200 OK)**:
 ```json

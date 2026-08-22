@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 title: "Chemy: High-Performance .NET Computational Chemistry & Chemoinformatics Engine"
 authors:
   - family-names: "Moura"
-    given-names: "Alexandre"
+    given-names: "Nuno"
 version: 1.0.0
 date-released: 2026-08-21
 license: MIT

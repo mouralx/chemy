@@ -427,11 +427,11 @@
                         <!-- TAB 7: FORCE FIELD (UFF/MMFF) -->
                         <div id="pane-forcefield" class="space-y-2 hidden">
                             <div class="flex items-center justify-between">
-                                <span class="text-slate-400 font-mono text-[11px]">4-Term Molecular Mechanics Potential (Bond, Angle, Torsion, vdW)</span>
+                                <span class="text-slate-400 font-mono text-[11px]">5-Term Molecular Mechanics Potential (Bond, Angle, Torsion, Inversion, vdW)</span>
                                 <button onclick="runForceField()" class="px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 font-semibold text-white font-mono text-xs">Relax 3D Coordinates</button>
                             </div>
                             <div id="forcefieldOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Performs steepest-descent geometric relaxation to relieve steric clashes and optimize 3D Cartesian coordinates.
+                                Performs limited-memory BFGS relaxation with an Armijo line search to relieve steric clashes and optimize 3D Cartesian coordinates.
                             </div>
                         </div>
 
@@ -633,14 +633,14 @@ var matches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylicAcidQ
 var tetrazoleLead = GraphRewriter.ReplaceCarboxylWithTetrazole(aspirin);</code></pre>
                 </div>
 
-                <!-- Card 2: 4-Term MMFF Force Field -->
+                <!-- Card 2: Five-term UFF-inspired force field -->
                 <div class="lab-card-subtle p-3 space-y-2">
                     <div class="flex items-center justify-between">
-                        <span class="font-bold text-emerald-400 font-mono">2. 4-Term Force Field Relaxation</span>
+                        <span class="font-bold text-emerald-400 font-mono">2. Five-Term Force Field Relaxation</span>
                         <button onclick="copyCode('code-ff')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
                     </div>
                     <pre id="code-ff" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var water3D = Molecule.Water.To3D();
-var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 50);
+var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 500);
 Console.WriteLine($"Energy: {result.FinalEnergyKcalPerMol} kcal/mol (Converged: {result.Converged})");</code></pre>
                 </div>
 
@@ -1452,20 +1452,20 @@ Console.WriteLine($"Theoretical Products: {cascade.TheoreticalMineralizationProd
 
         async function runForceField() {
             const out = document.getElementById('forcefieldOutput');
-            out.innerHTML = '<span class="text-purple-400">Minimizing 4-term potential energy...</span>';
+            out.innerHTML = '<span class="text-purple-400">Minimizing 5-term potential energy...</span>';
 
             try {
                 const res = await fetch('/api/v1/physics/minimize', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: "@Model.ChemicalFormula", maxIterations: 50 })
+                    body: JSON.stringify({ formula: "@Model.ChemicalFormula", maxIterations: 500 })
                 });
                 const data = await res.json();
                 if (res.ok) {
                     out.innerHTML = `
-                        <div class="text-purple-400 font-bold">Force Field Minimization: ${data.converged ? 'Converged' : 'Finished'}</div>
+                        <div class="text-purple-400 font-bold">Force Field Minimization: ${data.converged ? 'Converged' : 'Not converged'}</div>
                         <div class="text-slate-300">Initial: ${data.initialEnergyKcalPerMol} kcal/mol -> Relaxed: ${data.finalEnergyKcalPerMol} kcal/mol</div>
-                        <div class="text-[10px] text-slate-400">Iterations: ${data.iterations} steps</div>
+                        <div class="text-[10px] text-slate-400">${data.terminationReason}; ${data.iterations} steps; gradient ${data.finalGradientNorm}</div>
                     `;
                 } else {
                     out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Minimization failed'}</span>`;

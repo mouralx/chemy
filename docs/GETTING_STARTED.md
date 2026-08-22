@@ -102,7 +102,7 @@ foreach (var peak in prediction.H1NmrPeaks)
 
 ---
 
-## 6. Universal Force Field (UFF) Energy Minimization
+## 6. UFF-Inspired Energy Minimization
 
 Relax 3D spatial Cartesian coordinates using van der Waals potential minimization:
 
@@ -111,7 +111,7 @@ using Chemy.Core;
 using Chemy.Core.Physics;
 
 var m3d = Molecule.Parse("H2O").To3D();
-var result = ForceFieldEngine.MinimizeEnergy(m3d, maxIterations: 50);
+var result = ForceFieldEngine.MinimizeEnergy(m3d, maxIterations: 500);
 
 Console.WriteLine($"Initial Energy: {result.InitialEnergyKcalPerMol} kcal/mol");
 Console.WriteLine($"Final Relaxed Energy: {result.FinalEnergyKcalPerMol} kcal/mol");
