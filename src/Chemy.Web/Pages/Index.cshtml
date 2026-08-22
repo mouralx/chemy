@@ -1,1722 +1,490 @@
 @page
 @model IndexModel
+@using System.Text.Json
 @{
     Layout = null;
-    ViewData["Title"] = "CHEMI.LAB // Computational Chemistry & Chemoinformatics Studio";
+    ViewData["Title"] = "Chemy Scientific Workspace";
+    var bootstrap = new
+    {
+        formula = Model.Formula,
+        moleculeName = Model.MoleculeName,
+        chemicalFormula = Model.ChemicalFormula,
+        vseprShape = Model.VseprShape,
+        idealBondAngleDegrees = Model.IdealBondAngleDegrees,
+        molecularWeight = Model.MolecularWeight,
+        totalAtomCount = Model.TotalAtomCount,
+        elementsPresent = Model.ElementsPresent,
+        functionalGroups = Model.FunctionalGroups,
+        pdbContent = Model.PdbContent,
+        xyzContent = Model.XyzContent,
+        molContent = Model.MolContent,
+        planarPdbContent = Model.PlanarPdbContent,
+        planarXyzContent = Model.PlanarXyzContent,
+        planarMolContent = Model.PlanarMolContent,
+        skeletalSvgContent = Model.SkeletalSvgContent,
+        isApiConnected = Model.IsApiConnected,
+        errorMessage = Model.ErrorMessage,
+        documentation = Model.DocumentationMap
+    };
 }
 
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#080c14">
-    <title>CHEMI.LAB // Computational Chemistry Workstation</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0b1f36" />
+    <title>Chemy Scientific Workspace</title>
+    <script>
+        (() => {
+            try {
+                const storedTheme = localStorage.getItem("chemy-theme");
+                const preferredTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+                document.documentElement.dataset.theme = storedTheme || preferredTheme;
+            } catch {
+                document.documentElement.dataset.theme = "light";
+            }
+        })();
+    </script>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <script src="https://3dmol.org/build/3Dmol-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root {
-            --lab-bg: #070a12;
-            --lab-panel: #0f1523;
-            --lab-panel-subtle: #131b2e;
-            --lab-border: #1e293b;
-            --lab-border-subtle: #172033;
-            --lab-cyan: #38bdf8;
-            --lab-emerald: #34d399;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--lab-bg);
-            color: #e2e8f0;
-            overflow-x: hidden;
-        }
-
-        code, pre, .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .lab-card {
-            background-color: var(--lab-panel);
-            border: 1px solid var(--lab-border);
-            border-radius: 0.5rem;
-        }
-
-        .lab-card-subtle {
-            background-color: var(--lab-panel-subtle);
-            border: 1px solid var(--lab-border-subtle);
-            border-radius: 0.375rem;
-        }
-
-        /* Custom Modern Scrollbars */
-        ::-webkit-scrollbar {
-            width: 5px;
-            height: 5px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #070a12;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #38bdf8;
-        }
-
-        .nav-btn-active {
-            background-color: #0284c7 !important;
-            color: #ffffff !important;
-            border-color: #38bdf8 !important;
-        }
-    </style>
+    <script id="chemy-bootstrap" type="application/json">@Html.Raw(JsonSerializer.Serialize(bootstrap))</script>
+    <script src="~/js/site.js" asp-append-version="true" defer></script>
 </head>
-<body class="min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white text-xs">
-
-    <!-- ===================================================================== -->
-    <!-- 1. TOP GLOBAL NAVIGATION & TELEMETRY HEADER                           -->
-    <!-- ===================================================================== -->
-    <header class="border-b border-slate-800 bg-[#080d1a]/95 backdrop-blur px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
-        <!-- Logo & Title -->
-        <div class="flex items-center space-x-3">
-            <div class="bg-gradient-to-r from-sky-500 to-blue-600 text-white font-extrabold px-3 py-1 rounded text-xs tracking-wider flex items-center gap-1.5 font-mono shadow-lg shadow-sky-500/20">
-                <span>⚡</span> CHEMI.LAB
+<body>
+    <div class="app-shell">
+        <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+            <div class="brand-block">
+                <div class="brand-mark" aria-hidden="true"><span class="brand-orbit"></span><span>C</span></div>
+                <div><strong>Chemy</strong><span>Scientific workspace</span></div>
             </div>
-            <div class="h-4 w-px bg-slate-800"></div>
-            <div>
-                <h1 class="text-xs font-bold text-slate-100 tracking-wide flex items-center gap-2">
-                    COMPUTATIONAL CHEMISTRY WORKSTATION <span class="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 font-mono">v4.0 ENTERPRISE</span>
-                </h1>
-                <p class="text-[10px] text-slate-400 font-mono">ASP.NET Core 10.0 // Graph Isomorphism • MMFF Force Field • ADMET • Pure REST API</p>
+
+            <nav class="primary-nav">
+                <p class="nav-label">Workspace</p>
+                <button class="nav-item is-active" type="button" data-view-target="studio">
+                    <span class="nav-icon">01</span><span><strong>Molecular studio</strong><small>Visualize and inspect</small></span>
+                </button>
+                <button class="nav-item" type="button" data-view-target="tools">
+                    <span class="nav-icon">02</span><span><strong>Calculation tools</strong><small>Complete API surface</small></span><span class="nav-count">24</span>
+                </button>
+                <p class="nav-label">Knowledge</p>
+                <button class="nav-item" type="button" data-view-target="docs">
+                    <span class="nav-icon">03</span><span><strong>Documentation</strong><small>Guides and evidence</small></span>
+                </button>
+                <button class="nav-item" type="button" data-view-target="code">
+                    <span class="nav-icon">04</span><span><strong>Code reference</strong><small>C# public surface</small></span>
+                </button>
+                <button class="nav-item" type="button" data-view-target="scope">
+                    <span class="nav-icon">05</span><span><strong>Scientific scope</strong><small>Evidence and boundaries</small></span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="service-state" id="serviceState">
+                    <span class="status-dot @(Model.IsApiConnected ? "is-online" : "is-offline")" id="apiStatusIndicator"></span>
+                    <div><strong id="apiStatusText">@(Model.IsApiConnected ? "API operational" : "Core fallback active")</strong><span id="apiStatusDetail">Chemy.Api · localhost:5192</span></div>
+                    <button type="button" class="icon-button" id="refreshHealthButton" aria-label="Refresh API status">↻</button>
+                </div>
+                <div class="sidebar-links">
+                    <a href="http://localhost:5192/scalar/v1" target="_blank" rel="noopener">Scalar API <span>↗</span></a>
+                    <a href="http://localhost:5192/swagger" target="_blank" rel="noopener">Swagger <span>↗</span></a>
+                </div>
+                <div class="build-stamp"><span>Scientific build</span><strong>v2.8 · 9.7 internal</strong></div>
             </div>
-        </div>
+        </aside>
 
-        <!-- Main View Switcher Tabs -->
-        <div class="hidden lg:flex items-center bg-slate-900 border border-slate-800 p-1 rounded-md font-mono text-[11px] gap-1">
-            <button onclick="switchMainView('workstation')" id="mainnav-workstation" class="nav-btn-active px-3 py-1 rounded font-semibold text-white transition flex items-center gap-1.5">
-                <span>🔬</span> 3D Workstation
-            </button>
-            <button onclick="switchMainView('docs')" id="mainnav-docs" class="px-3 py-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center gap-1.5">
-                <span>📖</span> Documentation
-            </button>
-            <button onclick="switchMainView('coderef')" id="mainnav-coderef" class="px-3 py-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition flex items-center gap-1.5">
-                <span>💻</span> Code Reference
-            </button>
-            <button onclick="switchMainView('disclaimer')" id="mainnav-disclaimer" class="px-3 py-1 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition flex items-center gap-1.5">
-                <span>⚠️</span> Scientific Disclaimer
-            </button>
-        </div>
+        <button class="sidebar-scrim" id="sidebarScrim" type="button" aria-label="Close navigation"></button>
 
-        <!-- API Telemetry & Links -->
-        <div class="flex items-center space-x-3 text-[11px] font-mono">
-            <a href="http://localhost:5192/scalar/v1" target="_blank" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-sky-400 hover:border-sky-500 transition">
-                <span>Scalar API</span> ↗
-            </a>
-            <a href="http://localhost:5192/swagger" target="_blank" class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-emerald-400 hover:border-emerald-500 transition">
-                <span>Swagger</span> ↗
-            </a>
-            <div class="flex items-center gap-2 border border-slate-800 px-2.5 py-1 rounded bg-slate-900/80">
-                <span id="apiStatusIndicator" class="w-2 h-2 rounded-full @(Model.IsApiConnected ? "bg-emerald-400 shadow-[0_0_8px_#34d399]" : "bg-rose-500")"></span>
-                <span id="apiStatusBadge" class="font-medium text-slate-300">
-                    @(Model.IsApiConnected ? "API ONLINE (21/21)" : "DISCONNECTED")
-                </span>
-            </div>
-        </div>
-    </header>
+        <div class="workspace-shell">
+            <header class="topbar">
+                <button class="mobile-menu-button" id="mobileMenuButton" type="button" aria-label="Open navigation"><span></span><span></span><span></span></button>
+                <div class="page-heading"><span id="pageEyebrow">Workspace / Molecular studio</span><h1 id="pageTitle">Molecular studio</h1></div>
+                <form class="global-molecule-search" id="globalMoleculeForm">
+                    <label for="globalMoleculeInput">Molecule or bonded SMILES</label>
+                    <div class="search-control">
+                        <span class="search-glyph" aria-hidden="true">⌕</span>
+                        <input id="globalMoleculeInput" value="@Model.Formula" autocomplete="off" spellcheck="false" />
+                        <select id="globalShapeInput" aria-label="Geometry override">
+                            <option value="Auto">Auto geometry</option><option value="Linear">Linear</option><option value="Bent">Bent</option>
+                            <option value="TrigonalPlanar">Trigonal planar</option><option value="Tetrahedral">Tetrahedral</option>
+                            <option value="TrigonalBipyramidal">Trigonal bipyramidal</option><option value="Octahedral">Octahedral</option>
+                        </select>
+                        <button type="submit" class="primary-button">Load</button>
+                    </div>
+                </form>
+                <button type="button" class="theme-toggle quiet-button" id="themeToggleButton" aria-pressed="false" aria-label="Switch to dark theme">
+                    <span id="themeToggleIcon" aria-hidden="true">☾</span>
+                    <span class="theme-toggle-label" id="themeToggleLabel">Dark</span>
+                </button>
+                <div class="topbar-actions">
+                    <button type="button" class="quiet-button" data-open-tool="formula-parse">Parse input</button>
+                    <button type="button" class="primary-button" data-open-tool="physicochemical">Run profile</button>
+                </div>
+            </header>
 
-    <!-- Mobile Nav Bar -->
-    <div class="lg:hidden bg-slate-900 border-b border-slate-800 p-2 flex overflow-x-auto gap-2 text-[11px] font-mono">
-        <button onclick="switchMainView('workstation')" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium whitespace-nowrap">🔬 Workstation</button>
-        <button onclick="switchMainView('docs')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">📖 Documentation</button>
-        <button onclick="switchMainView('coderef')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">💻 Code Reference</button>
-        <button onclick="switchMainView('disclaimer')" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 whitespace-nowrap">⚠️ Disclaimer</button>
+            <main class="workspace-main">
+                <section class="workspace-view is-active" id="view-studio" data-view="studio">
+                    <div class="view-intro">
+                        <div>
+                            <span class="eyebrow">Current molecular context</span>
+                            <h2><span id="currentMoleculeName">@Model.MoleculeName</span> <span class="formula-chip" id="currentFormulaBadge">@Model.ChemicalFormula</span></h2>
+                            <p>Inspect geometry, switch representations, export structures, or continue directly into a scientific calculation.</p>
+                        </div>
+                        <div class="context-actions">
+                            <button type="button" class="quiet-button" id="fitViewerButton">Fit view</button>
+                            <button type="button" class="quiet-button" id="spinViewerButton">Rotate</button>
+                            <button type="button" class="primary-button" data-open-tool="geometry">Geometry tools</button>
+                        </div>
+                    </div>
+
+                    <div class="studio-grid">
+                        <article class="viewer-card panel">
+                            <div class="panel-header viewer-header">
+                                <div class="segmented-control" role="tablist" aria-label="Molecular representation">
+                                    <button class="is-active" type="button" data-visual-mode="3d">3D structure</button>
+                                    <button type="button" data-visual-mode="2d">2D skeletal</button>
+                                </div>
+                                <div class="viewer-controls" id="viewer3dControls">
+                                    <select id="spatialModeSelect" aria-label="Spatial mode"><option value="3d">Relaxed 3D</option><option value="flat">Planar coordinates</option></select>
+                                    <select id="renderStyleSelect" aria-label="Render style"><option value="ballAndStick">Ball and stick</option><option value="stick">Stick</option><option value="sphere">Space filling</option><option value="wireframe">Wireframe</option></select>
+                                    <select id="surfaceSelect" aria-label="Molecular surface"><option value="none">No surface</option><option value="vdw">van der Waals</option><option value="sas">Solvent accessible</option><option value="ses">Solvent excluded</option></select>
+                                    <button type="button" class="icon-button" id="labelsViewerButton" aria-label="Toggle atom labels">Aa</button>
+                                </div>
+                                <div class="viewer-controls is-hidden" id="viewer2dControls"><button type="button" class="quiet-button" id="downloadSkeletalButton">Download SVG</button></div>
+                            </div>
+                            <div class="viewer-stage">
+                                <div id="viewer3d" class="molecule-viewer" aria-label="Interactive 3D molecule"></div>
+                                <div id="viewer2d" class="skeletal-viewer is-hidden"><div id="skeletalSvgContainer">@Html.Raw(Model.SkeletalSvgContent)</div></div>
+                                <div class="viewer-watermark">Chemy molecular viewport</div>
+                            </div>
+                            <div class="viewer-footer">
+                                <div class="viewer-legend"><span><i class="atom-dot carbon"></i> Carbon</span><span><i class="atom-dot oxygen"></i> Oxygen</span><span><i class="atom-dot nitrogen"></i> Nitrogen</span><span><i class="atom-dot hydrogen"></i> Hydrogen</span></div>
+                                <div class="export-group"><span>Export</span><button type="button" data-download-format="mol">MOL</button><button type="button" data-download-format="pdb">PDB</button><button type="button" data-download-format="xyz">XYZ</button></div>
+                            </div>
+                        </article>
+
+                        <aside class="studio-side">
+                            <article class="panel identity-card">
+                                <div class="panel-header"><div><span class="eyebrow">Molecular identity</span><h3>Current structure</h3></div><span class="scope-badge is-in-domain" id="structureScopeBadge">Loaded</span></div>
+                                <dl class="metric-grid">
+                                    <div><dt>Hill formula</dt><dd id="metaHillFormula">@Model.ChemicalFormula</dd></div>
+                                    <div><dt>Molar mass</dt><dd><span id="metaMolarMass">@Model.MolecularWeight.ToString("F3")</span> <small>g/mol</small></dd></div>
+                                    <div><dt>Atoms</dt><dd id="metaAtomCount">@Model.TotalAtomCount</dd></div>
+                                    <div><dt>Geometry</dt><dd id="metaVseprShape">@Model.VseprShape</dd></div>
+                                    <div><dt>Ideal angle</dt><dd><span id="metaBondAngle">@Model.IdealBondAngleDegrees.ToString("F1")</span><small>°</small></dd></div>
+                                    <div><dt>Elements</dt><dd id="metaElements">@(string.Join(" · ", Model.ElementsPresent))</dd></div>
+                                </dl>
+                                <div class="tag-block">
+                                    <span>Detected groups</span>
+                                    <div id="metaFunctionalGroups">
+                                        @if (Model.FunctionalGroups.Count == 0) { <span class="data-tag">None identified</span> }
+                                        else { @foreach (var group in Model.FunctionalGroups) { <span class="data-tag">@group</span> } }
+                                    </div>
+                                </div>
+                            </article>
+
+                            <article class="panel quick-actions-card">
+                                <div class="panel-header"><div><span class="eyebrow">Continue analysis</span><h3>Suggested tools</h3></div></div>
+                                <button class="analysis-link" type="button" data-open-tool="physicochemical"><span class="analysis-icon blue">P</span><span><strong>Physicochemical profile</strong><small>TPSA, LogP, QED and filters</small></span><b>→</b></button>
+                                <button class="analysis-link" type="button" data-open-tool="force-field"><span class="analysis-icon violet">F</span><span><strong>Force-field minimization</strong><small>Energy, convergence and geometry</small></span><b>→</b></button>
+                                <button class="analysis-link" type="button" data-open-tool="spectroscopy"><span class="analysis-icon teal">S</span><span><strong>Spectroscopy estimate</strong><small>1H, 13C and IR correlations</small></span><b>→</b></button>
+                            </article>
+
+                            <article class="panel compound-card">
+                                <div class="panel-header"><div><span class="eyebrow">Reference compounds</span><h3>Compound library</h3></div><span class="soft-count" id="compoundCount">20</span></div>
+                                <label class="compact-search"><span>⌕</span><input id="compoundSearchInput" placeholder="Search compounds" /></label>
+                                <div class="compound-list" id="compoundList"></div>
+                            </article>
+                        </aside>
+                    </div>
+                </section>
+
+                <section class="workspace-view" id="view-tools" data-view="tools">
+                    <div class="view-intro tools-intro">
+                        <div><span class="eyebrow">Complete API workspace</span><h2>Calculation tools</h2><p>Every Chemy API capability is available here, grouped by scientific workflow rather than endpoint naming.</p></div>
+                        <div class="coverage-summary"><strong>24</strong><span>API actions<br />available</span></div>
+                    </div>
+
+                    <div class="tools-layout">
+                        <aside class="tool-directory panel">
+                            <label class="compact-search tool-search"><span>⌕</span><input id="toolSearchInput" placeholder="Find a calculation" /></label>
+                            <div class="tool-group" data-tool-group="Structure">
+                                <p>Structure and data</p>
+                                <button class="tool-nav-item" type="button" data-tool-target="periodic-table"><span>PT</span><b>Periodic table</b><small>2 actions</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="formula-parse"><span>Fx</span><b>Formula tools</b><small>2 actions</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="smiles-parse"><span>Sm</span><b>SMILES parser</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="geometry"><span>3D</span><b>Geometry studio</b><small>3 actions</small></button>
+                            </div>
+                            <div class="tool-group" data-tool-group="Reactions">
+                                <p>Reactions and thermodynamics</p>
+                                <button class="tool-nav-item" type="button" data-tool-target="reactions"><span>Rx</span><b>Reaction workspace</b><small>3 actions</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="thermodynamics"><span>ΔG</span><b>Thermodynamics</b><small>1 action</small></button>
+                            </div>
+                            <div class="tool-group" data-tool-group="Physical">
+                                <p>Physical chemistry</p>
+                                <button class="tool-nav-item" type="button" data-tool-target="ph"><span>pH</span><b>Acid equilibrium</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="buffer"><span>HA</span><b>Buffer system</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="nernst"><span>E</span><b>Nernst potential</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="kinetics"><span>k</span><b>Kinetics</b><small>2 actions</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="force-field"><span>FF</span><b>Force field</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="huckel"><span>Ψ</span><b>Hückel orbitals</b><small>1 action</small></button>
+                            </div>
+                            <div class="tool-group" data-tool-group="Models">
+                                <p>Models and exploration</p>
+                                <button class="tool-nav-item" type="button" data-tool-target="spectroscopy"><span>δ</span><b>Spectroscopy</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="physicochemical"><span>Pc</span><b>Physicochemical</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="pubchem"><span>Db</span><b>PubChem</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="evolution"><span>Ex</span><b>Graph exploration</b><small>1 action</small></button>
+                                <button class="tool-nav-item" type="button" data-tool-target="ecoclean"><span>Ec</span><b>EcoClean</b><small>1 action</small></button>
+                            </div>
+                        </aside>
+
+                        <div class="tool-stage">
+                            <div class="tool-empty-state panel" id="toolEmptyState"><span class="empty-orbit">+</span><h3>Select a calculation</h3><p>Choose a tool from the directory. Inputs, scientific scope, and results stay together in one focused view.</p></div>
+
+                            <article class="tool-panel panel" data-tool-panel="periodic-table">
+                                <div class="tool-heading"><div><span class="eyebrow">Reference data</span><h2>Periodic table</h2><p>Browse all elements or resolve one element by symbol, name, or atomic number.</p></div><span class="method-badge exact">Reference table</span></div>
+                                <form id="periodicTableForm" class="tool-form">
+                                    <div class="field-row single-action-row">
+                                        <label><span>Element query</span><input name="query" value="Au" placeholder="Au, Gold, or 79" /></label>
+                                        <button class="primary-button" type="button" data-api-action data-form="periodicTableForm" data-endpoint="/api/v1/elements/{query}" data-path-input="query" data-output="periodicTableOutput">Find element</button>
+                                        <button class="quiet-button" type="button" data-api-action data-endpoint="/api/v1/elements" data-output="periodicTableOutput">Load all</button>
+                                    </div>
+                                </form>
+                                <div class="result-panel" id="periodicTableOutput" data-empty="Results appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="formula-parse">
+                                <div class="tool-heading"><div><span class="eyebrow">Composition</span><h2>Formula tools</h2><p>Parse empirical composition or generate the API molecule diagram.</p></div><span class="method-badge exact">Deterministic</span></div>
+                                <form id="formulaForm" class="tool-form">
+                                    <div class="field-grid two"><label><span>Formula</span><input name="formula" value="Fe2(SO4)3*5H2O" /></label><label><span>Name <small>optional</small></span><input name="name" value="Iron(III) sulfate pentahydrate" /></label></div>
+                                    <div class="form-actions">
+                                        <button class="primary-button" type="button" data-api-action data-form="formulaForm" data-endpoint="/api/v1/molecules/parse" data-output="formulaOutput">Parse formula</button>
+                                        <button class="quiet-button" type="button" data-api-action data-form="formulaForm" data-endpoint="/api/v1/molecules/svg?isDarkMode=false" data-output="formulaOutput" data-render="svg">Render molecule SVG</button>
+                                    </div>
+                                </form>
+                                <div class="result-panel" id="formulaOutput" data-empty="Composition or SVG output appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="smiles-parse">
+                                <div class="tool-heading"><div><span class="eyebrow">Bonded topology</span><h2>SMILES parser</h2><p>Parse a supported bonded organic structure and inspect atoms, bonds, groups, and canonical properties.</p></div><span class="method-badge bounded">Bounded parser</span></div>
+                                <form id="smilesForm" class="tool-form">
+                                    <div class="field-grid two"><label><span>Bonded SMILES</span><input name="smiles" value="CC(=O)Oc1ccccc1C(=O)O" /></label><label><span>Name <small>optional</small></span><input name="name" value="Aspirin" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="smilesForm" data-endpoint="/api/v1/smiles/parse" data-output="smilesOutput">Parse structure</button></div>
+                                </form>
+                                <div class="result-panel" id="smilesOutput" data-empty="Parsed topology appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="geometry">
+                                <div class="tool-heading"><div><span class="eyebrow">Coordinates and diagrams</span><h2>Geometry studio</h2><p>Generate relaxed 3D, planar coordinates, or a 2D skeletal diagram and load the result into the studio.</p></div><span class="method-badge numerical">Numerical</span></div>
+                                <form id="geometryForm" class="tool-form">
+                                    <div class="field-grid three"><label><span>Molecule or SMILES</span><input name="formula" value="CCO" data-current-molecule /></label><label><span>Name <small>optional</small></span><input name="name" value="Ethanol" /></label><label><span>Shape override</span><select name="overrideShape"><option value="">Auto</option><option>Linear</option><option>Bent</option><option>TrigonalPlanar</option><option>Tetrahedral</option><option>Octahedral</option></select></label></div>
+                                    <div class="form-actions">
+                                        <button class="primary-button" type="button" data-api-action data-form="geometryForm" data-endpoint="/api/v1/geometry/3d" data-output="geometryOutput" data-render="geometry">Generate 3D</button>
+                                        <button class="quiet-button" type="button" data-api-action data-form="geometryForm" data-endpoint="/api/v1/geometry/planar-3d" data-output="geometryOutput" data-render="geometry-planar">Generate planar</button>
+                                        <button class="quiet-button" type="button" data-api-action data-form="geometryForm" data-endpoint="/api/v1/geometry/skeletal-2d" data-output="geometryOutput" data-render="svg">Render skeletal 2D</button>
+                                    </div>
+                                </form>
+                                <div class="result-panel" id="geometryOutput" data-empty="Coordinates, diagnostics, or skeletal output appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="reactions">
+                                <div class="tool-heading"><div><span class="eyebrow">Stoichiometry</span><h2>Reaction workspace</h2><p>Balance a reaction, request an explanation, or render a reaction diagram.</p></div><span class="method-badge exact">Exact algebra</span></div>
+                                <form id="reactionForm" class="tool-form">
+                                    <label class="wide-field"><span>Reaction equation</span><input name="equation" value="Fe + O2 -> Fe2O3" /></label>
+                                    <div class="form-actions">
+                                        <button class="primary-button" type="button" data-api-action data-form="reactionForm" data-endpoint="/api/v1/reactions/balance" data-output="reactionOutput">Balance</button>
+                                        <button class="quiet-button" type="button" data-api-action data-form="reactionForm" data-endpoint="/api/v1/reactions/explain" data-output="reactionOutput">Explain steps</button>
+                                        <button class="quiet-button" type="button" data-api-action data-form="reactionForm" data-endpoint="/api/v1/reactions/svg?isDarkMode=false" data-output="reactionOutput" data-render="svg">Render SVG</button>
+                                    </div>
+                                </form>
+                                <div class="result-panel" id="reactionOutput" data-empty="Balanced coefficients, explanation, or diagram appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="thermodynamics">
+                                <div class="tool-heading"><div><span class="eyebrow">Standard-state chemistry</span><h2>Reaction thermodynamics</h2><p>Evaluate supported reactions at the declared 298.15 K standard-state boundary.</p></div><span class="method-badge exact">Reference equation</span></div>
+                                <form id="thermoForm" class="tool-form">
+                                    <div class="field-grid two-one"><label><span>Balanced equation</span><input name="equation" value="CH4 + 2O2 -> CO2 + 2H2O" /></label><label><span>Temperature (K)</span><input name="temperatureKelvin" type="number" data-value-type="number" value="298.15" step="0.01" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="thermoForm" data-endpoint="/api/v1/reactions/thermodynamics" data-output="thermoOutput">Calculate thermodynamics</button></div>
+                                </form>
+                                <div class="result-panel" id="thermoOutput" data-empty="Thermodynamic state functions appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="ph">
+                                <div class="tool-heading"><div><span class="eyebrow">Aqueous equilibrium</span><h2>Acid pH</h2><p>Calculate strong-acid pH or supply Ka for the weak-acid cubic equilibrium.</p></div><span class="method-badge exact">Exact / root solve</span></div>
+                                <form id="phForm" class="tool-form">
+                                    <div class="field-grid two"><label><span>Concentration (mol/L)</span><input name="concentrationMolar" type="number" data-value-type="number" value="0.1" step="0.001" /></label><label><span>Ka <small>leave blank for strong acid</small></span><input name="ka" type="number" data-value-type="number" value="1.8e-5" step="0.000001" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="phForm" data-endpoint="/api/v1/solutions/ph" data-output="phOutput">Calculate pH</button></div>
+                                </form>
+                                <div class="result-panel" id="phOutput" data-empty="pH and numerical diagnostics appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="buffer">
+                                <div class="tool-heading"><div><span class="eyebrow">Aqueous equilibrium</span><h2>Buffer system</h2><p>Apply the Henderson–Hasselbalch relationship to an ideal acid/conjugate-base pair.</p></div><span class="method-badge exact">Exact equation</span></div>
+                                <form id="bufferForm" class="tool-form">
+                                    <div class="field-grid three"><label><span>pKa</span><input name="pka" type="number" data-value-type="number" value="4.76" step="0.01" /></label><label><span>Acid (mol/L)</span><input name="acidConcentrationMolar" type="number" data-value-type="number" value="0.1" step="0.01" /></label><label><span>Conjugate base (mol/L)</span><input name="conjugateBaseConcentrationMolar" type="number" data-value-type="number" value="0.1" step="0.01" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="bufferForm" data-endpoint="/api/v1/solutions/buffer" data-output="bufferOutput">Calculate buffer</button></div>
+                                </form>
+                                <div class="result-panel" id="bufferOutput" data-empty="Buffer pH and capacity appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="nernst">
+                                <div class="tool-heading"><div><span class="eyebrow">Electrochemistry</span><h2>Nernst potential</h2><p>Calculate non-standard reversible cell potential from E°, electron count, Q, and temperature.</p></div><span class="method-badge exact">Exact equation</span></div>
+                                <form id="nernstForm" class="tool-form">
+                                    <div class="field-grid four"><label><span>E° (V)</span><input name="standardCellPotentialVolts" type="number" data-value-type="number" value="1.10" step="0.01" /></label><label><span>Electrons</span><input name="electronsTransferred" type="number" data-value-type="integer" value="2" step="1" /></label><label><span>Reaction quotient Q</span><input name="reactionQuotientQ" type="number" data-value-type="number" value="0.01" step="0.01" /></label><label><span>Temperature (K)</span><input name="temperatureKelvin" type="number" data-value-type="number" value="298.15" step="0.01" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="nernstForm" data-endpoint="/api/v1/electrochemistry/nernst" data-output="nernstOutput">Calculate potential</button></div>
+                                </form>
+                                <div class="result-panel" id="nernstOutput" data-empty="Cell potential appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="kinetics">
+                                <div class="tool-heading"><div><span class="eyebrow">Reaction rates</span><h2>Kinetics</h2><p>Evaluate Arrhenius k(T) or integrate a consecutive A → B → C network.</p></div><span class="method-badge numerical">Equation / RK4</span></div>
+                                <div class="split-calculators">
+                                    <form id="arrheniusForm" class="tool-form sub-calculator">
+                                        <h3>Arrhenius rate</h3>
+                                        <label><span>Pre-exponential factor A</span><input name="preExponentialFactorA" type="number" data-value-type="number" value="1e13" /></label>
+                                        <label><span>Activation energy (kJ/mol)</span><input name="activationEnergykJPerMol" type="number" data-value-type="number" value="75" /></label>
+                                        <label><span>Temperature (K)</span><input name="temperatureKelvin" type="number" data-value-type="number" value="298.15" /></label>
+                                        <button class="primary-button" type="button" data-api-action data-form="arrheniusForm" data-endpoint="/api/v1/kinetics/arrhenius" data-output="kineticsOutput">Calculate k(T)</button>
+                                    </form>
+                                    <form id="networkForm" class="tool-form sub-calculator">
+                                        <h3>Consecutive network</h3>
+                                        <div class="field-grid two"><label><span>Initial A (M)</span><input name="initialConcA" type="number" data-value-type="number" value="1" /></label><label><span>Steps</span><input name="steps" type="number" data-value-type="integer" value="50" /></label></div>
+                                        <div class="field-grid three"><label><span>k1</span><input name="k1" type="number" data-value-type="number" value="0.5" /></label><label><span>k2</span><input name="k2" type="number" data-value-type="number" value="0.2" /></label><label><span>Time (s)</span><input name="totalTime" type="number" data-value-type="number" value="10" /></label></div>
+                                        <button class="primary-button" type="button" data-api-action data-form="networkForm" data-endpoint="/api/v1/kinetics/network" data-output="kineticsOutput" data-render="network">Simulate network</button>
+                                    </form>
+                                </div>
+                                <div class="result-panel" id="kineticsOutput" data-empty="Rate or concentration trajectory appears here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="force-field">
+                                <div class="tool-heading"><div><span class="eyebrow">Molecular mechanics</span><h2>Force-field minimization</h2><p>Relax a supported molecule with the UFF-compatible organic subset and inspect convergence diagnostics.</p></div><span class="method-badge empirical">Empirical model</span></div>
+                                <form id="forceFieldForm" class="tool-form">
+                                    <div class="field-grid three"><label><span>Molecule or SMILES</span><input name="formula" value="H2O" data-current-molecule /></label><label><span>Shape override</span><input name="overrideShape" placeholder="Auto" /></label><label><span>Maximum iterations</span><input name="maxIterations" type="number" data-value-type="integer" value="500" min="1" max="2000" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="forceFieldForm" data-endpoint="/api/v1/physics/minimize" data-output="forceFieldOutput" data-render="geometry">Minimize energy</button></div>
+                                </form>
+                                <div class="result-panel" id="forceFieldOutput" data-empty="Energy, coordinates, applicability, and convergence appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="huckel">
+                                <div class="tool-heading"><div><span class="eyebrow">Electronic structure</span><h2>Hückel molecular orbitals</h2><p>Analyze a supported conjugated π-system with the semi-empirical HMO Hamiltonian.</p></div><span class="method-badge empirical">Semi-empirical</span></div>
+                                <form id="huckelForm" class="tool-form">
+                                    <div class="field-grid two-one"><label><span>Conjugated SMILES</span><input name="formula" value="c1ccccc1" data-current-molecule /></label><label><span>|β| (eV)</span><input name="betaEv" type="number" data-value-type="number" value="2.71" step="0.01" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="huckelForm" data-endpoint="/api/v1/quantum/huckel" data-output="huckelOutput">Calculate orbitals</button></div>
+                                </form>
+                                <div class="result-panel" id="huckelOutput" data-empty="Orbital energies and reactivity indices appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="spectroscopy">
+                                <div class="tool-heading"><div><span class="eyebrow">Empirical correlations</span><h2>Spectroscopy estimate</h2><p>Estimate 1H NMR, 13C NMR, and IR features for a supported bonded molecule.</p></div><span class="method-badge empirical">Empirical / heuristic</span></div>
+                                <form id="spectroscopyForm" class="tool-form">
+                                    <label class="wide-field"><span>Bonded molecule or SMILES</span><input name="formula" value="CC(=O)C" data-current-molecule /></label>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="spectroscopyForm" data-endpoint="/api/v1/spectroscopy/predict" data-output="spectroscopyOutput" data-render="spectroscopy">Estimate spectrum</button></div>
+                                </form>
+                                <div class="result-panel" id="spectroscopyOutput" data-empty="Estimated peaks, bands, evidence, and scope appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="physicochemical">
+                                <div class="tool-heading"><div><span class="eyebrow">Molecular descriptors</span><h2>Physicochemical profile</h2><p>Calculate molecular weight, TPSA, LogP, QED, H-bonding, and common drug-likeness filters.</p></div><span class="method-badge empirical">Calibrated subset</span></div>
+                                <form id="physicochemicalForm" class="tool-form">
+                                    <label class="wide-field"><span>Bonded molecule or SMILES</span><input name="formula" value="CC(=O)Oc1ccccc1C(=O)O" data-current-molecule /></label>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="physicochemicalForm" data-endpoint="/api/v1/pharmacology/admet" data-output="physicochemicalOutput">Calculate profile</button></div>
+                                </form>
+                                <div class="result-panel" id="physicochemicalOutput" data-empty="Descriptors, filters, calibration, and applicability appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="pubchem">
+                                <div class="tool-heading"><div><span class="eyebrow">External reference</span><h2>PubChem lookup</h2><p>Query the live NCBI PubChem PUG REST service by compound name or CID.</p></div><span class="method-badge external">Live external data</span></div>
+                                <form id="pubchemForm" class="tool-form">
+                                    <div class="field-row single-action-row"><label><span>Name or CID</span><input name="query" value="Aspirin" /></label><button class="primary-button" type="button" data-api-action data-form="pubchemForm" data-endpoint="/api/v1/cloud/pubchem/{query}" data-path-input="query" data-output="pubchemOutput" data-render="pubchem">Search PubChem</button></div>
+                                </form>
+                                <div class="result-panel" id="pubchemOutput" data-empty="Compound identity and canonical structure appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="evolution">
+                                <div class="tool-heading"><div><span class="eyebrow">Graph hypotheses</span><h2>Rule-based molecular exploration</h2><p>Generate bounded graph mutations and rank them by implemented physicochemical descriptors.</p></div><span class="method-badge heuristic">Heuristic</span></div>
+                                <form id="evolutionForm" class="tool-form">
+                                    <div class="field-grid two-one"><label><span>Bonded SMILES</span><input name="input" value="CC(=O)Oc1ccccc1C(=O)O" data-current-molecule /></label><label><span>Generations</span><input name="generations" type="number" data-value-type="integer" value="50" min="1" max="100" /></label></div>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="evolutionForm" data-endpoint="/api/v1/evolution/evolve" data-output="evolutionOutput">Explore candidates</button></div>
+                                </form>
+                                <div class="scope-notice">Candidate ranking is not evidence of potency, safety, metabolism, or synthesis feasibility.</div>
+                                <div class="result-panel" id="evolutionOutput" data-empty="Ranked structural hypotheses appear here"></div>
+                            </article>
+
+                            <article class="tool-panel panel" data-tool-panel="ecoclean">
+                                <div class="tool-heading"><div><span class="eyebrow">Environmental hypotheses</span><h2>EcoClean pathway</h2><p>Construct a qualitative bond-cleavage pathway using characteristic BDEs and rule-based catalyst labels.</p></div><span class="method-badge heuristic">Qualitative</span></div>
+                                <form id="ecocleanForm" class="tool-form">
+                                    <label class="wide-field"><span>Pollutant name, formula, or supported structure</span><input name="pollutant" value="PFOA C8HF15O2" /></label>
+                                    <div class="form-actions"><button class="primary-button" type="button" data-api-action data-form="ecocleanForm" data-endpoint="/api/v1/environmental/ecoclean" data-output="ecocleanOutput">Generate hypothesis</button></div>
+                                </form>
+                                <div class="scope-notice">This output does not calculate degradation kinetics, yield, mineralization efficiency, or environmental safety.</div>
+                                <div class="result-panel" id="ecocleanOutput" data-empty="A qualitative pathway hypothesis appears here"></div>
+                            </article>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="workspace-view" id="view-docs" data-view="docs">
+                    <div class="view-intro"><div><span class="eyebrow">Knowledge base</span><h2>Documentation</h2><p>Navigate by task, implementation detail, or scientific evidence without leaving the workspace.</p></div></div>
+                    <div class="knowledge-layout">
+                        <aside class="document-directory panel" id="documentDirectory">
+                            <button type="button" class="doc-nav-item is-active" data-doc-key="home"><strong>Documentation home</strong><small>Choose a path</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="started"><strong>Getting started</strong><small>Install and run</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="cookbook"><strong>Cookbook</strong><small>Task-oriented C#</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="api"><strong>API reference</strong><small>Types and routes</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="arch"><strong>Architecture</strong><small>Components and flow</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="science"><strong>Scientific approach</strong><small>Methods and equations</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="credibility"><strong>Credibility report</strong><small>Current boundaries</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="benchmarks"><strong>Verification</strong><small>Evidence and metrics</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="audit"><strong>Audit v2.8</strong><small>Current verdict</small></button>
+                            <button type="button" class="doc-nav-item" data-doc-key="showcase"><strong>Use cases</strong><small>Illustrative workflows</small></button>
+                        </aside>
+                        <article class="document-viewer panel">
+                            <div class="document-toolbar"><span id="documentTitle">Documentation home</span><button type="button" class="quiet-button" id="scrollDocumentTop">Back to top</button></div>
+                            <div class="markdown-body" id="documentContent"></div>
+                        </article>
+                    </div>
+                </section>
+
+                <section class="workspace-view" id="view-code" data-view="code">
+                    <div class="view-intro">
+                        <div><span class="eyebrow">Live assembly metadata</span><h2>C# code reference</h2><p>Search the public Chemy.Core surface extracted from XML documentation and reflection.</p></div>
+                        <label class="reference-search"><span>⌕</span><input id="codeSearchInput" placeholder="Search types, methods, or summaries" /></label>
+                    </div>
+                    <div class="code-reference-grid" id="codeReferenceGrid">
+                        @foreach (var cls in Model.ClassDocumentationList)
+                        {
+                            <details class="code-card panel" data-code-search="@(string.Concat(cls.Name, " ", cls.Namespace, " ", cls.Summary).ToLowerInvariant())">
+                                <summary><span class="type-mark">C#</span><span><strong>@cls.Name</strong><small>@cls.Namespace</small></span><span class="soft-count">@(cls.Methods.Count + cls.Properties.Count)</span></summary>
+                                <div class="code-card-body">
+                                    <p>@cls.Summary</p>
+                                    @if (cls.Properties.Any()) { <h4>Properties</h4> @foreach (var property in cls.Properties) { <div class="member-row"><code>@property.Signature</code><span>@property.Summary</span></div> } }
+                                    @if (cls.Methods.Any()) { <h4>Methods</h4> @foreach (var method in cls.Methods) { <div class="member-row"><code>@method.Signature</code><span>@method.Summary</span></div> } }
+                                </div>
+                            </details>
+                        }
+                    </div>
+                </section>
+
+                <section class="workspace-view" id="view-scope" data-view="scope">
+                    <div class="view-intro"><div><span class="eyebrow">Scientific governance</span><h2>Scope and evidence</h2><p>A concise operating guide for interpreting Chemy outputs safely and accurately.</p></div><span class="readiness-score"><strong>9.7</strong><small>/ 10 internal readiness</small></span></div>
+                    <div class="scope-grid">
+                        <article class="panel scope-hero">
+                            <span class="eyebrow">Decision rule</span><h3>Use the result contract, not the feature name.</h3>
+                            <p>Scientific outputs identify their method, evidence class, applicability, uncertainty, or numerical diagnostics. Out-of-domain predictive inputs fail closed instead of returning an unjustified number.</p>
+                            <div class="scope-legend"><span><i class="scope-dot exact"></i><b>Exact equation</b><small>Analytical or rational result</small></span><span><i class="scope-dot numerical"></i><b>Numerical</b><small>Inspect convergence and residuals</small></span><span><i class="scope-dot empirical"></i><b>Empirical</b><small>Inspect domain and calibration</small></span><span><i class="scope-dot heuristic"></i><b>Heuristic</b><small>Expert-review hypothesis</small></span></div>
+                        </article>
+                        <article class="panel certification-card"><span class="eyebrow">Reserved certification evidence</span><h3>The final 0.3 is external.</h3><ol><li><span>01</span>Prospectively freeze cases and thresholds.</li><li><span>02</span>Independently curate and reproduce results.</li><li><span>03</span>Obtain identifiable chemistry-domain review.</li></ol></article>
+                        <article class="panel boundary-card"><span class="boundary-index">A</span><h3>Physicochemical descriptors</h3><p>TPSA, LogP, QED, and filters are bounded descriptors—not ADME, safety, efficacy, or clinical predictions.</p></article>
+                        <article class="panel boundary-card"><span class="boundary-index">B</span><h3>Molecular mechanics</h3><p>UFF compatibility is demonstrated for the declared atom-type subset and pinned cases, not universal chemistry.</p></article>
+                        <article class="panel boundary-card"><span class="boundary-index">C</span><h3>Spectroscopy</h3><p>The 1H calibration is narrow; 13C and IR remain heuristic correlation estimates.</p></article>
+                        <article class="panel boundary-card"><span class="boundary-index">D</span><h3>Exploration tools</h3><p>Evolution and EcoClean generate hypotheses. They do not establish synthesis, biological activity, degradation yield, or safety.</p></article>
+                    </div>
+                </section>
+            </main>
+        </div>
     </div>
-
-    <!-- ===================================================================== -->
-    <!-- 2. MAIN VIEW CONTAINER                                                -->
-    <!-- ===================================================================== -->
-    <main class="flex-1 flex flex-col p-3 gap-3">
-
-        <!-- ================================================================= -->
-        <!-- VIEW 1: 3D WORKSTATION & ANALYTICAL SUITE                         -->
-        <!-- ================================================================= -->
-        <div id="view-workstation" class="grid grid-cols-1 lg:grid-cols-12 gap-3 flex-1 lg:h-[calc(100vh-75px)] min-h-0">
-
-            <!-- LEFT COLUMN: 3D MOL VIEWPORT & TELEMETRY CARD (7 Cols) -->
-            <div class="lg:col-span-7 flex flex-col gap-3 h-full min-h-0">
-                
-                <!-- 3D VIEWPORT CONTAINER -->
-                <div class="lab-card flex-1 min-h-0 flex flex-col overflow-hidden relative">
-                    <!-- Viewport Header Toolbar -->
-                    <div class="bg-slate-900/90 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-10 shrink-0 flex-wrap gap-2">
-                        <div class="flex items-center gap-2">
-                            <span class="text-sky-400 font-bold font-mono">Chemy Studio</span>
-                            <span class="text-slate-600">//</span>
-                            <span id="currentMoleculeName" class="font-bold text-slate-200">@Model.MoleculeName</span>
-                            <span id="currentFormulaBadge" class="text-[10px] font-mono bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded">@Model.ChemicalFormula</span>
-                        </div>
-                        <div class="flex items-center gap-1.5 font-mono text-[11px]">
-                            <!-- Workstation View Mode Toggle: 3D Conformation vs 2D Skeletal ChemDraw -->
-                            <div class="flex items-center bg-slate-950 border border-slate-800 rounded p-0.5 text-[10px]">
-                                <button id="viewTab3D" onclick="setWorkstationView('3d')" class="px-2.5 py-0.5 rounded bg-sky-600 text-white font-semibold transition flex items-center gap-1">
-                                    <span>🔬</span> 3D Conformation
-                                </button>
-                                <button id="viewTab2D" onclick="setWorkstationView('2d')" class="px-2.5 py-0.5 rounded text-slate-400 hover:text-white transition flex items-center gap-1">
-                                    <span>📐</span> 2D Skeletal (ChemDraw)
-                                </button>
-                            </div>
-
-                            <!-- 3D Controls -->
-                            <div id="controls3D" class="flex items-center flex-wrap gap-1.5">
-                                <div class="flex items-center bg-slate-950 border border-slate-800 rounded p-0.5 text-[10px]">
-                                    <button id="spatialMode3D" onclick="setSpatialMode('3d')" class="px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition">Physical 3D</button>
-                                    <button id="spatialModeFlat" onclick="setSpatialMode('flat')" class="px-2 py-0.5 rounded text-slate-400 hover:text-white transition">Planar 3D</button>
-                                </div>
-                                <select id="renderStyleSelect" onchange="changeRenderStyle()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-slate-300 focus:outline-none focus:border-sky-500 text-[10px]" title="Render representation style">
-                                    <option value="ballAndStick" selected>Ball &amp; Stick</option>
-                                    <option value="stick">Licorice (Stick)</option>
-                                    <option value="sphere">Spacefill (vdW)</option>
-                                    <option value="wireframe">Wireframe</option>
-                                </select>
-                                <select id="colorModeSelect" onchange="changeColorMode()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-sky-400 focus:outline-none focus:border-sky-500 text-[10px]" title="3D Color map mode">
-                                    <option value="cpk" selected>🎨 CPK Elements</option>
-                                    <option value="homo">⚛️ HOMO Orbitals</option>
-                                    <option value="lumo">⚛️ LUMO Orbitals</option>
-                                    <option value="charge">⚡ Net π-Charge</option>
-                                    <option value="fukui">🎯 Fukui Reactivity</option>
-                                </select>
-                                <select id="surfaceSelect" onchange="changeSurfaceMode()" class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-emerald-400 focus:outline-none focus:border-emerald-500 text-[10px]" title="Molecular Surface Envelope">
-                                    <option value="none" selected>Surface: None</option>
-                                    <option value="vdw">Surface: vdW</option>
-                                    <option value="sas">Surface: SAS</option>
-                                    <option value="ses">Surface: SES</option>
-                                </select>
-                                <button onclick="toggleLabels()" id="labelsBtn" title="Toggle 3D atom labels" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition text-[10px]">🏷️ Labels</button>
-                                <button onclick="snapFrontView()" title="Snap camera to XY plane" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Front</button>
-                                <button onclick="toggleSpin()" id="spinBtn" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔄 Spin</button>
-                                <button onclick="autoFitViewer()" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium hover:bg-sky-500 transition">🎯 Fit</button>
-                            </div>
-
-                            <!-- 2D Controls -->
-                            <div id="controls2D" class="hidden items-center gap-1.5">
-                                <button onclick="downloadSkeletalSvg()" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition flex items-center gap-1 text-[10px]">
-                                    <span>💾</span> Export SVG
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- WebGL Canvas Host (3D) -->
-                    <div id="viewer3d" class="flex-1 w-full h-full min-h-0 bg-[#070a14] cursor-grab active:cursor-grabbing"></div>
-
-                    <!-- 2D Skeletal ChemDraw Vector Canvas Host -->
-                    <div id="viewer2d" class="hidden flex-1 w-full h-full min-h-0 bg-[#090d16] flex items-center justify-center p-4 overflow-hidden relative">
-                        <div id="skeletalSvgContainer" class="w-full h-full max-w-full max-h-full flex items-center justify-center">
-                            @Html.Raw(Model.SkeletalSvgContent)
-                        </div>
-                    </div>
-
-                    <!-- Input Bar Bottom Overlay -->
-                    <div class="bg-slate-900/95 border-t border-slate-800 p-2 flex items-center gap-2 z-10 shrink-0">
-                        <form method="get" onsubmit="event.preventDefault(); loadMoleculeLive(this.Formula.value, this.OverrideShape.value);" class="flex-1 flex gap-2">
-                            <input type="text" name="Formula" value="@Model.Formula" placeholder="Enter chemical formula (e.g. C6H12O6, H2O) or SMILES (e.g. CC(C)Cc1ccc(cc1)C(C)C(=O)O)..." 
-                                   class="flex-1 bg-slate-950 border border-slate-800 rounded px-3 py-1.5 text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500" />
-                            <select name="OverrideShape" class="bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-300 font-mono focus:outline-none focus:border-sky-500">
-                                <option value="Auto" selected="@(Model.OverrideShape == "Auto")">VSEPR: Auto</option>
-                                <option value="Linear" selected="@(Model.OverrideShape == "Linear")">Linear (180°)</option>
-                                <option value="Bent" selected="@(Model.OverrideShape == "Bent")">Bent (104.5°)</option>
-                                <option value="Trigonal Planar" selected="@(Model.OverrideShape == "Trigonal Planar")">Trigonal Planar (120°)</option>
-                                <option value="Tetrahedral" selected="@(Model.OverrideShape == "Tetrahedral")">Tetrahedral (109.5°)</option>
-                                <option value="Octahedral" selected="@(Model.OverrideShape == "Octahedral")">Octahedral (90°)</option>
-                            </select>
-                            <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-4 py-1.5 rounded font-semibold text-xs transition flex items-center gap-1.5 font-mono">
-                                <span>⚡</span> Render
-                            </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- MOLECULAR CHARACTERISTICS CARD -->
-                <div class="lab-card p-3 space-y-2 shrink-0">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
-                            <span>📊</span> Molecular Geometry &amp; Physicochemical Telemetry
-                        </h3>
-                        <div class="flex gap-2">
-                            <button onclick="downloadFormat('xyz')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .XYZ</button>
-                            <button onclick="downloadFormat('pdb')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 hover:text-white hover:bg-slate-700">💾 .PDB</button>
-                            <button onclick="downloadFormat('mol')" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-sky-400 hover:text-white hover:bg-sky-600">💾 .MOL (V2000)</button>
-                            <button onclick="downloadSkeletalSvg()" class="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-emerald-400 hover:text-white hover:bg-emerald-600">💾 .SVG</button>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
-                        <div class="lab-card-subtle p-2">
-                            <span class="text-slate-400 block text-[10px]">Hill Formula</span>
-                            <span id="metaHillFormula" class="text-white font-bold text-xs">@Model.ChemicalFormula</span>
-                        </div>
-                        <div class="lab-card-subtle p-2">
-                            <span class="text-slate-400 block text-[10px]">Molar Mass</span>
-                            <span id="metaMolarMass" class="text-sky-400 font-bold text-xs">@Model.MolecularWeight.ToString("F3") <span class="text-[10px] text-slate-400">g/mol</span></span>
-                        </div>
-                        <div class="lab-card-subtle p-2">
-                            <span class="text-slate-400 block text-[10px]">VSEPR Geometry</span>
-                            <span id="metaVseprShape" class="text-emerald-400 font-bold text-xs">@Model.VseprShape</span>
-                        </div>
-                        <div class="lab-card-subtle p-2">
-                            <span class="text-slate-400 block text-[10px]">Ideal Valence Angle</span>
-                            <span id="metaBondAngle" class="text-amber-400 font-bold text-xs">@Model.IdealBondAngleDegrees.ToString("F1")°</span>
-                        </div>
-                    </div>
-
-                    <div id="metaFunctionalGroups" class="flex flex-wrap gap-2 text-[10px] font-mono pt-1">
-                        <span class="text-slate-400 self-center">Functional Groups:</span>
-                        @if (Model.FunctionalGroups.Count > 0)
-                        {
-                            @foreach (var fg in Model.FunctionalGroups)
-                            {
-                                <span class="bg-sky-500/10 border border-sky-500/30 text-sky-300 px-2 py-0.5 rounded">@fg</span>
-                            }
-                        }
-                        else
-                        {
-                            <span class="text-slate-500 italic">None detected (Aliphatic / Hydrocarbon)</span>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN: CATALOG & ANALYTICAL WORKSTATION (5 Cols) -->
-            <div class="lg:col-span-5 flex flex-col gap-3 h-full min-h-0">
-                
-                <!-- TOP BLOCK: 50-COMPOUND PRESET CATALOG (USES ALL FREE SPACE) -->
-                <div class="lab-card p-3 flex-1 min-h-0 flex flex-col space-y-2 overflow-hidden">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5 shrink-0">
-                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
-                            <span>📚</span> Reference Compound Catalog <span class="text-[10px] text-sky-400 font-mono font-normal">(50 Compounds)</span>
-                        </h3>
-                        <input type="text" id="catalogSearchInput" oninput="filterCatalog()" placeholder="Filter compounds..." class="bg-slate-950 border border-slate-800 rounded px-2 py-0.5 text-[11px] text-white font-mono placeholder-slate-600 focus:outline-none focus:border-sky-500 w-36" />
-                    </div>
-
-                    <!-- Category Filter Chips -->
-                    <div class="flex gap-1 overflow-x-auto pb-1 text-[10px] font-mono shrink-0">
-                        <button onclick="setCatalogCategory('all')" class="cat-chip px-2 py-0.5 rounded bg-sky-600 text-white font-medium">All</button>
-                        <button onclick="setCatalogCategory('drugs')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Drugs</button>
-                        <button onclick="setCatalogCategory('toxins')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Toxins</button>
-                        <button onclick="setCatalogCategory('solvents')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Solvents</button>
-                        <button onclick="setCatalogCategory('biomolecules')" class="cat-chip px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">Biomolecules</button>
-                    </div>
-
-                    <!-- Catalog Grid (Scrollable Free Space) -->
-                    <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 overflow-y-auto pr-1 flex-1 min-h-0 content-start"></div>
-                </div>
-
-                <!-- BOTTOM BLOCK: 15-ENGINE INDUSTRIAL ANALYTICAL SUITE (COMPACT, FIXED NEEDED HEIGHT) -->
-                <div class="lab-card p-3 h-[270px] shrink-0 flex flex-col space-y-2 overflow-hidden">
-                    <div class="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                        <h3 class="text-xs font-bold text-white uppercase tracking-wide flex items-center gap-1.5">
-                            <span>🧪</span> Industrial Chemoinformatics Suite
-                        </h3>
-                    </div>
-
-                    <!-- Tab Buttons -->
-                    <div class="flex flex-wrap gap-1 bg-slate-950 border border-slate-800 p-1 rounded font-mono text-[10px]">
-                        <button onclick="switchToolTab('balancer')" id="ttab-balancer" class="px-2 py-0.5 rounded bg-sky-600 text-white font-medium">⚖️ Balancer</button>
-                        <button onclick="switchToolTab('huckel')" id="ttab-huckel" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚛️ Orbitals (HMO)</button>
-                        <button onclick="switchToolTab('thermo')" id="ttab-thermo" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🔥 Thermo</button>
-                        <button onclick="switchToolTab('ph')" id="ttab-ph" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🧪 pH/Buffer</button>
-                        <button onclick="switchToolTab('nernst')" id="ttab-nernst" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚡ Nernst</button>
-                        <button onclick="switchToolTab('kinetics')" id="ttab-kinetics" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⏱️ Kinetics</button>
-                        <button onclick="switchToolTab('spec')" id="ttab-spec" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">📉 NMR/IR</button>
-                        <button onclick="switchToolTab('forcefield')" id="ttab-forcefield" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">⚛️ Force Field</button>
-                        <button onclick="switchToolTab('pubchem')" id="ttab-pubchem" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🌐 PubChem</button>
-                        <button onclick="switchToolTab('evolver')" id="ttab-evolver" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🧬 Evolver</button>
-                        <button onclick="switchToolTab('admet')" id="ttab-admet" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">🛡️ ADMET</button>
-                        <button onclick="switchToolTab('ecoclean')" id="ttab-ecoclean" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">♻️ EcoClean</button>
-                    </div>
-
-                    <!-- Tool Contents Panes -->
-                    <div id="toolPanesContainer" class="flex-1 overflow-y-auto min-h-[220px]">
-                        
-                        <!-- TAB 1: REACTION BALANCER -->
-                        <div id="pane-balancer" class="space-y-2">
-                            <div class="flex gap-2">
-                                <input type="text" id="balancerEquationInput" value="Fe + O2 -> Fe2O3" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
-                                <button onclick="runBalancer()" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 font-semibold text-white font-mono text-xs">Balance</button>
-                            </div>
-                            <div id="balancerOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 min-h-[80px]">
-                                Click 'Balance' to solve stoichiometric coefficients via exact rational Gaussian elimination nullspace reduction.
-                            </div>
-                        </div>
-
-                        <!-- TAB 2: THERMODYNAMICS -->
-                        <div id="pane-thermo" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="thermoEquationInput" value="CH4 + 2O2 -> CO2 + 2H2O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
-                                <input type="number" id="thermoTempInput" value="298.15" class="w-20 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Temp (K)" />
-                                <button onclick="runThermo()" class="px-3 py-1 rounded bg-amber-600 hover:bg-amber-500 font-semibold text-white font-mono text-xs">Calculate</button>
-                            </div>
-                            <div id="thermoOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Evaluates Hess's Law enthalpy (ΔH°), entropy (ΔS°), and Gibbs free energy (ΔG°(T)) with Benson Group Additivity fallback.
-                            </div>
-                        </div>
-
-                        <!-- TAB 3: pH & BUFFER -->
-                        <div id="pane-ph" class="space-y-2 hidden">
-                            <div class="grid grid-cols-3 gap-2">
-                                <input type="number" id="phConcInput" value="0.05" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Acid Conc (M)" />
-                                <input type="number" id="phKaInput" value="1.8e-5" step="1e-6" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Ka (optional)" />
-                                <button onclick="runPh()" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white font-mono text-xs">Solve pH</button>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-800/80">
-                                <input type="number" id="phBufHaInput" value="0.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="[HA] Acid (M)" />
-                                <input type="number" id="phBufAInput" value="0.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="[A⁻] Base (M)" />
-                                <input type="number" id="phBufPkaInput" value="4.76" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="pKa" />
-                                <button onclick="runBuffer()" class="px-2 py-1 rounded bg-teal-600 hover:bg-teal-500 font-semibold text-white font-mono text-[11px]">Buffer</button>
-                            </div>
-                            <div id="phOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Calculates exact aqueous pH, [H⁺], [OH⁻], and Henderson-Hasselbalch buffer capacity.
-                            </div>
-                        </div>
-
-                        <!-- TAB 4: NERNST ELECTROCHEMISTRY -->
-                        <div id="pane-nernst" class="space-y-2 hidden">
-                            <div class="grid grid-cols-3 gap-2">
-                                <input type="number" id="nernstE0Input" value="1.10" step="0.01" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="E° (V)" />
-                                <input type="number" id="nernstNInput" value="2" step="1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Electrons n" />
-                                <button onclick="runNernst()" class="px-3 py-1 rounded bg-sky-600 hover:bg-sky-500 font-semibold text-white font-mono text-xs">Solve Nernst</button>
-                            </div>
-                            <div id="nernstOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Computes non-standard cell potential E_cell = E° - (RT/nF)ln(Q).
-                            </div>
-                        </div>
-
-                        <!-- TAB 5: KINETICS & ARRHENIUS -->
-                        <div id="pane-kinetics" class="space-y-2 hidden">
-                            <div class="grid grid-cols-3 gap-2">
-                                <input type="number" id="kinK1Input" value="0.5" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k1 (s⁻¹)" />
-                                <input type="number" id="kinK2Input" value="0.2" step="0.1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="k2 (s⁻¹)" />
-                                <button onclick="runKinetics()" class="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 font-semibold text-white font-mono text-xs">Simulate RK4</button>
-                            </div>
-                            <div class="grid grid-cols-4 gap-1.5 pt-1 border-t border-slate-800/80">
-                                <input type="number" id="kinArrAInput" value="1.0e13" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="A (s⁻¹)" />
-                                <input type="number" id="kinArrEaInput" value="75.0" step="0.5" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="Ea (kJ/mol)" />
-                                <input type="number" id="kinArrTInput" value="298.15" step="1" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[11px] text-white font-mono" placeholder="T (K)" />
-                                <button onclick="runArrhenius()" class="px-2 py-1 rounded bg-purple-600 hover:bg-purple-500 font-semibold text-white font-mono text-[11px]">Arrhenius</button>
-                            </div>
-                            <div id="kineticsOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                4th-Order Runge-Kutta integrator (A -> B -> C) &amp; Arrhenius activation barrier kinetics.
-                            </div>
-                        </div>
-
-                        <!-- TAB 6: SPECTROSCOPY NMR/IR -->
-                        <div id="pane-spec" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="specFormulaInput" value="@Model.ChemicalFormula" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" />
-                                <button onclick="runSpectroscopy()" class="px-3 py-1 rounded bg-fuchsia-600 hover:bg-fuchsia-500 font-semibold text-white font-mono text-xs">Predict Spectrum</button>
-                            </div>
-                            <div id="specOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Predicts ¹H-NMR, ¹³C-NMR chemical shifts (δ ppm), and Infrared (IR) absorption frequency bands.
-                            </div>
-                        </div>
-
-                        <!-- TAB 7: FORCE FIELD (UFF/MMFF) -->
-                        <div id="pane-forcefield" class="space-y-2 hidden">
-                            <div class="flex items-center justify-between">
-                                <span class="text-slate-400 font-mono text-[11px]">5-Term Molecular Mechanics Potential (Bond, Angle, Torsion, Inversion, vdW)</span>
-                                <button onclick="runForceField()" class="px-3 py-1 rounded bg-purple-600 hover:bg-purple-500 font-semibold text-white font-mono text-xs">Relax 3D Coordinates</button>
-                            </div>
-                            <div id="forcefieldOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Performs limited-memory BFGS relaxation with an Armijo line search to relieve steric clashes and optimize 3D Cartesian coordinates.
-                            </div>
-                        </div>
-
-                        <!-- TAB 8: NCBI PUBCHEM CLOUD -->
-                        <div id="pane-pubchem" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="pubchemQueryInput" value="Aspirin" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Compound name or CID..." />
-                                <button onclick="runPubChem()" class="px-3 py-1 rounded bg-teal-600 hover:bg-teal-500 font-semibold text-white font-mono text-xs">Search PubChem</button>
-                            </div>
-                            <div id="pubchemOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300">
-                                Live queries NCBI PubChem database (110M+ real compounds) for CID, IUPAC Name, SMILES, and InChIKeys.
-                            </div>
-                        </div>
-
-                        <!-- TAB 9: DE NOVO BIOISOSTERIC EVOLVER -->
-                        <div id="pane-evolver" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="evolverInput" value="CC(=O)Oc1ccccc1C(=O)O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="SMILES or Formula..." />
-                                <button onclick="runEvolver()" class="px-3 py-1 rounded bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 font-semibold text-white font-mono text-xs">Evolve 5 Leads</button>
-                            </div>
-                            <div id="evolverOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
-                                Executes topological graph transformations: tetrazole substitution, fluorine shields, azetidines, and deuterium stabilization.
-                            </div>
-                        </div>
-
-                        <!-- TAB 10: ADMET & DRUG SAFETY SHIELD -->
-                        <div id="pane-admet" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="admetInput" value="CC(=O)Oc1ccccc1C(=O)O" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="SMILES or Formula..." />
-                                <button onclick="runAdmet()" class="px-3 py-1 rounded bg-rose-600 hover:bg-rose-500 font-semibold text-white font-mono text-xs">Screen Safety</button>
-                            </div>
-                            <div id="admetOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
-                                Evaluates Ertl TPSA, Wildman-Crippen LogP, Lipinski Rule of 5, Veber oral bioavailability rules, and Ghose filter.
-                            </div>
-                        </div>
-
-                        <!-- TAB 11: ECOCLEAN PFAS & PLASTIC SOLVER -->
-                        <div id="pane-ecoclean" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="ecocleanInput" value="PFOA C8HF15O2" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Pollutant or SMILES..." />
-                                <button onclick="runEcoClean()" class="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold text-white font-mono text-xs">Solve Cascade</button>
-                            </div>
-                            <div id="ecocleanOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
-                                Calculates Bond Dissociation Energies (BDE in kcal/mol) and generates 3-step catalytic mineralization pathways.
-                            </div>
-                        </div>
-
-                        <!-- TAB 12: QUANTUM ELECTRONIC STRUCTURE (HMO) -->
-                        <div id="pane-huckel" class="space-y-2 hidden">
-                            <div class="flex gap-2">
-                                <input type="text" id="huckelFormulaInput" value="@Model.ChemicalFormula" class="flex-1 bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono" placeholder="Conjugated SMILES or formula (e.g. c1ccccc1)..." />
-                                <button onclick="runHuckel()" class="px-3 py-1 rounded bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 font-semibold text-white font-mono text-xs">Compute HMO</button>
-                            </div>
-                            <div id="huckelOutput" class="lab-card-subtle p-2.5 font-mono text-xs text-slate-300 max-h-[160px] overflow-y-auto">
-                                Solves exact secular determinant det|H - E·I| = 0 via Jacobi eigensolver to calculate π-molecular orbitals, HOMO/LUMO bandgap, UV-Vis λ_max, and Dewar aromatic resonance energy.
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- ================================================================= -->
-        <!-- VIEW 2: DOCUMENTATION VIEWER                                      -->
-        <!-- ================================================================= -->
-        <div id="view-docs" class="hidden lab-card flex-1 flex flex-col overflow-hidden">
-            <div class="bg-slate-900/90 border-b border-slate-800 px-4 py-2.5 flex items-center justify-between z-10">
-                <div class="flex items-center gap-2">
-                    <span class="text-sky-400 font-bold font-mono">CHEMI.DOCS</span>
-                    <span class="text-slate-600">//</span>
-                    <span class="font-semibold text-slate-200" id="currentDocTitle">API Reference Manual</span>
-                </div>
-                <div class="flex flex-wrap gap-1.5 font-mono text-[11px]">
-                    <button onclick="loadDoc('api')" id="docbtn-api" class="px-2.5 py-1 rounded bg-sky-600 text-white font-medium shadow-sm transition">📘 API Reference</button>
-                    <button onclick="loadDoc('credibility')" id="docbtn-credibility" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔬 Credibility Audit</button>
-                    <button onclick="loadDoc('benchmarks')" id="docbtn-benchmarks" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🧪 Verification Suite</button>
-                    <button onclick="loadDoc('showcase')" id="docbtn-showcase" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🔬 Breakthroughs</button>
-                    <button onclick="loadDoc('arch')" id="docbtn-arch" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">📐 Architecture</button>
-                    <button onclick="loadDoc('started')" id="docbtn-started" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">🚀 Getting Started</button>
-                    <button onclick="loadDoc('science')" id="docbtn-science" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition">⚛️ Principles</button>
-                </div>
-            </div>
-            <div id="docContentHost" class="flex-1 p-8 overflow-y-auto prose prose-invert prose-sky max-w-none text-xs leading-relaxed font-sans prose-h1:text-2xl prose-h1:font-extrabold prose-h1:text-sky-400 prose-h1:border-b prose-h1:border-slate-800/80 prose-h1:pb-3 prose-h2:text-lg prose-h2:font-bold prose-h2:text-slate-100 prose-h3:text-sm prose-h3:font-semibold prose-h3:text-sky-300 prose-p:text-slate-300 prose-p:text-xs prose-p:leading-relaxed prose-a:text-sky-400 prose-a:no-underline hover:prose-a:underline prose-code:text-sky-300 prose-code:bg-slate-950/80 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:border prose-code:border-slate-800 prose-code:font-mono prose-pre:bg-[#070b18] prose-pre:border prose-pre:border-slate-800/80 prose-pre:rounded-lg prose-pre:shadow-xl prose-table:border prose-table:border-slate-800/80 prose-table:rounded-lg prose-table:overflow-hidden prose-th:bg-slate-900/90 prose-th:text-sky-400 prose-th:px-3 prose-th:py-2 prose-td:border-t prose-td:border-slate-800/80 prose-td:px-3 prose-td:py-2 prose-td:text-slate-300">
-                <!-- Rendered Markdown documentation appears here -->
-            </div>
-        </div>
-
-        <!-- ================================================================= -->
-        <!-- VIEW 3: INTERACTIVE CODE REFERENCE & SOURCE COMMENT EXPLORER     -->
-        <!-- ================================================================= -->
-        <div id="view-coderef" class="hidden lab-card flex-1 flex flex-col overflow-hidden p-4 space-y-4">
-            <!-- Header & View Switcher -->
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div>
-                    <h2 class="text-sm font-bold text-white flex items-center gap-2">
-                        <span>💻</span> C# Class Docstring &amp; Reflection API Explorer
-                    </h2>
-                    <p class="text-slate-400 text-[11px] font-mono">Dynamically extracted from <code class="text-sky-400">/// &lt;summary&gt;</code> source code comments across Chemy.Core assemblies (@Model.ClassDocumentationList.Count Classes Loaded).</p>
-                </div>
-                <div class="flex items-center gap-2 font-mono text-[11px]">
-                    <input type="text" id="codeRefSearchInput" onkeyup="filterCodeRef()" placeholder="Search classes, methods, or doc comments..." 
-                           class="bg-slate-950 border border-slate-800 rounded px-3 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 w-64" />
-                    <button onclick="setCodeRefSubView('classes')" id="crsub-classes" class="px-3 py-1 rounded bg-sky-600 text-white font-medium">Class Docstrings</button>
-                    <button onclick="setCodeRefSubView('snippets')" id="crsub-snippets" class="px-3 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">SDK Snippets &amp; cURL</button>
-                </div>
-            </div>
-
-            <!-- SUB-VIEW 1: Extracted C# Class XML Comments Browser -->
-            <div id="crpane-classes" class="space-y-3 overflow-y-auto flex-1 pr-1">
-                @foreach (var cls in Model.ClassDocumentationList)
-                {
-                    <div class="coderef-class-card lab-card-subtle p-3.5 space-y-2.5 border-slate-800/80 hover:border-sky-500/40 transition" 
-                         data-name="@cls.Name.ToLower()" data-namespace="@cls.Namespace.ToLower()" data-summary="@cls.Summary.ToLower()">
-                        
-                        <!-- Class Header -->
-                        <div class="flex items-start justify-between">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-sky-400 font-mono">class @cls.Name</span>
-                                    <span class="text-[10px] font-mono text-slate-500">namespace @cls.Namespace</span>
-                                </div>
-                                <p class="text-xs text-slate-300 mt-1 leading-relaxed">@cls.Summary</p>
-                            </div>
-                            <span class="text-[10px] font-mono bg-sky-500/10 text-sky-400 px-2 py-0.5 rounded border border-sky-500/20 whitespace-nowrap">@cls.Category</span>
-                        </div>
-
-                        <!-- Class Properties (if any) -->
-                        @if (cls.Properties.Any())
-                        {
-                            <div class="border-t border-slate-800/60 pt-2 space-y-1">
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Properties (@cls.Properties.Count)</span>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-1.5">
-                                    @foreach (var p in cls.Properties)
-                                    {
-                                        <div class="bg-slate-950/70 p-1.5 rounded border border-slate-800/60 text-[11px]">
-                                            <code class="text-emerald-400 font-mono font-semibold">@p.Signature</code>
-                                            <p class="text-[10px] text-slate-400 truncate mt-0.5">@p.Summary</p>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-
-                        <!-- Class Methods (if any) -->
-                        @if (cls.Methods.Any())
-                        {
-                            <div class="border-t border-slate-800/60 pt-2 space-y-1.5">
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Methods (@cls.Methods.Count)</span>
-                                <div class="space-y-1.5">
-                                    @foreach (var m in cls.Methods)
-                                    {
-                                        <div class="bg-slate-950/90 p-2 rounded border border-slate-800/80 font-mono text-[11px] space-y-1">
-                                            <div class="flex items-center justify-between">
-                                                <code class="text-sky-300 font-bold">@m.Signature</code>
-                                                <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded">method</span>
-                                            </div>
-                                            <p class="text-[11px] text-slate-300 font-sans">@m.Summary</p>
-                                            
-                                            @if (m.Parameters != null && m.Parameters.Any())
-                                            {
-                                                <div class="text-[10px] text-slate-400 font-sans pt-0.5 flex flex-wrap gap-1">
-                                                    <span class="font-bold text-slate-500 font-mono">Params:</span>
-                                                    @foreach (var (paramName, paramDesc) in m.Parameters)
-                                                    {
-                                                        <span class="bg-slate-900 border border-slate-800 text-slate-300 px-1.5 py-0.5 rounded">
-                                                            <strong class="text-sky-400 font-mono">@paramName:</strong> @paramDesc
-                                                        </span>
-                                                    }
-                                                </div>
-                                            }
-                                            @if (!string.IsNullOrEmpty(m.Returns))
-                                            {
-                                                <div class="text-[10px] text-emerald-400/90 font-sans pt-0.5">
-                                                    <strong>Returns:</strong> @m.Returns
-                                                </div>
-                                            }
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
-
-            <!-- SUB-VIEW 2: Ready-to-Use SDK Code Snippets & cURL Commands -->
-            <div id="crpane-snippets" class="hidden grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto flex-1 pr-1">
-                <!-- Card 1: Graph Substructure Rewriting -->
-                <div class="lab-card-subtle p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-sky-400 font-mono">1. Graph Substructure &amp; Rewriting</span>
-                        <button onclick="copyCode('code-graph')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
-                    </div>
-                    <pre id="code-graph" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var aspirin = Molecule.FromSmiles("CC(=O)Oc1ccccc1C(=O)O", "Aspirin");
-var graph = ChemicalGraph.FromMolecule(aspirin);
-var matches = SubgraphMatcher.FindMatches(graph, SubgraphMatcher.CarboxylicAcidQuery);
-var tetrazoleLead = GraphRewriter.ReplaceCarboxylWithTetrazole(aspirin);</code></pre>
-                </div>
-
-                <!-- Card 2: Five-term UFF-inspired force field -->
-                <div class="lab-card-subtle p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-emerald-400 font-mono">2. Five-Term Force Field Relaxation</span>
-                        <button onclick="copyCode('code-ff')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
-                    </div>
-                    <pre id="code-ff" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var water3D = Molecule.Water.To3D();
-var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 500);
-Console.WriteLine($"Energy: {result.FinalEnergyKcalPerMol} kcal/mol (Converged: {result.Converged})");</code></pre>
-                </div>
-
-                <!-- Card 3: Ertl TPSA & ADMET -->
-                <div class="lab-card-subtle p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-rose-400 font-mono">3. Ertl TPSA &amp; Veber Screening</span>
-                        <button onclick="copyCode('code-admet')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
-                    </div>
-                    <pre id="code-admet" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var admet = AdmetEngine.Analyze(aspirin);
-Console.WriteLine($"TPSA: {admet.TpsaAngstrom2} Å² | Veber: {admet.PassesVeberRules}");
-Console.WriteLine($"Lipinski Violations: {admet.LipinskiViolations} (Passes: {admet.PassesLipinskiRuleOf5})");</code></pre>
-                </div>
-
-                <!-- Card 4: EcoClean PFAS Cleavage -->
-                <div class="lab-card-subtle p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-amber-400 font-mono">4. EcoClean PFAS Mineralization</span>
-                        <button onclick="copyCode('code-eco')" class="text-slate-400 hover:text-white text-[10px] font-mono">📋 Copy</button>
-                    </div>
-                    <pre id="code-eco" class="bg-slate-950 p-2.5 rounded border border-slate-800 text-[10px] text-slate-300 overflow-x-auto font-mono"><code>var cascade = EcoCleanEngine.SolveDegradationCascade("PFOA C8HF15O2");
-Console.WriteLine($"Pollutant: {cascade.PollutantClass}");
-Console.WriteLine($"Theoretical Products: {cascade.TheoreticalMineralizationProducts}");</code></pre>
-                </div>
-            </div>
-        </div>
-
-        <!-- ================================================================= -->
-        <!-- VIEW 4: SCIENTIFIC & LEGAL DISCLAIMER                             -->
-        <!-- ================================================================= -->
-        <div id="view-disclaimer" class="hidden lab-card flex-1 flex flex-col p-6 space-y-4 overflow-y-auto">
-            <div class="border-b border-slate-800 pb-3 flex items-center gap-3">
-                <span class="text-2xl">⚠️</span>
-                <div>
-                    <h2 class="text-base font-bold text-white uppercase tracking-wide">Scientific, Pharmaceutical &amp; Legal Disclaimer</h2>
-                    <p class="text-slate-400 text-xs font-mono">Important regulatory and laboratory safety disclosures regarding computational in silico simulations.</p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs leading-relaxed text-slate-300">
-                <div class="lab-card-subtle p-4 space-y-2 border-amber-500/20 bg-amber-500/5">
-                    <h3 class="font-bold text-amber-400 flex items-center gap-2">
-                        <span>🧪</span> 1. In Silico Computational Hypothesis Notice
-                    </h3>
-                    <p>
-                        All outputs generated by Chemy (including ADMET safety profiles, Quantitative Estimate of Drug-Likeness scores, bioisosteric evolver candidates, and predicted bond cleavage cascades) are <strong>purely mathematical in silico approximations</strong>.
-                    </p>
-                    <p>
-                        They do <strong>not</strong> constitute biological efficacy, pharmacokinetic guarantee, or clinical proof. No compound should ever be administered to humans or animals without rigorous wet-lab chemical synthesis, in vitro bioassays, in vivo toxicology, and authorized regulatory review (e.g. US FDA, EMA).
-                    </p>
-                </div>
-
-                <div class="lab-card-subtle p-4 space-y-2 border-sky-500/20 bg-sky-500/5">
-                    <h3 class="font-bold text-sky-400 flex items-center gap-2">
-                        <span>🛡️</span> 2. Chemical Safety &amp; Hazardous Material Handling
-                    </h3>
-                    <p>
-                        Certain compounds cataloged in this software (such as Perfluoroalkyl Substances/PFAS, organophosphates, cocaine, and industrial xenobiotics) represent severe environmental bioaccumulators or dangerous controlled substances.
-                    </p>
-                    <p>
-                        Calculated degradation cascades and chemical reactions must only be conducted by certified chemists in licensed laboratory facilities equipped with proper fume hoods, personal protective equipment (PPE), and regulated hazardous waste containment protocols.
-                    </p>
-                </div>
-
-                <div class="lab-card-subtle p-4 space-y-2 border-emerald-500/20 bg-emerald-500/5">
-                    <h3 class="font-bold text-emerald-400 flex items-center gap-2">
-                        <span>⚖️</span> 3. Intellectual Property &amp; Patentability
-                    </h3>
-                    <p>
-                        Molecules generated via the Bioisosteric Evolver engine are constructed using public-domain chemical graph transformations. Chemy makes no claim regarding the patentability, freedom-to-operate (FTO), or novelty of generated chemical structures.
-                    </p>
-                </div>
-
-                <div class="lab-card-subtle p-4 space-y-2 border-purple-500/20 bg-purple-500/5">
-                    <h3 class="font-bold text-purple-400 flex items-center gap-2">
-                        <span>📜</span> 4. Open-Source MIT License Terms
-                    </h3>
-                    <p>
-                        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Hidden Coordinate Data for 3D Viewer & Exporters -->
-    <textarea id="rawPdbData" class="hidden">@Model.PdbContent</textarea>
-    <textarea id="rawXyzData" class="hidden">@Model.XyzContent</textarea>
-    <textarea id="rawMolData" class="hidden">@Model.MolContent</textarea>
-    <textarea id="rawPlanarPdbData" class="hidden">@Model.PlanarPdbContent</textarea>
-    <textarea id="rawPlanarXyzData" class="hidden">@Model.PlanarXyzContent</textarea>
-    <textarea id="rawPlanarMolData" class="hidden">@Model.PlanarMolContent</textarea>
-
-    <!-- ===================================================================== -->
-    <!-- 3. COMPREHENSIVE WORKSTATION SCRIPT                                   -->
-    <!-- ===================================================================== -->
-    <script>
-        // --------------------------------------------------------------------
-        // Global State & 3D Viewer Initialization
-        // --------------------------------------------------------------------
-        let viewer = null;
-        let isSpinning = false;
-        let activeCategory = 'all';
-        let activeTool = 'balancer';
-        let currentSpatialMode = '3d'; // '3d' or 'flat'
-
-        // 50-Compound Preset Database
-        const catalogData = [
-            { name: "Water", formula: "H2O", category: "solvents", tags: "Polar solvent" },
-            { name: "Methane", formula: "CH4", category: "organics", tags: "Hydrocarbon" },
-            { name: "Carbon Dioxide", formula: "CO2", category: "inorganics", tags: "Greenhouse gas" },
-            { name: "Aspirin", formula: "CC(=O)Oc1ccccc1C(=O)O", category: "drugs", tags: "NSAID Analgesic" },
-            { name: "Caffeine", formula: "CN1C=NC2=C1C(=O)N(C(=O)N2C)C", category: "drugs", tags: "CNS Stimulant" },
-            { name: "Paracetamol", formula: "CC(=O)Nc1ccc(O)cc1", category: "drugs", tags: "Analgesic" },
-            { name: "Ibuprofen", formula: "CC(C)Cc1ccc(cc1)C(C)C(=O)O", category: "drugs", tags: "NSAID Anti-inflammatory" },
-            { name: "Cocaine", formula: "CN1C2CCC1C(C(=O)OC)C(OC(=O)c1ccccc1)C2", category: "toxins", tags: "Tropane Alkaloid" },
-            { name: "Morphine", formula: "CN1CCC23C4C1CC5=C2C(=C(C=C5)O)OC3C(C=C4)O", category: "drugs", tags: "Opioid Analgesic" },
-            { name: "PFOA (PFAS)", formula: "OC(=O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F", category: "toxins", tags: "Forever Chemical C8HF15O2" },
-            { name: "PFOS (PFAS)", formula: "OS(=O)(=O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F", category: "toxins", tags: "Perfluorooctanesulfonate C8HF17O3S" },
-            { name: "Glucose", formula: "OCC1OC(O)C(O)C(O)C1O", category: "biomolecules", tags: "Carbohydrate Sugar C6H12O6" },
-            { name: "ATP", formula: "c1nc(c2c(n1)n(cn2)C3C(C(C(O3)COP(=O)(O)OP(=O)(O)OP(=O)(O)O)O)O)N", category: "biomolecules", tags: "Cellular Energy C10H16N5O13P3" },
-            { name: "Ethanol", formula: "CCO", category: "solvents", tags: "Alcohol" },
-            { name: "Acetone", formula: "CC(=O)C", category: "solvents", tags: "Ketone Solvent" },
-            { name: "Benzene", formula: "c1ccccc1", category: "organics", tags: "Aromatic Ring" },
-            { name: "PET Monomer", formula: "c1cc(ccc1C(=O)OCCO)C(=O)OCCO", category: "polymers", tags: "Plastic Precursor C10H8O4" },
-            { name: "Nicotine", formula: "CN1CCCC1c1cccnc1", category: "toxins", tags: "Alkaloid Stimulant" },
-            { name: "Sulfuric Acid", formula: "H2SO4", category: "inorganics", tags: "Mineral Acid" },
-            { name: "Ammonia", formula: "NH3", category: "inorganics", tags: "Hydride Base" }
-        ];
-
-        window.addEventListener('DOMContentLoaded', () => {
-            init3DViewer();
-            renderCatalog();
-            loadDoc('api');
-
-            const savedView = localStorage.getItem('chemy_workstation_view') || '3d';
-            setWorkstationView(savedView);
-            checkApiHealth();
-            setInterval(checkApiHealth, 8000);
-        });
-
-        window.addEventListener('resize', () => {
-            if (viewer) {
-                viewer.resize();
-                viewer.zoomTo();
-                viewer.render();
-            }
-        });
-
-        function init3DViewer() {
-            const host = document.getElementById('viewer3d');
-            if (!host) return;
-            viewer = $3Dmol.createViewer(host, { backgroundColor: '#070a14', antialias: true });
-            reload3DModel();
-        }
-
-        function setWorkstationView(view) {
-            localStorage.setItem('chemy_workstation_view', view);
-            const v3d = document.getElementById('viewer3d');
-            const v2d = document.getElementById('viewer2d');
-            if (view === '3d') {
-                v3d.classList.remove('hidden');
-                v2d.classList.add('hidden');
-            } else {
-                v3d.classList.add('hidden');
-                v2d.classList.remove('hidden');
-            }
-            setTimeout(autoFitViewer, 50);
-        }
-
-        function downloadSkeletalSvg() {
-            const svgHost = document.getElementById('skeletalSvgContainer');
-            if (!svgHost) return;
-            const svgContent = svgHost.innerHTML.trim();
-            const blob = new Blob([svgContent], { type: 'image/svg+xml;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `@(Model.ChemicalFormula)_skeletal.svg`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function setSpatialMode(mode) {
-            currentSpatialMode = mode;
-            const btn3D = document.getElementById('spatialMode3D');
-            const btnFlat = document.getElementById('spatialModeFlat');
-
-            if (mode === '3d') {
-                btn3D.className = 'px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition';
-                btnFlat.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
-            } else {
-                btnFlat.className = 'px-2 py-0.5 rounded bg-sky-600 text-white font-semibold transition';
-                btn3D.className = 'px-2 py-0.5 rounded text-slate-400 hover:text-white transition';
-            }
-            reload3DModel();
-            if (mode === 'flat') {
-                snapFrontView();
-            }
-        }
-
-        let currentHuckelData = null;
-        let showLabels = false;
-
-        async function fetchHuckelDataIfNeeded(formula) {
-            try {
-                const res = await fetch('/api/v1/quantum/huckel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: formula, betaEv: 2.71 })
-                });
-                if (res.ok) {
-                    currentHuckelData = await res.json();
-                } else {
-                    currentHuckelData = null;
-                }
-            } catch {
-                currentHuckelData = null;
-            }
-        }
-
-        function interpolateColor(color1, color2, factor) {
-            const c1 = parseInt(color1.slice(1), 16);
-            const c2 = parseInt(color2.slice(1), 16);
-            const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
-            const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
-            const r = Math.round(r1 + factor * (r2 - r1));
-            const g = Math.round(g1 + factor * (g2 - g1));
-            const b = Math.round(b1 + factor * (b2 - b1));
-            return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-        }
-
-        function getAtomStyle(style, hexColor) {
-            switch (style) {
-                case 'stick': return { stick: { radius: 0.18, color: hexColor } };
-                case 'sphere': return { sphere: { scale: 0.85, color: hexColor } };
-                case 'wireframe': return { line: { linewidth: 2, color: hexColor } };
-                case 'ballAndStick':
-                default: return { stick: { radius: 0.14, color: hexColor }, sphere: { scale: 0.28, color: hexColor } };
-            }
-        }
-
-        function reload3DModel() {
-            if (!viewer) return;
-            viewer.clear();
-
-            const isFlat = (currentSpatialMode === 'flat');
-            const pdbData = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
-            const xyzData = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
-
-            if (pdbData && pdbData.trim().length > 0) {
-                viewer.addModel(pdbData, "pdb");
-            } else if (xyzData && xyzData.trim().length > 0) {
-                viewer.addModel(xyzData, "xyz");
-            }
-
-            applyRenderStyle();
-            autoFitViewer();
-        }
-
-        function applyRenderStyle() {
-            if (!viewer) return;
-            const style = document.getElementById('renderStyleSelect').value;
-            const colorMode = document.getElementById('colorModeSelect').value;
-            const surfaceMode = document.getElementById('surfaceSelect').value;
-
-            viewer.removeAllSurfaces();
-            viewer.removeAllLabels();
-
-            // 1. Base Geometry Representation
-            switch (style) {
-                case 'stick':
-                    viewer.setStyle({}, { stick: { radius: 0.18 } });
-                    break;
-                case 'sphere':
-                    viewer.setStyle({}, { sphere: { scale: 0.85 } });
-                    break;
-                case 'wireframe':
-                    viewer.setStyle({}, { line: { linewidth: 2 } });
-                    break;
-                case 'ballAndStick':
-                default:
-                    viewer.setStyle({}, { stick: { radius: 0.14 }, sphere: { scale: 0.28 } });
-                    break;
-            }
-
-            // 2. Element Colors or Quantum Color Mapping
-            if (colorMode === 'cpk' || !currentHuckelData) {
-                viewer.setColorByElement({}, {
-                    'H': '#ffffff',
-                    'C': '#94a3b8',
-                    'O': '#f87171',
-                    'N': '#38bdf8',
-                    'S': '#facc15',
-                    'P': '#fb923c',
-                    'Cl': '#4ade80',
-                    'F': '#22d3ee',
-                    'Br': '#b91c1c',
-                    'I': '#7e22ce'
-                });
-            } else if (colorMode === 'homo' && currentHuckelData) {
-                const homo = currentHuckelData.orbitals.find(o => o.orbitalIndex === currentHuckelData.homoIndex);
-                const maxCoeff = homo ? Math.max(...homo.coefficients.map(c => c * c), 0.01) : 0.01;
-                viewer.selectedAtoms().forEach((atom, idx) => {
-                    const fuk = currentHuckelData.fukuiIndices.find(f => f.atomIndex === idx);
-                    let val = fuk ? fuk.electrophilicAttackIndex : 0;
-                    let t = Math.min(1.0, Math.max(0.0, val / maxCoeff));
-                    let hex = interpolateColor('#1e293b', '#00f2fe', t);
-                    viewer.setStyle({ serial: atom.serial || idx + 1 }, getAtomStyle(style, hex));
-                });
-            } else if (colorMode === 'lumo' && currentHuckelData) {
-                const lumo = currentHuckelData.orbitals.find(o => o.orbitalIndex === currentHuckelData.lumoIndex);
-                const maxCoeff = lumo ? Math.max(...lumo.coefficients.map(c => c * c), 0.01) : 0.01;
-                viewer.selectedAtoms().forEach((atom, idx) => {
-                    const fuk = currentHuckelData.fukuiIndices.find(f => f.atomIndex === idx);
-                    let val = fuk ? fuk.nucleophilicAttackIndex : 0;
-                    let t = Math.min(1.0, Math.max(0.0, val / maxCoeff));
-                    let hex = interpolateColor('#1e293b', '#f43f5e', t);
-                    viewer.setStyle({ serial: atom.serial || idx + 1 }, getAtomStyle(style, hex));
-                });
-            } else if (colorMode === 'charge' && currentHuckelData) {
-                viewer.selectedAtoms().forEach((atom, idx) => {
-                    const c = currentHuckelData.atomCharges.find(ac => ac.atomIndex === idx);
-                    let hex = '#64748b';
-                    if (c) {
-                        if (c.netCharge < -0.01) {
-                            let t = Math.min(1.0, Math.abs(c.netCharge) / 0.5);
-                            hex = interpolateColor('#64748b', '#ef4444', t);
-                        } else if (c.netCharge > 0.01) {
-                            let t = Math.min(1.0, c.netCharge / 0.5);
-                            hex = interpolateColor('#64748b', '#0ea5e9', t);
-                        }
-                    }
-                    viewer.setStyle({ serial: atom.serial || idx + 1 }, getAtomStyle(style, hex));
-                });
-            } else if (colorMode === 'fukui' && currentHuckelData) {
-                viewer.selectedAtoms().forEach((atom, idx) => {
-                    const fuk = currentHuckelData.fukuiIndices.find(f => f.atomIndex === idx);
-                    let hex = '#64748b';
-                    if (fuk) {
-                        let t = Math.min(1.0, fuk.radicalAttackIndex / 0.5);
-                        hex = interpolateColor('#64748b', '#10b981', t);
-                    }
-                    viewer.setStyle({ serial: atom.serial || idx + 1 }, getAtomStyle(style, hex));
-                });
-            }
-
-            // 3. Molecular Surface Mesh
-            if (surfaceMode !== 'none') {
-                let surfType = $3Dmol.SurfaceType.VDW;
-                if (surfaceMode === 'sas') surfType = $3Dmol.SurfaceType.SAS;
-                if (surfaceMode === 'ses') surfType = $3Dmol.SurfaceType.SES;
-                viewer.addSurface(surfType, {
-                    opacity: 0.60,
-                    color: (colorMode === 'homo' ? '#00f2fe' : (colorMode === 'lumo' ? '#f43f5e' : '#38bdf8'))
-                });
-            }
-
-            // 4. 3D Floating Labels
-            if (showLabels) {
-                const atoms = viewer.selectedAtoms();
-                atoms.forEach(atom => {
-                    if (atom.elem !== 'H' || atoms.length < 15) {
-                        viewer.addLabel(`${atom.elem}${atom.serial || ''}`, {
-                            position: { x: atom.x, y: atom.y, z: atom.z },
-                            backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                            fontColor: '#38bdf8',
-                            fontSize: 10,
-                            inFront: true
-                        });
-                    }
-                });
-            }
-
-            viewer.render();
-        }
-
-        function changeRenderStyle() { applyRenderStyle(); }
-
-        async function changeColorMode() {
-            const mode = document.getElementById('colorModeSelect').value;
-            if (mode !== 'cpk' && !currentHuckelData) {
-                const formula = document.querySelector('input[name="Formula"]')?.value || "@Model.Formula";
-                await fetchHuckelDataIfNeeded(formula);
-            }
-            applyRenderStyle();
-        }
-
-        function changeSurfaceMode() { applyRenderStyle(); }
-
-        function toggleLabels() {
-            showLabels = !showLabels;
-            const btn = document.getElementById('labelsBtn');
-            if (btn) {
-                if (showLabels) {
-                    btn.classList.add('bg-sky-600', 'text-white');
-                    btn.classList.remove('bg-slate-800', 'text-slate-300');
-                } else {
-                    btn.classList.remove('bg-sky-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
-                }
-            }
-            applyRenderStyle();
-        }
-
-        function autoFitViewer() {
-            if (!viewer) return;
-            viewer.zoomTo();
-            viewer.render();
-        }
-
-        function snapFrontView() {
-            if (!viewer) return;
-            viewer.setCameraDirection([0, 0, 1]);
-            viewer.zoomTo();
-            viewer.render();
-        }
-
-        function toggleSpin() {
-            isSpinning = !isSpinning;
-            const btn = document.getElementById('spinBtn');
-            if (isSpinning) {
-                btn.classList.add('bg-sky-600', 'text-white');
-                btn.classList.remove('bg-slate-800', 'text-slate-300');
-                startSpinLoop();
-            } else {
-                btn.classList.remove('bg-sky-600', 'text-white');
-                btn.classList.add('bg-slate-800', 'text-slate-300');
-                cancelAnimationFrame(spinReqId);
-            }
-        }
-
-        function startSpinLoop() {
-            if (!isSpinning || !viewer) return;
-            viewer.rotate(0.6, "y");
-            viewer.render();
-            spinReqId = requestAnimationFrame(startSpinLoop);
-        }
-
-        async function checkApiHealth() {
-            const indicator = document.getElementById('apiStatusIndicator');
-            const badge = document.getElementById('apiStatusBadge');
-            try {
-                const res = await fetch('/healthz');
-                if (res.ok) {
-                    if (indicator) indicator.className = "w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]";
-                    if (badge) badge.innerText = "API ONLINE (21/21)";
-                } else {
-                    if (indicator) indicator.className = "w-2 h-2 rounded-full bg-amber-400";
-                    if (badge) badge.innerText = "DEGRADED (CORE FALLBACK)";
-                }
-            } catch {
-                if (indicator) indicator.className = "w-2 h-2 rounded-full bg-rose-500";
-                if (badge) badge.innerText = "OFFLINE (CORE FALLBACK)";
-            }
-        }
-
-        async function loadMoleculeLive(formula, shape = 'Auto') {
-            try {
-                const [res3d, resPlanar] = await Promise.all([
-                    fetch('/api/v1/geometry/3d', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ formula: formula, overrideShape: shape })
-                    }),
-                    fetch('/api/v1/geometry/planar-3d', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ formula: formula })
-                    })
-                ]);
-
-                if (res3d.ok) {
-                    const data3d = await res3d.json();
-                    const dataPlanar = resPlanar.ok ? await resPlanar.json() : null;
-
-                    document.getElementById('rawPdbData').value = data3d.pdbFormat || '';
-                    document.getElementById('rawXyzData').value = data3d.xyzFormat || '';
-                    document.getElementById('rawMolData').value = data3d.molFormat || '';
-
-                    if (dataPlanar) {
-                        document.getElementById('rawPlanarPdbData').value = dataPlanar.pdbFormat || '';
-                        document.getElementById('rawPlanarXyzData').value = dataPlanar.xyzFormat || '';
-                        document.getElementById('rawPlanarMolData').value = dataPlanar.molFormat || '';
-                        if (dataPlanar.skeletalSvg) {
-                            document.getElementById('skeletalSvgContainer').innerHTML = dataPlanar.skeletalSvg;
-                        }
-                    } else if (data3d.skeletalSvg) {
-                        document.getElementById('skeletalSvgContainer').innerHTML = data3d.skeletalSvg;
-                    }
-
-                    const name = data3d.moleculeName || formula;
-                    const chemFormula = data3d.chemicalFormula || formula;
-                    document.getElementById('currentMoleculeName').innerText = name;
-                    document.getElementById('currentFormulaBadge').innerText = chemFormula;
-                    document.getElementById('metaHillFormula').innerText = chemFormula;
-                    document.getElementById('metaMolarMass').innerHTML = `${(data3d.molecularWeight || 0).toFixed(3)} <span class="text-[10px] text-slate-400">g/mol</span>`;
-                    document.getElementById('metaVseprShape').innerText = data3d.vseprShape || 'Auto';
-                    document.getElementById('metaBondAngle').innerText = `${(data3d.idealBondAngleDegrees || 0).toFixed(1)}°`;
-
-                    const formulaInput = document.querySelector('input[name="Formula"]');
-                    if (formulaInput) formulaInput.value = formula;
-                    const huckelInput = document.getElementById('huckelFormulaInput');
-                    if (huckelInput) huckelInput.value = chemFormula;
-                    const specInput = document.getElementById('specFormulaInput');
-                    if (specInput) specInput.value = chemFormula;
-                    const evolverInput = document.getElementById('evolverInput');
-                    if (evolverInput) evolverInput.value = formula;
-                    const admetInput = document.getElementById('admetInput');
-                    if (admetInput) admetInput.value = formula;
-
-                    currentHuckelData = null;
-                    const colorMode = document.getElementById('colorModeSelect')?.value;
-                    if (colorMode && colorMode !== 'cpk') {
-                        await fetchHuckelDataIfNeeded(formula);
-                    }
-
-                    reload3DModel();
-                    history.pushState(null, '', `/?Formula=${encodeURIComponent(formula)}`);
-                    return;
-                }
-            } catch (err) {
-                console.warn('Live API call failed, falling back to full navigation:', err);
-            }
-            window.location.href = `/?Formula=${encodeURIComponent(formula)}`;
-        }
-
-        function switchMainView(viewName) {
-            ['workstation', 'docs', 'coderef', 'disclaimer'].forEach(v => {
-                document.getElementById(`view-${v}`).classList.add('hidden');
-                const navBtn = document.getElementById(`mainnav-${v}`);
-                if (navBtn) navBtn.classList.remove('nav-btn-active');
-            });
-            document.getElementById(`view-${viewName}`).classList.remove('hidden');
-            const activeNav = document.getElementById(`mainnav-${viewName}`);
-            if (activeNav) activeNav.classList.add('nav-btn-active');
-            if (viewName === 'workstation') {
-                setTimeout(autoFitViewer, 50);
-            }
-        }
-
-        function renderCatalog() {
-            const grid = document.getElementById('catalogGrid');
-            const search = (document.getElementById('catalogSearchInput').value || '').toLowerCase();
-            grid.innerHTML = '';
-            const filtered = catalogData.filter(c => {
-                const matchCat = (activeCategory === 'all' || c.category === activeCategory);
-                const matchSearch = c.name.toLowerCase().includes(search) || c.formula.toLowerCase().includes(search) || c.tags.toLowerCase().includes(search);
-                return matchCat && matchSearch;
-            });
-            filtered.forEach(c => {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.onclick = () => loadMoleculeLive(c.formula);
-                btn.className = "bg-[#0b101d] hover:bg-slate-800 border border-slate-800 hover:border-sky-500/50 p-1.5 rounded transition text-left block group w-full";
-                btn.innerHTML = `
-                    <div class="font-bold text-slate-200 group-hover:text-sky-300 truncate text-[11px]">${c.name}</div>
-                    <div class="text-[10px] font-mono text-slate-500 truncate">${c.formula}</div>
-                `;
-                grid.appendChild(btn);
-            });
-        }
-
-        function filterCatalog() { renderCatalog(); }
-
-        function setCatalogCategory(cat) {
-            activeCategory = cat;
-            document.querySelectorAll('.cat-chip').forEach(b => {
-                b.classList.remove('bg-sky-600', 'text-white');
-                b.classList.add('bg-slate-800', 'text-slate-300');
-            });
-            event.target.classList.add('bg-sky-600', 'text-white');
-            event.target.classList.remove('bg-slate-800', 'text-slate-300');
-            renderCatalog();
-        }
-
-        function switchToolTab(tabName) {
-            const tabs = ['balancer', 'huckel', 'thermo', 'ph', 'nernst', 'kinetics', 'spec', 'forcefield', 'pubchem', 'evolver', 'admet', 'ecoclean'];
-            tabs.forEach(t => {
-                const pane = document.getElementById(`pane-${t}`);
-                const btn = document.getElementById(`ttab-${t}`);
-                if (pane) pane.classList.add('hidden');
-                if (btn) {
-                    btn.classList.remove('bg-sky-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
-                }
-            });
-            const targetPane = document.getElementById(`pane-${tabName}`);
-            const targetBtn = document.getElementById(`ttab-${tabName}`);
-            if (targetPane) targetPane.classList.remove('hidden');
-            if (targetBtn) {
-                targetBtn.classList.add('bg-sky-600', 'text-white');
-                targetBtn.classList.remove('bg-slate-800', 'text-slate-300');
-            }
-        }
-
-        async function runBalancer() {
-            const eq = document.getElementById('balancerEquationInput').value;
-            const out = document.getElementById('balancerOutput');
-            out.innerHTML = '<span class="text-sky-400">Computing exact rational nullspace...</span>';
-
-            try {
-                const res = await fetch('/api/v1/reactions/balance', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ equation: eq })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-emerald-400 font-bold">Balanced: ${data.balanced}</div>
-                        <div class="text-slate-400 text-[10px] pt-1">Reactants: ${data.reactants.map(r => r.coefficient + r.chemicalFormula).join(' + ')} -> Products: ${data.products.map(p => p.coefficient + p.chemicalFormula).join(' + ')}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Failed to balance'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">Unable to reach Chemy.Api. Ensure API service is running.</span>';
-            }
-        }
-
-        async function runThermo() {
-            const eq = document.getElementById('thermoEquationInput').value;
-            const temp = parseFloat(document.getElementById('thermoTempInput').value) || 298.15;
-            const out = document.getElementById('thermoOutput');
-            out.innerHTML = '<span class="text-amber-400">Computing Hess Law enthalpy & Gibbs free energy...</span>';
-
-            try {
-                const res = await fetch('/api/v1/reactions/thermodynamics', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ equation: eq, temperatureKelvin: temp })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="font-bold ${data.isExothermic ? 'text-amber-400' : 'text-sky-400'}">ΔH° = ${data.enthalpyChangekJ} kJ/mol (${data.isExothermic ? 'Exothermic' : 'Endothermic'})</div>
-                        <div class="text-slate-300">ΔS° = ${data.entropyChangeJPerK} J/(mol·K) | ΔG°(${temp}K) = ${data.gibbsFreeEnergykJ} kJ/mol</div>
-                        <div class="text-[10px] ${data.isSpontaneous ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Spontaneity: ${data.isSpontaneous ? 'Spontaneous' : 'Non-Spontaneous'}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runPh() {
-            const conc = parseFloat(document.getElementById('phConcInput').value) || 0.05;
-            const ka = parseFloat(document.getElementById('phKaInput').value);
-            const out = document.getElementById('phOutput');
-
-            try {
-                const res = await fetch('/api/v1/solutions/ph', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ concentrationMolar: conc, acidDissociationConstantKa: ka || null })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-emerald-400 font-bold">pH: ${data.ph.toFixed(2)} | pOH: ${data.poh.toFixed(2)}</div>
-                        <div class="text-slate-300">[H⁺] = ${data.hConcentrationMolar.toExponential(3)} M | [OH⁻] = ${data.ohConcentrationMolar.toExponential(3)} M</div>
-                        <div class="text-[10px] text-slate-400 font-semibold">Classification: ${data.isAcidic ? 'Acidic Solution (pH < 7.0)' : data.isBasic ? 'Basic Solution' : 'Neutral'}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runBuffer() {
-            const ha = parseFloat(document.getElementById('phBufHaInput').value) || 0.10;
-            const a = parseFloat(document.getElementById('phBufAInput').value) || 0.10;
-            const pka = parseFloat(document.getElementById('phBufPkaInput').value) || 4.76;
-            const out = document.getElementById('phOutput');
-            out.innerHTML = '<span class="text-teal-400">Evaluating Henderson-Hasselbalch buffer capacity...</span>';
-
-            try {
-                const res = await fetch('/api/v1/solutions/buffer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ acidConcentrationMolar: ha, conjugateBaseConcentrationMolar: a, acidDissociationConstantKa: Math.pow(10, -pka) })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-teal-400 font-bold">Buffer Equilibrium pH: ${data.bufferPh.toFixed(2)}</div>
-                        <div class="text-slate-300">Buffer Capacity (β): ${data.bufferCapacityBeta.toFixed(3)} M/pH | pKa: ${data.acidPka.toFixed(2)}</div>
-                        <div class="text-[10px] text-emerald-400 font-semibold">[HA] = ${data.acidConcentrationMolar} M, [A⁻] = ${data.conjugateBaseConcentrationMolar} M</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Buffer calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runNernst() {
-            const e0 = parseFloat(document.getElementById('nernstE0Input').value) || 1.10;
-            const n = parseInt(document.getElementById('nernstNInput').value) || 2;
-            const out = document.getElementById('nernstOutput');
-
-            try {
-                const res = await fetch('/api/v1/electrochemistry/nernst', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ standardCellPotentialVolts: e0, electronsTransferred: n, reactionQuotientQ: 0.01, temperatureKelvin: 298.15 })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-sky-400 font-bold">E_cell: ${data.cellPotentialVolts.toFixed(3)} V (E° = ${data.standardCellPotentialVolts} V)</div>
-                        <div class="text-[10px] ${data.isSpontaneousGalvanic ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Galvanic Spontaneity: ${data.isSpontaneousGalvanic ? 'Spontaneous' : 'Electrolytic Cell'}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runKinetics() {
-            const k1 = parseFloat(document.getElementById('kinK1Input').value) || 0.5;
-            const k2 = parseFloat(document.getElementById('kinK2Input').value) || 0.2;
-            const out = document.getElementById('kineticsOutput');
-
-            try {
-                const res = await fetch('/api/v1/kinetics/network', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ initialConcA: 1.0, k1, k2, totalTime: 10.0, steps: 20 })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    const last = data.points[data.points.length - 1];
-                    out.innerHTML = `
-                        <div class="text-indigo-400 font-bold">RK4 Cascade Simulation (A -> B -> C)</div>
-                        <div class="text-slate-300">k1 = ${data.rateConstantK1} s⁻¹ | k2 = ${data.rateConstantK2} s⁻¹</div>
-                        <div class="text-[10px] text-slate-400">Final (t=10s): [A] = ${last.concentrationA.toFixed(3)}M, [B] = ${last.concentrationB.toFixed(3)}M, [C] = ${last.concentrationC.toFixed(3)}M</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Simulation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runArrhenius() {
-            const a = parseFloat(document.getElementById('kinArrAInput').value) || 1.0e13;
-            const ea = parseFloat(document.getElementById('kinArrEaInput').value) || 75.0;
-            const temp = parseFloat(document.getElementById('kinArrTInput').value) || 298.15;
-            const out = document.getElementById('kineticsOutput');
-            out.innerHTML = '<span class="text-purple-400">Computing Arrhenius reaction rate constant k(T)...</span>';
-
-            try {
-                const res = await fetch('/api/v1/kinetics/arrhenius', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ preExponentialFactorA: a, activationEnergyKjPerMol: ea, temperatureKelvin: temp })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-purple-400 font-bold">Rate Constant k: ${data.rateConstantK.toExponential(4)} s⁻¹</div>
-                        <div class="text-slate-300">Ea = ${data.activationEnergyKjPerMol} kJ/mol | T = ${data.temperatureKelvin} K (${(data.temperatureKelvin - 273.15).toFixed(1)} °C)</div>
-                        <div class="text-[10px] text-indigo-300">Half-Life: ${data.halfLifeSeconds ? data.halfLifeSeconds.toExponential(3) + ' s' : 'N/A'}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runSpectroscopy() {
-            const form = document.getElementById('specFormulaInput').value;
-            const out = document.getElementById('specOutput');
-
-            try {
-                const res = await fetch('/api/v1/spectroscopy/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: form })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-fuchsia-400 font-bold">Predicted Spectroscopy for ${data.formula}</div>
-                        <div class="text-[11px] text-slate-300">¹H-NMR: ${data.h1NmrPeaks.map(p => `${p.chemicalShiftPpm} ppm (${p.multiplet})`).join(', ') || 'None'}</div>
-                        <div class="text-[11px] text-slate-300">¹³C-NMR: ${data.c13NmrPeaks.map(p => `${p.chemicalShiftPpm} ppm`).join(', ') || 'None'}</div>
-                        <div class="text-[10px] text-slate-400">IR Bands: ${data.irBands.map(b => `${b.waveNumberCm1} cm⁻¹ (${b.vibrationType})`).join(', ')}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Prediction failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runForceField() {
-            const out = document.getElementById('forcefieldOutput');
-            out.innerHTML = '<span class="text-purple-400">Minimizing 5-term potential energy...</span>';
-
-            try {
-                const res = await fetch('/api/v1/physics/minimize', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: "@Model.ChemicalFormula", maxIterations: 500 })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-purple-400 font-bold">Force Field Minimization: ${data.converged ? 'Converged' : 'Not converged'}</div>
-                        <div class="text-slate-300">Initial: ${data.initialEnergyKcalPerMol} kcal/mol -> Relaxed: ${data.finalEnergyKcalPerMol} kcal/mol</div>
-                        <div class="text-[10px] text-slate-400">${data.terminationReason}; ${data.iterations} steps; gradient ${data.finalGradientNorm}</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Minimization failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runPubChem() {
-            const q = document.getElementById('pubchemQueryInput').value;
-            const out = document.getElementById('pubchemOutput');
-            out.innerHTML = '<span class="text-teal-400">Querying NCBI PubChem REST API...</span>';
-
-            try {
-                const res = await fetch(`/api/v1/cloud/pubchem/${encodeURIComponent(q)}`);
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-teal-400 font-bold">NCBI PubChem CID: ${data.cid} (${data.iupacName})</div>
-                        <div class="text-slate-300 text-[10px]">Formula: ${data.molecularFormula} | MW: ${data.molecularWeight} g/mol</div>
-                        <div class="text-slate-400 text-[10px] truncate">SMILES: ${data.canonicalSmiles}</div>
-                        <button type="button" onclick="loadMoleculeLive('${data.canonicalSmiles}')" class="text-sky-400 underline text-[10px]">Load into 3D Viewport ↗</button>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">PubChem compound not found.</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runEvolver() {
-            const inp = document.getElementById('evolverInput').value;
-            const out = document.getElementById('evolverOutput');
-            out.innerHTML = '<span class="text-sky-400">Executing bioisosteric graph mutations...</span>';
-
-            try {
-                const res = await fetch('/api/v1/evolution/evolve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ input: inp, generations: 50 })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-sky-400 font-bold pb-1">Baseline QED: ${data.baselineQed.toFixed(2)} (${data.candidates.length} Evolved Leads)</div>
-                        ${data.candidates.map(c => `
-                            <div class="border-t border-slate-800 pt-1 mt-1">
-                                <div class="text-slate-200 font-bold">${c.candidateName} <span class="text-emerald-400">(QED: ${c.qedScore.toFixed(2)})</span></div>
-                                <div class="text-slate-400 text-[10px]">${c.rationale}</div>
-                                <div class="text-emerald-400/90 text-[10px]">Safety: ${c.toxicityImprovement}</div>
-                            </div>
-                        `).join('')}
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'Evolution failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runAdmet() {
-            const inp = document.getElementById('admetInput').value;
-            const out = document.getElementById('admetOutput');
-
-            try {
-                const res = await fetch('/api/v1/pharmacology/admet', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: inp })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-rose-400 font-bold">ADMET &amp; Safety Profile for ${data.formula}</div>
-                        <div class="text-slate-300">MW: ${data.molecularWeight} g/mol | LogP: ${data.calculatedLogP} | Ertl TPSA: ${data.tpsaAngstrom2} Å²</div>
-                        <div class="text-[10px] ${data.passesLipinskiRuleOf5 ? 'text-emerald-400' : 'text-rose-400'} font-semibold">Rule of 5: ${data.passesLipinskiRuleOf5 ? 'Passes' : 'Violates'} (${data.lipinskiViolations} violations)</div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'ADMET calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runEcoClean() {
-            const inp = document.getElementById('ecocleanInput').value;
-            const out = document.getElementById('ecocleanOutput');
-
-            try {
-                const res = await fetch('/api/v1/environmental/ecoclean', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pollutant: inp })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-emerald-400 font-bold">${data.pollutantClass}</div>
-                        <div class="text-slate-300 text-[10px]">Theoretical Products: ${data.theoreticalMineralizationProducts}</div>
-                        ${data.degradationCascade.map(s => `
-                            <div class="border-t border-slate-800 pt-1 mt-1">
-                                <span class="text-sky-300 font-bold">[Step ${s.stepNumber}] ${s.targetBond} (${s.bondDissociationEnergyKcalPerMol} kcal/mol)</span>
-                                <div class="text-slate-400 text-[10px]">Catalyst: ${s.enzymeOrCatalyst} -> ${s.intermediateProduct}</div>
-                            </div>
-                        `).join('')}
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'EcoClean calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        async function runHuckel() {
-            const form = document.getElementById('huckelFormulaInput').value;
-            const out = document.getElementById('huckelOutput');
-            out.innerHTML = '<span class="text-cyan-400">Diagonalizing secular Hamiltonian via exact Jacobi eigensolver...</span>';
-
-            try {
-                const res = await fetch('/api/v1/quantum/huckel', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ formula: form, betaEv: 2.71 })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    out.innerHTML = `
-                        <div class="text-cyan-400 font-bold flex items-center justify-between">
-                            <span>⚛️ ${data.moleculeName} (${data.conjugatedAtomCount} π-Atoms, ${data.totalPiElectrons} π-Electrons)</span>
-                            <span class="text-emerald-400 font-mono text-[10px]">ΔE = ${data.homoLumoGapEv} eV (λ_max ≈ ${data.estimatedUvVisMaxWavelengthNm} nm)</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1 text-slate-300">
-                            <div><span class="text-sky-300 font-semibold">HOMO (Ψ_${data.homoIndex}):</span> ${data.homoEnergyBetaCoeff}β</div>
-                            <div><span class="text-rose-300 font-semibold">LUMO (Ψ_${data.lumoIndex}):</span> ${data.lumoEnergyBetaCoeff}β</div>
-                        </div>
-                        <div class="text-[10px] text-amber-300/90 pt-1">
-                            Total E_π = ${data.totalPiEnergyBetaCoeff}β | Dewar Resonance Energy = <strong class="text-amber-400">${data.dewarResonanceEnergyBetaCoeff}β (${data.dewarResonanceEnergyKcalPerMol} kcal/mol)</strong>
-                        </div>
-                        <div class="border-t border-slate-800 pt-1 mt-1 text-[10px] text-slate-400">
-                            <span class="font-bold text-slate-300">Orbitals:</span> ${data.orbitals.map(o => `Ψ${o.orbitalIndex} (${o.energyBetaCoeff}β, occ=${o.electronOccupancy})`).join(' · ')}
-                        </div>
-                    `;
-                } else {
-                    out.innerHTML = `<span class="text-rose-400">Error: ${data.error || 'HMO calculation failed'}</span>`;
-                }
-            } catch {
-                out.innerHTML = '<span class="text-rose-400">API connection error.</span>';
-            }
-        }
-
-        // --------------------------------------------------------------------
-        // Documentation Viewer Dynamic Content
-        // --------------------------------------------------------------------
-        const docDatabase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DocumentationMap));
-
-        function loadDoc(docKey) {
-            ['api', 'credibility', 'benchmarks', 'showcase', 'arch', 'started', 'science'].forEach(k => {
-                const btn = document.getElementById(`docbtn-${k}`);
-                if (btn) {
-                    btn.classList.remove('bg-sky-600', 'text-white');
-                    btn.classList.add('bg-slate-800', 'text-slate-300');
-                }
-            });
-
-            const activeBtn = document.getElementById(`docbtn-${docKey}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-sky-600', 'text-white');
-                activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
-            }
-
-            const markdown = docDatabase[docKey] || '# Document not found';
-            document.getElementById('docContentHost').innerHTML = marked.parse(markdown);
-        }
-
-        function copyCode(elementId) {
-            const text = document.getElementById(elementId).innerText;
-            navigator.clipboard.writeText(text);
-            alert('Code snippet copied to clipboard!');
-        }
-
-        function setCodeLang(lang) {
-            document.getElementById('clang-csharp').classList.toggle('bg-sky-600', lang === 'csharp');
-            document.getElementById('clang-csharp').classList.toggle('text-white', lang === 'csharp');
-            document.getElementById('clang-csharp').classList.toggle('bg-slate-800', lang !== 'csharp');
-
-            document.getElementById('clang-curl').classList.toggle('bg-sky-600', lang === 'curl');
-            document.getElementById('clang-curl').classList.toggle('text-white', lang === 'curl');
-            document.getElementById('clang-curl').classList.toggle('bg-slate-800', lang !== 'curl');
-        }
-
-        function setCodeRefSubView(mode) {
-            const isClasses = mode === 'classes';
-            document.getElementById('crpane-classes').classList.toggle('hidden', !isClasses);
-            document.getElementById('crpane-snippets').classList.toggle('hidden', isClasses);
-
-            const btnClasses = document.getElementById('crsub-classes');
-            const btnSnippets = document.getElementById('crsub-snippets');
-
-            if (btnClasses && btnSnippets) {
-                btnClasses.classList.toggle('bg-sky-600', isClasses);
-                btnClasses.classList.toggle('text-white', isClasses);
-                btnClasses.classList.toggle('bg-slate-800', !isClasses);
-                btnClasses.classList.toggle('text-slate-300', !isClasses);
-
-                btnSnippets.classList.toggle('bg-sky-600', !isClasses);
-                btnSnippets.classList.toggle('text-white', !isClasses);
-                btnSnippets.classList.toggle('bg-slate-800', isClasses);
-                btnSnippets.classList.toggle('text-slate-300', isClasses);
-            }
-        }
-
-        function filterCodeRef() {
-            const query = (document.getElementById('codeRefSearchInput').value || '').toLowerCase().trim();
-            const cards = document.querySelectorAll('.coderef-class-card');
-
-            cards.forEach(card => {
-                const name = card.getAttribute('data-name') || '';
-                const ns = card.getAttribute('data-namespace') || '';
-                const summary = card.getAttribute('data-summary') || '';
-                const text = card.textContent.toLowerCase();
-
-                const match = !query || name.includes(query) || ns.includes(query) || summary.includes(query) || text.includes(query);
-                card.style.display = match ? 'block' : 'none';
-            });
-        }
-
-        function downloadFormat(ext) {
-            let content = '';
-            const isFlat = (currentSpatialMode === 'flat');
-            const suffix = isFlat ? '_planar' : '';
-            let filename = `@Model.ChemicalFormula${suffix}.${ext}`;
-
-            if (ext === 'pdb') {
-                content = document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
-            } else if (ext === 'xyz') {
-                content = document.getElementById(isFlat ? 'rawPlanarXyzData' : 'rawXyzData').value;
-            } else if (ext === 'mol') {
-                content = document.getElementById(isFlat ? 'rawPlanarMolData' : 'rawMolData').value || document.getElementById(isFlat ? 'rawPlanarPdbData' : 'rawPdbData').value;
-            }
-
-            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-        }
-    </script>
+    <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
 </html>

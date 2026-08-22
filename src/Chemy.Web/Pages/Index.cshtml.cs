@@ -206,13 +206,16 @@ public class IndexModel : PageModel
         string? docsFolder = candidates.FirstOrDefault(Directory.Exists);
         if (docsFolder != null)
         {
+            DocumentationMap["home"] = ReadDocFile(docsFolder, "README.md");
             DocumentationMap["api"] = ReadDocFile(docsFolder, "API_REFERENCE.md");
+            DocumentationMap["cookbook"] = ReadDocFile(docsFolder, "COOKBOOK.md");
             DocumentationMap["credibility"] = ReadDocFile(docsFolder, "SCIENTIFIC_CREDIBILITY_REPORT.md");
             DocumentationMap["benchmarks"] = ReadDocFile(docsFolder, "SCIENTIFIC_VERIFICATION_BENCHMARKS.md");
             DocumentationMap["showcase"] = ReadDocFile(docsFolder, "BREAKTHROUGHS_SHOWCASE.md");
             DocumentationMap["arch"] = ReadDocFile(docsFolder, "ARCHITECTURE.md");
             DocumentationMap["started"] = ReadDocFile(docsFolder, "GETTING_STARTED.md");
             DocumentationMap["science"] = ReadDocFile(docsFolder, "SCIENTIFIC_APPROACH.md");
+            DocumentationMap["audit"] = ReadDocFile(docsFolder, "CODEX_AUDIT_v2.8.md");
         }
     }
 
