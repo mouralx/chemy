@@ -14,7 +14,19 @@ public sealed record TpsaResult(
     double TotalTpsa,
     IReadOnlyList<TpsaAtomContribution> AtomContributions,
     ScientificMethodInfo MethodInfo
-);
+)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public ScientificUncertainty Uncertainty { get; init; } = new(
+        0.53,
+        "angstrom^2",
+        1.0,
+        "Maximum observed absolute agreement error across the pinned 48-molecule RDKit benchmark; not an experimental confidence interval.",
+        "chemy-rdkit-descriptor-benchmark-v2.8");
+}
 
 /// <summary>
 /// Polar surface area contribution of a single atom.
@@ -34,6 +46,10 @@ public sealed record TpsaAtomContribution(
 /// </summary>
 public static class ErtlTpsa
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+        StringComparer.Ordinal);
+
     private static readonly ScientificMethodInfo TpsaMethodInfo = new(
         "Ertl-Inspired Topological Polar Surface Area (Fragment Subset)",
         "2000.1",
@@ -41,9 +57,25 @@ public static class ErtlTpsa
         "Organic small molecules containing polar N, O, P, S fragments.",
         [
             "Fragment-based polar surface area contribution model.",
-            "Unsupported heteroatom environments contribute 0.0 Å²."
+            "Unsupported elements fail closed; zero contributions are retained only for published zero-area fragments."
         ]
-    );
+    )
+    {
+        ReferenceUris = ["https://doi.org/10.1021/jm000942e"],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "chemy-rdkit-descriptor-benchmark-v2.8",
+            "2.8",
+            48,
+            [
+                new("MAE", 0.0110, "angstrom^2"),
+                new("RMSE", 0.0765, "angstrom^2"),
+                new("MaximumAbsoluteError", 0.5300, "angstrom^2")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/reference_compounds.json",
+            "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5",
+            false,
+            false)
+    };
 
     /// <summary>
     /// Computes the Ertl Topological Polar Surface Area (TPSA) for a molecule.
@@ -57,6 +89,9 @@ public static class ErtlTpsa
             throw new InvalidOperationException(
                 $"Molecule '{molecule.Name}' has no bonded topology. TPSA calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
         }
+
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, TpsaMethodInfo.Method);
 
         var contributions = new List<TpsaAtomContribution>(molecule.Atoms.Count);
         double total = 0.0;
@@ -79,7 +114,10 @@ public static class ErtlTpsa
             }
         }
 
-        return new TpsaResult(Math.Round(total, 2), contributions, TpsaMethodInfo);
+        return new TpsaResult(Math.Round(total, 2), contributions, TpsaMethodInfo)
+        {
+            Applicability = applicability
+        };
     }
 
     private static (string Name, double Area) ClassifyPolarAtom(Molecule molecule, int atomIndex)

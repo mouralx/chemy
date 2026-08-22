@@ -15,7 +15,19 @@ public sealed record CrippenResult(
     double CalculatedMr,
     IReadOnlyList<CrippenAtomContribution> AtomContributions,
     ScientificMethodInfo MethodInfo
-);
+)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public ScientificUncertainty Uncertainty { get; init; } = new(
+        0.761,
+        "logP",
+        0.90,
+        "90th-percentile absolute agreement error against the pinned RDKit reference implementation; not an experimental confidence interval.",
+        "chemy-rdkit-descriptor-benchmark-v2.8");
+}
 
 /// <summary>
 /// Wildman-Crippen atom contribution record.
@@ -35,6 +47,10 @@ public sealed record CrippenAtomContribution(
 /// </summary>
 public static class WildmanCrippenLogP
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+        StringComparer.Ordinal);
+
     private static readonly ScientificMethodInfo CrippenMethodInfo = new(
         "Crippen-Inspired Empirical LogP/MR (Core Fragment Subset)",
         "1999.1",
@@ -42,9 +58,26 @@ public static class WildmanCrippenLogP
         "Organic small molecules composed of C, H, N, O, P, S, F, Cl, Br, I.",
         [
             "Additive 2D atomic property model over core hybridization environments.",
-            "Coarse classification subset; unparameterized heteroatom environments use neutral zero default."
+            "Core atom-type subset; unsupported elements fail closed."
         ]
-    );
+    )
+    {
+        ReferenceUris = ["https://doi.org/10.1021/ci990307l"],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "chemy-rdkit-descriptor-benchmark-v2.8",
+            "2.8",
+            48,
+            [
+                new("MAE", 0.2930, "logP"),
+                new("RMSE", 0.3967, "logP"),
+                new("P90AbsoluteError", 0.7610, "logP"),
+                new("MaximumAbsoluteError", 1.1540, "logP")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/reference_compounds.json",
+            "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5",
+            false,
+            false)
+    };
 
     /// <summary>
     /// Computes Wildman-Crippen LogP and Molar Refractivity (MR) for any molecule.
@@ -58,6 +91,9 @@ public static class WildmanCrippenLogP
             throw new InvalidOperationException(
                 $"Molecule '{molecule.Name}' has no bonded topology. Crippen LogP/MR calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
         }
+
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, CrippenMethodInfo.Method);
 
         double totalLogP = 0.0;
         double totalMr = 0.0;
@@ -76,7 +112,10 @@ public static class WildmanCrippenLogP
             Math.Round(totalMr, 3),
             contributions,
             CrippenMethodInfo
-        );
+        )
+        {
+            Applicability = applicability
+        };
     }
 
     private static (string Type, double LogP, double Mr) ClassifyAtom(Molecule molecule, int i)
@@ -206,7 +245,7 @@ public static class WildmanCrippenLogP
                 return ("P [Phosphorus]", 0.0800, 8.200);
 
             default:
-                return ($"{sym} [Default atom]", 0.0, 0.0);
+                throw new NotSupportedException($"Crippen atom typing is unavailable for element '{sym}'.");
         }
     }
 

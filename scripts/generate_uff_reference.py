@@ -266,6 +266,37 @@ def _build_formamide() -> Chem.Mol:
     return mol
 
 
+def _gradient_record(ff) -> list[list[float]]:
+    """Return RDKit's analytical Cartesian UFF gradient in atom order."""
+    gradient = ff.CalcGrad()
+    return [
+        [round(gradient[index], 8), round(gradient[index + 1], 8), round(gradient[index + 2], 8)]
+        for index in range(0, len(gradient), 3)
+    ]
+
+
+def _optimized_record(mol: Chem.Mol) -> dict:
+    """Return invariant optimized-geometry evidence from the fixed starting conformer."""
+    optimized = Chem.Mol(mol)
+    ff = rdForceFieldHelpers.UFFGetMoleculeForceField(optimized)
+    assert ff is not None
+    status = ff.Minimize(maxIts=2000, forceTol=1e-6, energyTol=1e-10)
+    conformer = optimized.GetConformer()
+    pairwise_distances = []
+    for first in range(optimized.GetNumAtoms()):
+        first_position = conformer.GetAtomPosition(first)
+        for second in range(first + 1, optimized.GetNumAtoms()):
+            pairwise_distances.append(round(first_position.Distance(conformer.GetAtomPosition(second)), 8))
+
+    gradient = ff.CalcGrad()
+    return {
+        "converged": status == 0,
+        "uff_total_kcal_mol": round(ff.CalcEnergy(), 8),
+        "max_abs_gradient_kcal_mol_angstrom": round(max(abs(value) for value in gradient), 8),
+        "pairwise_distances_angstrom": pairwise_distances,
+    }
+
+
 def _build_methanol() -> Chem.Mol:
     mol = Chem.AddHs(Chem.MolFromSmiles("CO"))
     coords = [
@@ -436,7 +467,7 @@ def generate_reference() -> dict:
             "rdkit_version": RDKIT_VERSION,
             "force_field": "UFF",
             "coordinate_source": "Chemy exact geometry builders",
-            "note": "Total energies are absolute UFF totals in kcal/mol.",
+            "note": "Total energies are absolute UFF totals in kcal/mol; gradients are RDKit analytical UFF derivatives.",
         },
         "butane_conformers": {},
         "diverse_molecules": {},
@@ -484,7 +515,10 @@ def generate_reference() -> dict:
             "smiles": smiles,
             "atom_count": mol.GetNumAtoms(),
             "uff_total_kcal_mol": round(energy, 4),
+            "gradient_kcal_mol_angstrom": _gradient_record(ff),
         }
+        if name in {"water", "formamide"}:
+            results["diverse_molecules"][name]["optimized"] = _optimized_record(mol)
 
     # 3. Post-development expanded regression molecules.
     # This partition detects numerical drift; it is not a prospective or blind holdout.
@@ -507,7 +541,10 @@ def generate_reference() -> dict:
             "smiles": smiles,
             "atom_count": mol.GetNumAtoms(),
             "uff_total_kcal_mol": round(energy, 4),
+            "gradient_kcal_mol_angstrom": _gradient_record(ff),
         }
+        if name in {"methanol", "acetone", "acetonitrile"}:
+            results["expanded_regression_molecules"][name]["optimized"] = _optimized_record(mol)
 
     return results
 

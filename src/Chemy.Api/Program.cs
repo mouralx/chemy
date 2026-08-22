@@ -741,8 +741,8 @@ physicsGroup.MapPost("/minimize", (ForceFieldRequest request, ILogger<Program> l
         result.FinalGradientNorm);
     return Results.Ok(result);
 })
-.WithSummary("Minimize 3D molecular energy using a UFF-inspired potential")
-.WithDescription("Evaluates the five-term UFF-inspired potential and returns relaxed coordinates with explicit convergence, termination, energy, and gradient diagnostics.");
+.WithSummary("Minimize 3D molecular energy using the declared UFF-compatible subset")
+.WithDescription("Evaluates published UFF functional forms for supported atom types and returns relaxed coordinates with applicability, convergence, termination, energy, and gradient diagnostics.");
 
 // ============================================================================
 // 12. PUBCHEM LIVE CLOUD INTEGRATOR ENDPOINTS
@@ -888,7 +888,7 @@ public record ArrheniusRequest(double PreExponentialFactorA = 1e13, double Activ
 /// <summary>Request contract for NMR and IR spectroscopy spectral predictions.</summary>
 public record SpectroscopyRequest(string Formula = "CC(=O)Oc1ccccc1C(=O)O");
 
-/// <summary>Request contract for UFF-inspired 3D coordinate energy minimization.</summary>
+/// <summary>Request contract for UFF-compatible subset 3D coordinate energy minimization.</summary>
 public record ForceFieldRequest(string Formula = "H2O", string? OverrideShape = null, int? MaxIterations = 500);
 
 /// <summary>Request contract for Runge-Kutta 4th Order (RK4) multi-step reaction cascade kinetics.</summary>

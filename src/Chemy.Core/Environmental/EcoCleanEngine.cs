@@ -37,6 +37,10 @@ public record EcoCleanDegradationResult(
     ScientificMethodInfo MethodInfo
 )
 {
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
     /// <summary>
     /// Backwards-compatible legacy property (always returns 0.0 with warning in MethodInfo).
     /// </summary>
@@ -103,9 +107,9 @@ public static class EcoCleanEngine
                 }
             }
 
-            molecule = foundMol ?? (trimmed.Contains("PFOA", StringComparison.OrdinalIgnoreCase) 
-                ? Molecule.Parse("C8HF15O2", "PFOA") 
-                : Molecule.Parse("CH4", "Pollutant"));
+            molecule = foundMol ?? (trimmed.Equals("PFOA", StringComparison.OrdinalIgnoreCase)
+                ? Molecule.Parse("C8HF15O2", "PFOA")
+                : throw new FormatException("EcoClean requires a valid molecular formula, bonded SMILES, or the explicit PFOA identifier."));
         }
 
         var elements = molecule.Atoms.Select(a => a.Element.Symbol).Distinct().ToHashSet();
@@ -283,6 +287,13 @@ public static class EcoCleanEngine
             steps,
             endProducts,
             EcoCleanMethodInfo
-        );
+        )
+        {
+            Applicability = new ScientificApplicabilityAssessment(
+                molecule.HasBondedTopology ? ApplicabilityStatus.InDomain : ApplicabilityStatus.Boundary,
+                molecule.HasBondedTopology
+                    ? ["A bonded molecular graph was available for qualitative bond-class inspection."]
+                    : ["Formula-only input supports elemental class assignment but not constitutional bond-specific pathway selection."])
+        };
     }
 }

@@ -14,7 +14,7 @@ public class UniversalEngineTests
     [InlineData("CC(=O)C")]   // Acetone (Ketone)
     [InlineData("CCN(C)C")]   // Triethylamine (Amine)
     [InlineData("c1ccccc1")]  // Benzene (Aromatic)
-    [InlineData("C6H12O6")]   // Glucose (Polyol)
+    [InlineData("OCC1OC(O)C(O)C(O)C1O")] // Glucose-like pyranose topology (Polyol)
     public void MolecularEvolver_ArbitraryMolecules_GeneratesFiveValidCandidates(string input)
     {
         var result = MolecularEvolverEngine.EvolveLeadCandidate(input, generations: 30);

@@ -24,7 +24,7 @@ graph TD
         Cloud["PubChem Live REST Client"]
         Kinetics["Kinetics & RK4 Network Engine"]
         Stoich["Exact Rational Balancer (MatrixSolver)"]
-        Thermo["Thermodynamics & Benson Additivity Engine"]
+        Thermo["Standard-State & Shomate Thermodynamics"]
     end
 
     subgraph API["Chemy.Api (Pure REST Microservice)"]
@@ -61,15 +61,17 @@ graph TD
 
 ## 2. Multi-Term Molecular Mechanics Force Field (`ForceFieldEngine.cs`)
 
-`ForceFieldEngine` calculates a 5-term UFF-inspired potential energy function:
+`ForceFieldEngine` calculates the published five-term UFF potential for its declared organic atom-type subset:
 
 $$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$$
 
 ### 1. Covalent Bond Stretching Potential (Harmonic)
 $$E_{\text{bond}} = \sum_{bonds} \frac{1}{2} k_r (r_{ij} - r_0)^2$$
 
-### 2. Valence Angle Bending Potential (Harmonic)
-$$E_{\text{angle}} = \sum_{angles} \frac{1}{2} k_\theta (\theta_{ijk} - \theta_0)^2$$
+### 2. Valence Angle Bending Potential (UFF Fourier form)
+$$E_{\text{angle}} = \sum_{angles} K_{IJK}\left(C_0 + C_1\cos\theta + C_2\cos 2\theta\right)$$
+
+Linear and trigonal centers use the corresponding UFF periodic specializations. Force constants are derived from typed radii, effective charges, equilibrium geometry, and bond order.
 
 ### 3. Dihedral Torsional Strain
 $$E_{\text{torsion}} = \sum_{dihedrals} \frac{V_n}{2} [1 + \cos(n\phi - \gamma)]$$
@@ -77,13 +79,13 @@ $$E_{\text{torsion}} = \sum_{dihedrals} \frac{V_n}{2} [1 + \cos(n\phi - \gamma)]
 ### 4. Out-of-Plane Inversion
 $$E_{\text{inv}} = \sum_{centers}\sum_{permutations}\frac{K_{\text{inv}}}{3}[1 - \cos(\omega)]$$
 
-Trivalent planar C/N/O centers use three permutations. Carbonyl carbon uses the UFF special force constant of 50 kcal/mol; other supported planar centers use 6 kcal/mol.
+Trivalent planar C/N/O centers use three permutations. Carbonyl carbon uses the UFF special force constant of 50 kcal/mol; other supported planar centers use 6 kcal/mol. Supported phosphorus centers use the published pyramidal coefficients.
 
 ### 5. Non-Bonded Steric van der Waals (Lennard-Jones 12-6)
 $$E_{\text{vdw}} = \sum_{i < j, \text{ non-bonded}} \epsilon_{ij} \left[ \left( \frac{r_m}{r_{ij}} \right)^{12} - 2 \left( \frac{r_m}{r_{ij}} \right)^6 \right]$$
 
 ### Energy Optimization
-Minimization computes central finite-difference gradients and relaxes 3D Cartesian coordinates with bounded-memory L-BFGS and a monotonic Armijo line search. `EnergyMinimizationResult` reports the exact termination reason, iteration count, final gradient norm, and convergence flag. `Geometry3DEngine.GenerateConformer3DResult` preserves those diagnostics for production callers; the production default budget is 500 iterations.
+Minimization computes central finite-difference gradients and relaxes 3D Cartesian coordinates with bounded-memory L-BFGS and a monotonic Armijo line search. `CalculateGradient` exposes auditable derivatives; `AssessApplicability` rejects unsupported elements/types before calculation. Pinned RDKit 2025.09.2 gates compare fixed-coordinate energies, analytical-reference gradients, optimized energies, and invariant pairwise geometry. `EnergyMinimizationResult` reports termination reason, iterations, final gradient norm, convergence, method evidence, and applicability.
 
 ---
 
@@ -94,7 +96,7 @@ Minimization computes central finite-difference gradients and relaxes 3D Cartesi
    Based on the published 43-fragment Ertl table: Carbonyl $=O$ ($17.07\text{ \AA}^2$), Hydroxyl $-OH$ ($20.23\text{ \AA}^2$), Ester/Ether $-O-$ ($9.23\text{ \AA}^2$), Secondary Amide $-C(=O)NH-$ ($29.10\text{ \AA}^2$), Primary Amide $-C(=O)NH_2$ ($43.09\text{ \AA}^2$), Nitro $-NO_2$ ($45.82\text{ \AA}^2$).
 2. **Wildman-Crippen $\log P$ (1999)**:
    $$\log P = \sum_{i} a_i n_i$$
-   Summing atomic fragment contributions across 68 structural atom classes (hybridization $sp^3, sp^2, sp$, aromaticity, formal charges, heteroatom neighbor bonding).
+   Summing the explicitly implemented core atom-type contributions across hybridization, aromaticity, formal charge, and heteroatom-neighbor environments. The result reports its 48-molecule reference-agreement envelope and rejects unsupported elements.
 3. **Bickerton Quantitative Estimate of Drug-Likeness (QED)**:
    $$\text{QED} = \exp\left( \frac{\sum_{i=1}^8 w_i \ln d_i}{\sum_{i=1}^8 w_i} \right)$$
    using asymmetric sigmoid desirability functions across 8 physicochemical and structural parameters.

@@ -432,7 +432,7 @@ public class ScientificBenchmarkValidationTests
         if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "rdkit_uff_butane_reference.json");
         if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "rdkit_uff_butane_reference.json");
 
-        const string expectedUffSha256 = "ea6bfc116f2f19f000e45c1e676734acccfb7434d8da001ab14fa8d3fbbe073c";
+        const string expectedUffSha256 = "0d866e07e7e4ddc6c3fdc6fc28858b65e60c570fcf1b60947645b399d846b4e5";
         string actualUffSha256 = ComputeFileSha256(uffJsonPath);
         Assert.Equal(expectedUffSha256, actualUffSha256);
 
@@ -633,30 +633,46 @@ public class ScientificBenchmarkValidationTests
         _output.WriteLine($"Bromomethane  (sp3 Br,  N=5): Chemy = {eCH3Br:F4} kcal/mol, RDKit Ref = {rdkitUffCH3Br:F4} kcal/mol, Diff = {Math.Abs(eCH3Br - rdkitUffCH3Br):F4}");
         _output.WriteLine($"Iodomethane   (sp3 I,   N=5): Chemy = {eCH3I:F4} kcal/mol, RDKit Ref = {rdkitUffCH3I:F4} kcal/mol, Diff = {Math.Abs(eCH3I - rdkitUffCH3I):F4}");
         _output.WriteLine($"Formamide     (sp2 N,   N=6): Chemy = {eFormamide:F4} kcal/mol, RDKit Ref = {rdkitUffFormamide:F4} kcal/mol, Diff = {Math.Abs(eFormamide - rdkitUffFormamide):F4}");
+        _output.WriteLine($"Formamide components: {ForceFieldEngine.CalculateEnergyComponents(fam3D)}");
 
-        // Molecule-specific scale-aware tolerance gates matching published benchmark table
-        Assert.InRange(Math.Abs(eMethane - rdkitUffMethane), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eEthane - rdkitUffEthane), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eEthylene - rdkitUffEthylene), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eWater - rdkitUffWater), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eH2S - rdkitUffH2S), 0.0, 0.10);
-        Assert.InRange(Math.Abs(eCH3Cl - rdkitUffCH3Cl), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eCH3F - rdkitUffCH3F), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eNH3 - rdkitUffNH3), 0.0, 0.05);
-        Assert.InRange(Math.Abs(ePH3 - rdkitUffPH3), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eCH3Br - rdkitUffCH3Br), 0.0, 0.05);
-        Assert.InRange(Math.Abs(eCH3I - rdkitUffCH3I), 0.0, 0.10);
-        Assert.InRange(Math.Abs(eFormamide - rdkitUffFormamide), 0.0, 2.60); // Scale-aware tolerance for the documented harmonic-angle subset vs RDKit UFF
+        string uffJsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "rdkit_uff_butane_reference.json");
+        if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "rdkit_uff_butane_reference.json");
+
+        using var doc = JsonDocument.Parse(File.ReadAllText(uffJsonPath));
+        JsonElement diverseReferences = doc.RootElement.GetProperty("diverse_molecules");
+        AssertGradientMatchesReference(water3D, diverseReferences.GetProperty("water"));
+        AssertGradientMatchesReference(fam3D, diverseReferences.GetProperty("formamide"));
+        AssertOptimizedGeometryMatchesReference(water3D, diverseReferences.GetProperty("water"));
+        AssertOptimizedGeometryMatchesReference(fam3D, diverseReferences.GetProperty("formamide"));
+
+        // References are pinned to four decimal places; the implementation must agree
+        // within the artifact's rounding resolution for every declared atom type.
+        Assert.All(new[]
+        {
+            Math.Abs(eMethane - rdkitUffMethane),
+            Math.Abs(eEthane - rdkitUffEthane),
+            Math.Abs(eEthylene - rdkitUffEthylene),
+            Math.Abs(eWater - rdkitUffWater),
+            Math.Abs(eH2S - rdkitUffH2S),
+            Math.Abs(eCH3Cl - rdkitUffCH3Cl),
+            Math.Abs(eCH3F - rdkitUffCH3F),
+            Math.Abs(eNH3 - rdkitUffNH3),
+            Math.Abs(ePH3 - rdkitUffPH3),
+            Math.Abs(eCH3Br - rdkitUffCH3Br),
+            Math.Abs(eCH3I - rdkitUffCH3I),
+            Math.Abs(eFormamide - rdkitUffFormamide)
+        }, difference => Assert.InRange(difference, 0.0, 0.0001));
     }
 
     [Fact]
-    public void Benchmark_ForceField_ExpandedRegressionMolecules_RecordsRDKitUffDeviationEnvelope()
+    public void Benchmark_ForceField_ExpandedRegressionMolecules_MatchesRDKitUffReference()
     {
         string uffJsonPath = Path.Combine(AppContext.BaseDirectory, "ValidationData", "rdkit_uff_butane_reference.json");
         if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "ValidationData", "rdkit_uff_butane_reference.json");
         if (!File.Exists(uffJsonPath)) uffJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "src", "Chemy.Core.Tests", "ValidationData", "rdkit_uff_butane_reference.json");
 
-        const string expectedUffSha256 = "ea6bfc116f2f19f000e45c1e676734acccfb7434d8da001ab14fa8d3fbbe073c";
+        const string expectedUffSha256 = "0d866e07e7e4ddc6c3fdc6fc28858b65e60c570fcf1b60947645b399d846b4e5";
         string actualUffSha256 = ComputeFileSha256(uffJsonPath);
         Assert.Equal(expectedUffSha256, actualUffSha256);
 
@@ -801,17 +817,28 @@ public class ScientificBenchmarkValidationTests
         _output.WriteLine($"Furan           (Oxacycle, sp2 O_R):     Chemy = {eFuran:F4} kcal/mol, RDKit Ref = {refFuran:F4} kcal/mol, Diff = {Math.Abs(eFuran - refFuran):F4}");
         _output.WriteLine($"Thiophene       (Thiacycle, sp2 S_R):    Chemy = {eThiophene:F4} kcal/mol, RDKit Ref = {refThiophene:F4} kcal/mol, Diff = {Math.Abs(eThiophene - refThiophene):F4}");
         _output.WriteLine($"Acetonitrile    (Nitrile, sp C/N):       Chemy = {eAcetonitrile:F4} kcal/mol, RDKit Ref = {refAcetonitrile:F4} kcal/mol, Diff = {Math.Abs(eAcetonitrile - refAcetonitrile):F4}");
+        _output.WriteLine($"Acetone components:      {ForceFieldEngine.CalculateEnergyComponents(acetone3D)}");
+        _output.WriteLine($"Acetonitrile components: {ForceFieldEngine.CalculateEnergyComponents(acetonitrile3D)}");
 
-        // These ceilings freeze the reviewed numerical baseline and detect unreviewed drift.
-        // They are regression envelopes, not claims of UFF equivalence or prospective validation.
-        Assert.InRange(Math.Abs(eMeOH - refMeOH), 0.0, 1.50);
-        Assert.InRange(Math.Abs(eAcetone - refAcetone), 0.0, 1.50);
-        Assert.InRange(Math.Abs(eToluene - refToluene), 0.0, 1.00);
-        Assert.InRange(Math.Abs(ePyridine - refPyridine), 0.0, 1.00);
-        Assert.InRange(Math.Abs(eDcm - refDcm), 0.0, 0.10);
-        Assert.InRange(Math.Abs(eFuran - refFuran), 0.0, 20.0);
-        Assert.InRange(Math.Abs(eThiophene - refThiophene), 0.0, 20.0);
-        Assert.InRange(Math.Abs(eAcetonitrile - refAcetonitrile), 0.0, 1.00);
+        AssertGradientMatchesReference(meOH3D, expandedRegression.GetProperty("methanol"));
+        AssertGradientMatchesReference(acetone3D, expandedRegression.GetProperty("acetone"));
+        AssertGradientMatchesReference(acetonitrile3D, expandedRegression.GetProperty("acetonitrile"));
+
+        AssertOptimizedGeometryMatchesReference(meOH3D, expandedRegression.GetProperty("methanol"));
+        AssertOptimizedGeometryMatchesReference(acetone3D, expandedRegression.GetProperty("acetone"));
+        AssertOptimizedGeometryMatchesReference(acetonitrile3D, expandedRegression.GetProperty("acetonitrile"));
+
+        Assert.All(new[]
+        {
+            Math.Abs(eMeOH - refMeOH),
+            Math.Abs(eAcetone - refAcetone),
+            Math.Abs(eToluene - refToluene),
+            Math.Abs(ePyridine - refPyridine),
+            Math.Abs(eDcm - refDcm),
+            Math.Abs(eFuran - refFuran),
+            Math.Abs(eThiophene - refThiophene),
+            Math.Abs(eAcetonitrile - refAcetonitrile)
+        }, difference => Assert.InRange(difference, 0.0, 0.0001));
     }
 
     [Fact]
@@ -1413,5 +1440,60 @@ public class ScientificBenchmarkValidationTests
         Assert.Throws<InvalidOperationException>(() => SpectroscopyEngine.Predict(formulaMol));
         Assert.Throws<InvalidOperationException>(() => ChemicalGraph.FromMolecule(formulaMol));
         Assert.Throws<InvalidOperationException>(() => Geometry3DEngine.GenerateConformer3D(formulaMol));
+    }
+
+    private static void AssertGradientMatchesReference(Molecule3D molecule, JsonElement reference)
+    {
+        var actual = ForceFieldEngine.CalculateGradient(molecule);
+        var expected = reference.GetProperty("gradient_kcal_mol_angstrom").EnumerateArray().ToArray();
+        Assert.Equal(expected.Length, actual.CartesianGradientKcalPerMolAngstrom.Count);
+
+        double maxDifference = 0.0;
+        for (int atomIndex = 0; atomIndex < expected.Length; atomIndex++)
+        {
+            double[] components = expected[atomIndex].EnumerateArray().Select(value => value.GetDouble()).ToArray();
+            Vector3D vector = actual.CartesianGradientKcalPerMolAngstrom[atomIndex];
+            maxDifference = Math.Max(maxDifference, Math.Abs(vector.X - components[0]));
+            maxDifference = Math.Max(maxDifference, Math.Abs(vector.Y - components[1]));
+            maxDifference = Math.Max(maxDifference, Math.Abs(vector.Z - components[2]));
+        }
+
+        Assert.InRange(maxDifference, 0.0, 5e-4);
+    }
+
+    private static void AssertOptimizedGeometryMatchesReference(Molecule3D molecule, JsonElement reference)
+    {
+        JsonElement expected = reference.GetProperty("optimized");
+        var result = ForceFieldEngine.MinimizeEnergy(molecule, maxIterations: 2000, gradientTolerance: 1e-5);
+        Assert.True(result.Converged, $"{molecule.Name} failed to converge: {result.TerminationReason}, gradient={result.FinalGradientNorm:G6}");
+        Assert.True(expected.GetProperty("converged").GetBoolean());
+        Assert.InRange(
+            Math.Abs(result.FinalEnergyKcalPerMol - expected.GetProperty("uff_total_kcal_mol").GetDouble()),
+            0.0,
+            1e-3);
+
+        double[] expectedDistances = expected.GetProperty("pairwise_distances_angstrom")
+            .EnumerateArray()
+            .Select(value => value.GetDouble())
+            .ToArray();
+        var actualDistances = new List<double>(expectedDistances.Length);
+        for (int first = 0; first < result.MinimizedMolecule.Atoms.Count; first++)
+        {
+            for (int second = first + 1; second < result.MinimizedMolecule.Atoms.Count; second++)
+            {
+                Vector3D left = result.MinimizedMolecule.Atoms[first].Position;
+                Vector3D right = result.MinimizedMolecule.Atoms[second].Position;
+                double dx = left.X - right.X;
+                double dy = left.Y - right.Y;
+                double dz = left.Z - right.Z;
+                actualDistances.Add(Math.Sqrt((dx * dx) + (dy * dy) + (dz * dz)));
+            }
+        }
+
+        Assert.Equal(expectedDistances.Length, actualDistances.Count);
+        double rmsDistanceDifference = Math.Sqrt(actualDistances
+            .Zip(expectedDistances, (actual, target) => (actual - target) * (actual - target))
+            .Average());
+        Assert.InRange(rmsDistanceDifference, 0.0, 2e-3);
     }
 }

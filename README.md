@@ -62,17 +62,17 @@
 All algorithms in Chemy are **pure, deterministic C# implementations** without external Python, cloud AI, or black-box dependencies:
 - ⚛️ **Quantum Electronic Structure & Hückel Molecular Orbitals**: Solves the secular equation $\det|\mathbf{H} - E\mathbf{I}| = 0$ via Jacobi symmetric matrix eigensolver. Computes HOMO, LUMO, bandgaps, UV-Vis $\lambda_{\max}$, Dewar aromatic resonance energy, Coulson bond orders, and Fukui reactivity indices (`HuckelEngine`).
 - 🌿 **Chemical Graph Theory & Ring Perception**: Implements Horton Minimum Cycle Basis (SSSR, `CycleBasis`), 1D Weisfeiler-Lehman topological symmetry partitioning (`WeisfeilerLehman`), and subgraph isomorphism (`SubgraphMatcher`).
-- ⚛️ **Multi-Term Molecular Mechanics Force Field**: 5-term UFF-inspired potential (bond stretching, hybridization angle bending, dihedral torsion, out-of-plane inversion, and buffered 12-6 Lennard-Jones van der Waals) with auditable component output, central finite-difference gradients, and line-search optimization (`ForceFieldEngine`).
+- ⚛️ **UFF-Compatible Molecular Mechanics Subset**: Published five-term UFF functional forms for the declared H/C/N/O/P/S/F/Cl/Br/I organic subset, with auditable components, central finite-difference gradients, L-BFGS relaxation, applicability preflight, and pinned RDKit energy/gradient/geometry comparisons (`ForceFieldEngine`).
 - 📐 **3D Multi-Center Conformer Embedding**: Generates 3D Cartesian coordinates for branched and cyclic molecules via topological coordinate propagation and VSEPR coordinate frames (`Geometry3DEngine`).
-- 🛡️ **Physicochemical Descriptors & Drug-Likeness**: Crippen-inspired $\log P$, Ertl-inspired Topological Polar Surface Area (TPSA), Bickerton QED desirability functions, Lipinski Rule of 5, Veber rules, and Ghose filters (`AdmetEngine`).
-- 🧬 **Multi-Objective Lead Candidate Exploration**: Explores candidate mutations across generations evaluating QED and $\log P$ via bioisosteric graph mutation operators (`MolecularEvolverEngine`).
+- 🛡️ **Physicochemical Descriptors & Drug-Likeness**: Crippen-inspired $\log P$, Ertl-inspired TPSA, Bickerton QED, and rule-based filters with machine-readable applicability and calibration envelopes from a pinned 48-molecule RDKit benchmark (`AdmetEngine`).
+- 🧬 **Heuristic Lead Candidate Exploration**: Explores graph mutations ranked by QED and $\log P$; results are explicitly marked heuristic and are not toxicity, efficacy, or synthesis recommendations (`MolecularEvolverEngine`).
 - ⚖️ **Exact Mass & Redox Charge Balancer**: Solves chemical equations using exact rational Gaussian elimination nullspace matrix algebra ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger` and charge conservation (`Reaction`).
 - 💧 **Exact Weak Electrolyte Cubic Equilibria**: Solves exact polynomial equilibrium equations ($[\text{H}^+]^3 + K_a [\text{H}^+]^2 - (K_w + K_a C)[\text{H}^+] - K_a K_w = 0$) via Halley's method across arbitrary dilution regimes (`SolutionsEngine`).
 - 🔥 **NIST Shomate Thermodynamics**: Selects piecewise NIST coefficient intervals by species and evaluates formation enthalpy ($\Delta_f H^\circ$), entropy ($S^\circ$), heat capacity ($C_p^\circ$), and formation Gibbs energy ($\Delta_f G^\circ$) without out-of-range extrapolation (`ShomateThermodynamics`).
 - 🛡️ **Enterprise API Boundary**: Production starts fail-closed without an externally supplied API credential, denies unconfigured cross-origin callers, rate-limits by client, bounds request bodies, emits correlation IDs and generic problem responses, and hides interactive documentation unless explicitly enabled.
 - ♻️ **EcoClean Qualitative Degradation Cascades**: Models topological Bond Dissociation Energies ($\text{BDE}$) and constructs enzymatic/electrochemical catalytic degradation cascades for persistent pollutants (`EcoCleanEngine`).
 - 📉 **Empirical Spectroscopy Estimator**: Estimates $^1\text{H}$-NMR and $^{13}\text{C}$-NMR chemical shifts with Weisfeiler-Lehman peak integration and IR vibrational absorption bands (`SpectroscopyEngine`).
-- ⏱️ **Arbitrary Reaction Network RK4 Solver**: 4th-Order Runge-Kutta numerical differential integrator for multi-species chemical kinetics networks (`ReactionNetworkEngine`).
+- ⏱️ **Reaction Network RK4 Solver**: Fourth-order Runge-Kutta integration with finite-input checks, fail-closed invalid trajectories, and analytical residual/mass-conservation diagnostics for consecutive cascades (`ReactionNetworkEngine`).
 - 📁 **Standard Chemical File Exporter**: Full support for MDL Molfile (V2000), Structure-Data Files (SDF), Protein Data Bank (PDB), and XYZ formats (`MolfileExporter`).
 - 🌐 **NCBI PubChem Integrator**: Live REST query client for 110M+ real compounds.
 
@@ -84,9 +84,9 @@ All algorithms in Chemy are **pure, deterministic C# implementations** without e
 | :--- | :--- | :--- |
 | **⚛️ Hückel Quantum Molecular Orbitals** | Computes electron orbitals, HOMO/LUMO bandgap, UV-Vis color absorption, and aromaticity. | Secular determinant $\det\|\mathbf{H} - E\mathbf{I}\| = 0$ via Jacobi symmetric matrix eigensolver (`HuckelEngine`). |
 | **🌿 Graph Cycle Basis & Symmetry** | Computes shortest cycle bases and identifies topologically equivalent atoms. | Horton minimum cycle basis over $\text{GF}(2)$ (`CycleBasis`) and 1D Weisfeiler-Lehman color refinement (`WeisfeilerLehman`). |
-| **⚛️ Molecular Mechanics Force Field** | Relaxes atoms in 3D Euclidean space to relieve steric and angle strain. | 5-term UFF-inspired potential ($E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$) with component output and central finite-difference gradients (`ForceFieldEngine`). |
+| **⚛️ Molecular Mechanics Force Field** | Relaxes supported organic molecules and reports numerical quality. | Published five-term UFF forms for the declared organic subset, component output, finite-difference gradients, applicability checks, and RDKit equivalence gates (`ForceFieldEngine`). |
 | **🛡️ Ertl TPSA & Drug-Likeness** | Computes topological polar surface area and physicochemical filters. | Ertl-inspired polar surface area fragment subset, Crippen-inspired $\log P$, Veber rules, and Ghose filters (`AdmetEngine`). |
-| **🧬 Bioisosteric Graph Evolver** | Explores candidate mutations across objective functions. | Bioisosteric graph mutation operators evaluating QED and physicochemical parameters (`MolecularEvolverEngine`). |
+| **🧬 Bioisosteric Graph Evolver** | Generates review candidates across rule-based mutations. | Explicitly heuristic graph operators evaluated by bounded physicochemical descriptors (`MolecularEvolverEngine`). |
 | **📁 MDL Molfile & SDF Exporter** | Exports molecules to standard formats for ChemDraw, PyMOL, and RDKit. | Standard MDL Molfile V2000 and multi-record SDF serializer (`MolfileExporter`). |
 | **⚖️ Smart Reaction Balancer** | Instantly balances chemical equations with zero rounding errors. | Exact rational Gaussian elimination nullspace reduction ($M\vec{x} = \vec{0}$) over $\mathbb{Q}$ with `BigInteger`. |
 | **📐 3D Multi-Center Builder** | Converts bonded molecular structures into 3D atomic coordinates. | Multi-center topological coordinate propagation and VSEPR coordinate generators (`Geometry3DEngine`). |
@@ -124,15 +124,16 @@ Console.WriteLine($"New Lead Formula: {tetrazoleLead.ChemicalFormula}");
 using Chemy.Core;
 using Chemy.Core.Physics;
 
-// Relax 3D Cartesian coordinates using the 5-term UFF-inspired potential
+// Relax 3D Cartesian coordinates inside the declared UFF-compatible subset
 var water3D = Molecule.Water.To3D();
 var result = ForceFieldEngine.MinimizeEnergy(water3D, maxIterations: 500);
 
 Console.WriteLine($"Initial Energy: {result.InitialEnergyKcalPerMol:F3} kcal/mol");
 Console.WriteLine($"Relaxed Energy: {result.FinalEnergyKcalPerMol:F3} kcal/mol (Converged: {result.Converged})");
+Console.WriteLine($"Applicability: {result.Applicability.Status}; |grad|max = {result.FinalGradientNorm:G4}");
 ```
 
-### 3. Screen Drug Safety (Ertl TPSA, Veber & Ghose Rules)
+### 3. Compute Physicochemical Drug-Likeness Descriptors
 
 ```csharp
 using Chemy.Core;
@@ -145,6 +146,8 @@ Console.WriteLine($"Ertl TPSA: {admet.TpsaAngstrom2} Å² (Veber Limit: <= 140 �
 Console.WriteLine($"Wildman-Crippen LogP: {admet.CalculatedLogP:F2}");
 Console.WriteLine($"Bickerton QED Score: {admet.QedDrugLikenessScore:F2}");
 Console.WriteLine($"Passes Lipinski Rule of 5: {admet.PassesLipinskiRuleOf5}");
+Console.WriteLine($"Applicability: {admet.Applicability.Status}");
+Console.WriteLine($"Calibrated LogP envelope: ±{admet.DescriptorUncertainty["CalculatedLogP"].AbsoluteErrorEnvelope:F3}");
 ```
 
 ### 4. Export to Standard MDL Molfile (V2000)
@@ -252,7 +255,7 @@ Visit `http://localhost:5002` to explore rotatable 3D molecular structures, inte
 ## 🛡️ Testing & Quality
 
 Chemy is built to the highest enterprise standards:
-- **100% Passing Tests**: 114/114 unit tests in `Chemy.Core.Tests`.
+- **Automated Scientific and Engineering Gates**: 171/171 tests passing in the v2.8 audit run.
 - **Zero Warnings**: `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` enforced across all projects.
 - **Reduced Hot-Loop Allocations**: Topology and atom typing are precomputed once per evaluation; optimization still allocates bounded working arrays and result objects.
 
@@ -261,7 +264,7 @@ dotnet test src/Chemy.slnx
 ```
 
 ```text
-Passed! - Failed: 0, Passed: 114, Skipped: 0, Total: 114, Duration: 144 ms
+Passed! - Failed: 0, Passed: 171, Skipped: 0, Total: 171
 ```
 
 ---

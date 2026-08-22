@@ -37,7 +37,15 @@ public record AdmetProfile(
     bool PassesGhoseFilter,
     double QedDrugLikenessScore,
     ScientificMethodInfo MethodInfo
-);
+)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public IReadOnlyDictionary<string, ScientificUncertainty> DescriptorUncertainty { get; init; } =
+        new Dictionary<string, ScientificUncertainty>();
+}
 
 /// <summary>
 /// Chemoinformatics &amp; Drug-Likeness Property Calculator.
@@ -46,6 +54,10 @@ public record AdmetProfile(
 /// </summary>
 public static class AdmetEngine
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+        StringComparer.Ordinal);
+
     private static readonly ScientificMethodInfo AdmetMethodInfo = new(
         "Chemoinformatics Physicochemical & Drug-Likeness Filter Suite",
         "2026.1",
@@ -55,7 +67,28 @@ public static class AdmetEngine
             "Rule-based physicochemical filters (Lipinski, Veber, Ghose) and empirical descriptors.",
             "Does NOT assess in vitro/in vivo biological safety, pharmacokinetics, hERG cardiotoxicity, or clinical outcomes."
         ]
-    );
+    )
+    {
+        ReferenceUris =
+        [
+            "https://doi.org/10.1021/ci990307l",
+            "https://doi.org/10.1021/jm000942e",
+            "https://doi.org/10.1038/nchem.1243"
+        ],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "chemy-rdkit-descriptor-benchmark-v2.8",
+            "2.8",
+            48,
+            [
+                new("TPSA_MAE", 0.0110, "angstrom^2"),
+                new("LogP_MAE", 0.2930, "logP"),
+                new("QED_MAE", 0.0255, "QED score")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/reference_compounds.json",
+            "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5",
+            false,
+            false)
+    };
 
     /// <summary>
     /// Computes a comprehensive physicochemical and drug-likeness profile for a bonded molecule.
@@ -70,9 +103,14 @@ public static class AdmetEngine
                 $"Molecule '{molecule.Name}' has no bonded topology. Chemoinformatics descriptors (TPSA, LogP, QED, Lipinski) require a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
         }
 
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, AdmetMethodInfo.Method);
+
         double mw = molecule.MolecularWeight;
-        double logP = CalculateCrippenLogP(molecule);
-        double tpsa = CalculateErtlTpsa(molecule);
+        var logPResult = WildmanCrippenLogP.Calculate(molecule);
+        var tpsaResult = ErtlTpsa.Calculate(molecule);
+        double logP = logPResult.CalculatedLogP;
+        double tpsa = tpsaResult.TotalTpsa;
         int hbd = CountHydrogenBondDonors(molecule);
         int hba = CountHydrogenBondAcceptors(molecule);
         int rotatableBonds = CountRotatableBonds(molecule);
@@ -90,7 +128,8 @@ public static class AdmetEngine
         bool passesGhose = mw >= 160.0 && mw <= 480.0 && logP >= -0.4 && logP <= 5.6;
 
         // Quantitative Estimate of Drug-Likeness (QED) Score (0.0 to 1.0)
-        double qed = CalculateQedScore(molecule);
+        var qedResult = BickertonQed.Calculate(molecule);
+        double qed = qedResult.QedScore;
 
         return new AdmetProfile(
             molecule.ChemicalFormula,
@@ -107,7 +146,16 @@ public static class AdmetEngine
             passesGhose,
             Math.Round(qed, 3),
             AdmetMethodInfo
-        );
+        )
+        {
+            Applicability = applicability,
+            DescriptorUncertainty = new Dictionary<string, ScientificUncertainty>(StringComparer.Ordinal)
+            {
+                ["CalculatedLogP"] = logPResult.Uncertainty,
+                ["TpsaAngstrom2"] = tpsaResult.Uncertainty,
+                ["QedDrugLikenessScore"] = qedResult.Uncertainty
+            }
+        };
     }
 
     /// <summary>

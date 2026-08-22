@@ -74,17 +74,19 @@ All matrix operations are performed over the exact rational field $\mathbb{Q}$ u
 
 ---
 
-## 6. 5-Term UFF-Inspired Molecular Mechanics Force Field
+## 6. Five-Term UFF-Compatible Organic-Subset Molecular Mechanics
 
 ### Potential Function
 $$E_{\text{total}} = E_{\text{bond}} + E_{\text{angle}} + E_{\text{torsion}} + E_{\text{inv}} + E_{\text{vdw}}$$
 
-Bond and angle terms are harmonic, torsions use the implemented 2-fold/3-fold forms, and trivalent planar C/N/O centers use three out-of-plane permutations. Carbonyl carbon receives the published UFF 50 kcal/mol inversion special case. `CalculateEnergyComponents` exposes every term independently; the implementation remains an explicitly documented UFF-inspired subset rather than a full interchangeable UFF engine.
+The implementation uses UFF bond-order/electronegativity-corrected equilibrium distances and force constants, Fourier angle functions, typed torsion periodicities/barriers, inversion coefficients, and geometric-mean 12-6 Lennard-Jones parameters. Resonant amides receive C_R/O_R/N_R typing. The declared subset covers supported environments of H, C, N, O, P, S, F, Cl, Br, and I; unsupported elements or atom types fail closed.
+
+`CalculateEnergyComponents`, `CalculateGradient`, and `AssessApplicability` expose the numerical decomposition, Cartesian derivative, and input-domain decision. A pinned RDKit 2025.09.2 artifact verifies 24 fixed-coordinate energies, analytical-reference gradients, and optimized pairwise geometry. This is strong reference-implementation agreement, but the artifact is not independent certification or prospective evaluation.
 
 ### Central Finite-Difference Force Gradients ($-\nabla E$)
 Forces on atom coordinates are evaluated via high-precision central finite difference numerical gradients:
 $$F_{x,i} = -\frac{E(\mathbf{r}_i + h\hat{x}) - E(\mathbf{r}_i - h\hat{x})}{2h}$$
-with displacement $h = 10^{-5}\text{ \AA}$, coupled with line-search optimization and soft-core steric clash buffering.
+with displacement $h = 10^{-5}\text{ \AA}$, coupled with bounded-memory L-BFGS and an Armijo line search. Nonbonded energy uses the unbuffered UFF 12-6 form and its typed cutoff.
 
 `EnergyMinimizationResult` and `Geometry3DEngine.GenerateConformer3DResult` expose convergence, termination reason, final gradient, iteration count, and initial/final energies so production callers can reject non-converged coordinates.
 
@@ -100,15 +102,17 @@ Solved via **Halley's high-order root-finding method**, providing machine-precis
 
 ---
 
-## 8. Benson Group Additivity & Thermochemistry
+## 8. Standard-State Thermochemistry and Explicit Approximation
 
-Standard enthalpies ($\Delta H_f^\circ$), entropies ($S^\circ$), and Gibbs energies ($\Delta G_f^\circ$) are calculated using the published **Benson group increment scheme** (S.W. Benson, 1976), recognizing central polyvalent atoms with their ligand coordination environments and ring strain corrections.
+`ThermodynamicsEngine` applies Hess's law only at 298.15 K over its frozen standard-state property table. It rejects unsupported temperatures and missing species by default, preventing silent extrapolation or constitutional-isomer substitution from formula-only keys. The legacy group-increment estimate is available only through the explicit `allowBensonEstimates: true` option and marks the result as an applicability-boundary estimate with per-species source labels.
+
+`ShomateThermodynamics` is the temperature-dependent path for its nine supported gas species. It selects published piecewise NIST intervals and rejects out-of-range temperatures.
 
 ---
 
 ## 9. Chemical Kinetics & Electrochemistry
 
-- **Coupled Reaction ODEs**: Solved via 4th-Order Runge-Kutta (RK4) numerical integration for arbitrary multi-step networks.
+- **Coupled Reaction ODEs**: Solved via standard fourth-order Runge-Kutta integration with finite derivative checks. The consecutive cascade reports error against its analytical solution and a concentration-conservation residual; invalid/unstable trajectories fail closed.
 - **Arrhenius Equation**: $k = A \exp(-E_a / RT)$.
 - **Nernst Equation**: $E_{\text{cell}} = E^\circ_{\text{cell}} - \frac{RT}{nF} \ln Q$.
 
@@ -116,6 +120,8 @@ Standard enthalpies ($\Delta H_f^\circ$), entropies ($S^\circ$), and Gibbs energ
 
 ## 10. Verification & Technical Credibility Audit
 
-Every algorithm across Chemy is validated by comprehensive automated unit tests in `Chemy.Core.Tests` with zero compiler warnings. 
+Scientific calculations expose `ScientificMethodInfo`; predictive results additionally expose applicability, validation evidence, calibrated reference-agreement envelopes where available, or numerical residual diagnostics. Evidence records explicitly state whether a dataset is independently curated and prospectively frozen. The v2.8 internal artifacts intentionally report `false` for those certification fields.
+
+Every active gate is exercised by automated tests in `Chemy.Core.Tests` with zero compiler warnings.
 - Consult the exhaustive [**Scientific Credibility & Technical Audit Report**](SCIENTIFIC_CREDIBILITY_REPORT.md) for full mathematical proofs, algorithm evaluations, and domain scorecards.
 - Consult the [**Scientific Verification Benchmarks Suite**](SCIENTIFIC_VERIFICATION_BENCHMARKS.md) for empirical benchmark tables across 21 standard chemical systems.

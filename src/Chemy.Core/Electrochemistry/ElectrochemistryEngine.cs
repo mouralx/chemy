@@ -1,5 +1,7 @@
 namespace Chemy.Core.Electrochemistry;
 
+using Chemy.Core.Scientific;
+
 /// <summary>
 /// Encapsulates the results of non-standard electrochemical cell potential calculations.
 /// </summary>
@@ -18,6 +20,16 @@ public record NernstResult(
     bool IsSpontaneousGalvanic
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Nernst equation with CODATA R and F constants",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Reversible electrochemical cell with supplied dimensionless reaction quotient, electron count, and absolute temperature.",
+        ["Standard potentials are tabulated at 298.15 K; activities, junction potentials, kinetics, and overpotentials must be supplied/modelled externally."])
+    {
+        ReferenceUris = ["https://goldbook.iupac.org/terms/view/N04175"]
+    };
+
     /// <summary>Formats the Nernst calculation result as a string.</summary>
     public override string ToString() => $"E_cell = {CellPotentialVolts:F3} V (E° = {StandardCellPotentialVolts:F3} V, n = {ElectronsTransferred})";
 }
@@ -109,9 +121,10 @@ public static class ElectrochemistryEngine
         double temperatureKelvin = 298.15
     )
     {
+        if (!double.IsFinite(standardCellPotentialVolts)) throw new ArgumentOutOfRangeException(nameof(standardCellPotentialVolts));
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(electronsTransferred);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(reactionQuotientQ);
-        ArgumentOutOfRangeException.ThrowIfNegative(temperatureKelvin);
+        if (!double.IsFinite(reactionQuotientQ) || reactionQuotientQ <= 0.0) throw new ArgumentOutOfRangeException(nameof(reactionQuotientQ));
+        if (!double.IsFinite(temperatureKelvin) || temperatureKelvin <= 0.0) throw new ArgumentOutOfRangeException(nameof(temperatureKelvin));
 
         double nernstTerm = (GasConstantR * temperatureKelvin / (electronsTransferred * FaradayConstantF)) * Math.Log(reactionQuotientQ);
         double eCell = standardCellPotentialVolts - nernstTerm;

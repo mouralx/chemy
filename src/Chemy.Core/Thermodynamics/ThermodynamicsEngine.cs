@@ -1,5 +1,7 @@
 namespace Chemy.Core.Thermodynamics;
 
+using Chemy.Core.Scientific;
+
 /// <summary>
 /// Encapsulates the results of a Hess's Law thermodynamic reaction feasibility calculation.
 /// </summary>
@@ -20,6 +22,23 @@ public record ReactionThermodynamicsResult(
     bool IsSpontaneous
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Hess's law over standard-state formation properties",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Reactions whose every species has a tabulated 298.15 K standard-state enthalpy and molar entropy entry.",
+        [
+            "Formula keys represent the database's documented standard phase; phase changes are not inferred from formula alone.",
+            "Use piecewise ShomateThermodynamics for supported gas-phase temperature dependence."
+        ]);
+
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public IReadOnlyDictionary<string, string> PropertySources { get; init; } =
+        new Dictionary<string, string>();
+
     /// <summary>Formats the thermodynamic result as a string.</summary>
     public override string ToString() =>
         $"ΔH = {EnthalpyChangekJ:F1} kJ/mol, ΔS = {EntropyChangeJPerK:F1} J/(mol·K), ΔG = {GibbsFreeEnergykJ:F1} kJ/mol at {TemperatureKelvin:F1}K ({(IsExothermic ? "Exothermic" : "Endothermic")}, {(IsSpontaneous ? "Spontaneous" : "Non-spontaneous")})";
@@ -33,25 +52,41 @@ public record ReactionThermodynamicsResult(
 public static class ThermodynamicsEngine
 {
     /// <summary>
-    /// Computes ΔH°, ΔS°, and ΔG° for any chemical reaction equation at temperature T.
-    /// Uses tabulated NIST reference values with Benson Group Additivity fallback for arbitrary compounds.
+    /// Computes ΔH°, ΔS°, and ΔG° at 298.15 K for reactions whose species resolve to the standard-state table.
+    /// Missing compounds fail closed unless the caller explicitly permits a boundary-marked group-additivity estimate.
     /// </summary>
     /// <param name="reaction">Input reaction equation (automatically balanced if needed).</param>
     /// <param name="temperatureKelvin">Temperature in Kelvin (default: 298.15 K).</param>
+    /// <param name="allowBensonEstimates">Explicitly permits unvalidated group-additivity fallback for missing species; defaults to fail closed.</param>
     /// <returns>ReactionThermodynamicsResult record.</returns>
-    public static ReactionThermodynamicsResult GetThermodynamics(Reaction reaction, double temperatureKelvin = 298.15)
+    public static ReactionThermodynamicsResult GetThermodynamics(
+        Reaction reaction,
+        double temperatureKelvin = 298.15,
+        bool allowBensonEstimates = false)
     {
         ArgumentNullException.ThrowIfNull(reaction);
-        ArgumentOutOfRangeException.ThrowIfNegative(temperatureKelvin);
+        if (!double.IsFinite(temperatureKelvin) || temperatureKelvin <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(temperatureKelvin));
+        }
+        if (Math.Abs(temperatureKelvin - 298.15) > 1e-9)
+        {
+            throw new NotSupportedException(
+                "Standard-state reaction thermodynamics are validated only at 298.15 K. Use ShomateThermodynamics for supported gas-phase temperature dependence.");
+        }
 
         var balanced = reaction.IsBalanced ? reaction : reaction.Balance();
+        var propertySources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        bool usedEstimate = false;
 
         double totalProdEnthalpy = 0.0;
         double totalProdEntropy = 0.0;
 
         foreach (var prod in balanced.Products)
         {
-            var props = ResolveThermodynamicProperties(prod.Molecule);
+            var (props, source) = ResolveThermodynamicProperties(prod.Molecule, allowBensonEstimates);
+            propertySources[prod.Molecule.ChemicalFormula] = source;
+            usedEstimate |= source == "Benson group-additivity estimate";
             totalProdEnthalpy += prod.Coefficient * props.EnthalpyOfFormationkJPerMol;
             totalProdEntropy += prod.Coefficient * props.MolarEntropyJPerMolK;
         }
@@ -61,7 +96,9 @@ public static class ThermodynamicsEngine
 
         foreach (var react in balanced.Reactants)
         {
-            var props = ResolveThermodynamicProperties(react.Molecule);
+            var (props, source) = ResolveThermodynamicProperties(react.Molecule, allowBensonEstimates);
+            propertySources[react.Molecule.ChemicalFormula] = source;
+            usedEstimate |= source == "Benson group-additivity estimate";
             totalReactEnthalpy += react.Coefficient * props.EnthalpyOfFormationkJPerMol;
             totalReactEntropy += react.Coefficient * props.MolarEntropyJPerMolK;
         }
@@ -78,22 +115,43 @@ public static class ThermodynamicsEngine
             IsExothermic: deltaH < 0,
             IsEndothermic: deltaH > 0,
             IsSpontaneous: deltaG < 0
-        );
+        )
+        {
+            Applicability = new ScientificApplicabilityAssessment(
+                usedEstimate ? ApplicabilityStatus.Boundary : ApplicabilityStatus.InDomain,
+                usedEstimate
+                    ? ["One or more species used an explicitly requested, non-certified Benson group-additivity estimate."]
+                    : ["Every species resolved to the frozen 298.15 K standard-state reference table."]),
+            PropertySources = propertySources
+        };
     }
 
     /// <summary>
-    /// Resolves thermodynamic properties from NIST tables or dynamic Benson Group Additivity estimation.
+    /// Resolves thermodynamic properties from the frozen table or an explicitly requested group-additivity estimate.
     /// Reference: S.W. Benson, Thermochemical Kinetics (2nd ed. 1976); Cohen &amp; Benson, Chem. Rev. 1993, 93, 2419-2438.
     /// </summary>
-    private static StandardThermodynamicProperties ResolveThermodynamicProperties(Molecule molecule)
+    private static (StandardThermodynamicProperties Properties, string Source) ResolveThermodynamicProperties(
+        Molecule molecule,
+        bool allowBensonEstimates)
     {
-        if (ThermodynamicData.TryGetProperties(molecule.ChemicalFormula, out var props))
-            return props;
+        if (ThermodynamicData.TryGetProperties(molecule.Name, out var props))
+            return (props, "Frozen standard-state reference table");
 
-        if (ThermodynamicData.TryGetProperties(molecule.Name, out props))
-            return props;
+        // Formula-only lookup is safe only when no constitutional graph was supplied.
+        // A formula such as C4H10 cannot distinguish n-butane from isobutane.
+        if (!molecule.HasBondedTopology &&
+            ThermodynamicData.TryGetProperties(molecule.ChemicalFormula, out props))
+        {
+            return (props, "Frozen standard-state reference table");
+        }
 
-        // Benson Group Additivity estimation for organic and unknown compounds
+        if (!allowBensonEstimates)
+        {
+            throw new KeyNotFoundException(
+                $"No validated standard-state thermodynamic properties are available for '{molecule.Name}' ({molecule.ChemicalFormula}). Set allowBensonEstimates=true only when an explicit approximate estimate is acceptable.");
+        }
+
+        // Explicit opt-in group-additivity estimate for organic and unknown compounds.
         double hf = 0.0;
         double s = 150.0 + (1.5 * 8.314 * Math.Log(Math.Max(10.0, molecule.MolecularWeight)));
 
@@ -218,6 +276,6 @@ public static class ThermodynamicsEngine
         double deltaSFormation = (s - (molecule.Atoms.Count * 30.0)) / 1000.0;
         double gibbs = hf - (298.15 * deltaSFormation);
 
-        return new StandardThermodynamicProperties(Math.Round(hf, 1), Math.Round(s, 1), Math.Round(gibbs, 1));
+        return (new StandardThermodynamicProperties(Math.Round(hf, 1), Math.Round(s, 1), Math.Round(gibbs, 1)), "Benson group-additivity estimate");
     }
 }

@@ -48,7 +48,33 @@ public record SpectroscopyPrediction(
         "Topological Symmetry & Empirical Curphey-Morrison NMR/IR Prediction", "2026.1", EvidenceLevel.EmpiricalModel,
         "Organic small molecules with 1D Weisfeiler-Lehman topological graph equivalence and first-order 3J coupling.",
         ["First-order coupling model (N+1 rule); does not simulate higher-order ABX spin systems, 2D NOESY/COSY, or solvent matrix shifts."]
-    );
+    )
+    {
+        ReferenceUris = ["https://sdbs.db.aist.go.jp/"],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "sdbs-h1-nmr-fixed-reference-v2.0",
+            "2.0",
+            5,
+            [
+                new("H1ChemicalShiftMAE", 0.094, "ppm"),
+                new("H1ChemicalShiftMaximumAbsoluteError", 0.320, "ppm")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/experimental_nmr_reference.json",
+            "5b4e3b762887563827bacb9e62607e079431cbb6bc6596542b5d1c7b5947b9b0",
+            false,
+            false)
+    };
+
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public ScientificUncertainty H1NmrChemicalShiftUncertainty { get; init; } = new(
+        0.320,
+        "ppm",
+        1.0,
+        "Maximum observed absolute error for five non-exchangeable 1H peak groups in the pinned SDBS artifact; 13C and IR outputs do not yet have a calibrated numerical envelope.",
+        "sdbs-h1-nmr-fixed-reference-v2.0");
 }
 
 /// <summary>
@@ -58,6 +84,10 @@ public record SpectroscopyPrediction(
 /// </summary>
 public static class SpectroscopyEngine
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+        StringComparer.Ordinal);
+
     /// <summary>
     /// Estimates empirical 1H-NMR, 13C-NMR, and IR vibrational band profiles for a bonded molecule.
     /// </summary>
@@ -71,11 +101,17 @@ public static class SpectroscopyEngine
                 $"Molecule '{molecule.Name}' has no bonded topology. Spectroscopy estimation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
         }
 
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, "Empirical NMR/IR prediction");
+
         var h1Peaks = PredictH1Nmr(molecule);
         var c13Peaks = PredictC13Nmr(molecule);
         var irBands = PredictIr(molecule);
 
-        return new SpectroscopyPrediction(molecule.ChemicalFormula, h1Peaks, c13Peaks, irBands);
+        return new SpectroscopyPrediction(molecule.ChemicalFormula, h1Peaks, c13Peaks, irBands)
+        {
+            Applicability = applicability
+        };
     }
 
     /// <summary>

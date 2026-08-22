@@ -1,5 +1,7 @@
 namespace Chemy.Core.Solutions;
 
+using Chemy.Core.Scientific;
+
 /// <summary>
 /// Encapsulates the results of aqueous pH and pOH calculations.
 /// </summary>
@@ -20,6 +22,21 @@ public record PhResult(
     bool IsNeutral
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Aqueous monoprotic acid equilibrium with water autoionization",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Ideal dilute aqueous solution at 25 °C with Kw=1.0e-14; concentrations are used in place of activities.",
+        ["Not valid for concentrated/nonideal electrolytes without activity-coefficient corrections."]);
+
+    public ScientificNumericalDiagnostics Diagnostics { get; init; } = new(
+        true,
+        0.0,
+        0.0,
+        0.0,
+        "mol/L equation residual",
+        "Closed-form result.");
+
     /// <summary>Formats the pH result as a string.</summary>
     public override string ToString() => $"pH = {Ph:F2}, pOH = {Poh:F2} ({(IsAcidic ? "Acidic" : IsBasic ? "Basic" : "Neutral")})";
 }
@@ -38,6 +55,13 @@ public record BufferResult(
     double ConjugateBaseConcentrationMolar
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Henderson-Hasselbalch buffer equation",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Ideal monoprotic buffer where both conjugate forms are present and activities are approximated by concentrations.",
+        ["Does not solve mass/charge balance, dilution, polyprotic equilibria, or activity corrections."]);
+
     /// <summary>Formats the buffer result as a string.</summary>
     public override string ToString() => $"Buffer pH = {Ph:F2} (pK_a = {Pka:F2})";
 }
@@ -64,7 +88,17 @@ public static class SolutionsEngine
         double poh = 14.0 - ph;
         double ohConc = Kw / hConc;
 
-        return new PhResult(ph, poh, hConc, ohConc, ph < 7.0, ph > 7.0, Math.Abs(ph - 7.0) < 0.01);
+        double residual = Math.Abs((hConc * hConc) - (concentrationMolar * hConc) - Kw);
+        return new PhResult(ph, poh, hConc, ohConc, ph < 7.0, ph > 7.0, Math.Abs(ph - 7.0) < 0.01)
+        {
+            Diagnostics = new ScientificNumericalDiagnostics(
+                true,
+                0.0,
+                residual,
+                0.0,
+                "mol^2/L^2",
+                "Residual of H^2 - C*H - Kw after the closed-form quadratic solution.")
+        };
     }
 
     /// <summary>
@@ -87,19 +121,37 @@ public static class SolutionsEngine
         double x = Math.Max(1e-7, (-ka + Math.Sqrt((ka * ka) + (4.0 * ka * concentrationMolar))) / 2.0);
 
         // Halley's high-order root-finding method for cubic equilibrium
+        bool converged = false;
+        double lastStep = double.PositiveInfinity;
+        int iterations = 0;
         for (int iter = 0; iter < 20; iter++)
         {
             double f = (x * x * x) + (ka * x * x) - ((Kw + ka * concentrationMolar) * x) - (ka * Kw);
             double df = (3.0 * x * x) + (2.0 * ka * x) - (Kw + ka * concentrationMolar);
             double d2f = (6.0 * x) + (2.0 * ka);
 
-            double step = (2.0 * f * df) / ((2.0 * df * df) - (f * d2f));
-            x -= step;
-
-            if (Math.Abs(step) < 1e-15 * x || Math.Abs(f) < 1e-25)
+            double denominator = (2.0 * df * df) - (f * d2f);
+            if (!double.IsFinite(denominator) || Math.Abs(denominator) < 1e-300)
             {
                 break;
             }
+            double step = (2.0 * f * df) / denominator;
+            x -= step;
+            lastStep = Math.Abs(step);
+            iterations = iter + 1;
+
+            if (Math.Abs(step) < 1e-15 * x || Math.Abs(f) < 1e-25)
+            {
+                converged = true;
+                break;
+            }
+        }
+
+        double finalResidual = Math.Abs((x * x * x) + (ka * x * x) - ((Kw + ka * concentrationMolar) * x) - (ka * Kw));
+        converged = converged || (double.IsFinite(finalResidual) && finalResidual < 1e-20);
+        if (!converged || !double.IsFinite(x) || x <= 0.0)
+        {
+            throw new InvalidOperationException($"Weak-acid equilibrium solver failed to converge; residual={finalResidual:G6}.");
         }
 
         double hConc = Math.Max(1e-14, x);
@@ -107,7 +159,16 @@ public static class SolutionsEngine
         double poh = 14.0 - ph;
         double ohConc = Kw / hConc;
 
-        return new PhResult(ph, poh, hConc, ohConc, ph < 7.0, ph > 7.0, Math.Abs(ph - 7.0) < 0.01);
+        return new PhResult(ph, poh, hConc, ohConc, ph < 7.0, ph > 7.0, Math.Abs(ph - 7.0) < 0.01)
+        {
+            Diagnostics = new ScientificNumericalDiagnostics(
+                true,
+                lastStep,
+                finalResidual,
+                0.0,
+                "cubic concentration equation residual",
+                $"Halley iteration converged in {iterations} iterations.")
+        };
     }
 
     /// <summary>

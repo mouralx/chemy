@@ -43,7 +43,12 @@ public sealed record EnergyMinimizationResult(
     double FinalGradientNorm,
     Molecule3D MinimizedMolecule,
     ScientificMethodInfo MethodInfo
-);
+)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+}
 
 /// <summary>Auditable decomposition of the implemented force-field potential.</summary>
 public readonly record struct ForceFieldEnergyComponents(
@@ -58,56 +63,127 @@ public readonly record struct ForceFieldEnergyComponents(
         TorsionKcalPerMol + InversionKcalPerMol + VanDerWaalsKcalPerMol;
 }
 
+/// <summary>Auditable Cartesian derivative of the UFF potential.</summary>
+/// <param name="CartesianGradientKcalPerMolAngstrom">Per-atom dE/d(x,y,z), in kcal/(mol·Å), in molecule atom order.</param>
+/// <param name="FiniteDifferenceStepAngstrom">Central-difference displacement used for every Cartesian component.</param>
+/// <param name="MaxAbsComponentKcalPerMolAngstrom">Infinity norm of the returned Cartesian gradient.</param>
+/// <param name="MethodInfo">Scientific method provenance and applicability metadata.</param>
+public sealed record ForceFieldGradientResult(
+    IReadOnlyList<Vector3D> CartesianGradientKcalPerMolAngstrom,
+    double FiniteDifferenceStepAngstrom,
+    double MaxAbsComponentKcalPerMolAngstrom,
+    ScientificMethodInfo MethodInfo)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+}
+
 /// <summary>
-/// UFF-inspired molecular mechanics engine implementing a documented subset of the potential described by
+/// UFF-compatible molecular mechanics engine implementing the published potential for a declared organic subset described by
 /// Rappé, Casewit, Colwell, Goddard &amp; Skiff (J. Am. Chem. Soc. 1992, 114, 10024-10035).
-/// It is not a drop-in or numerical-equivalence implementation of RDKit UFF.
+/// Unsupported atom types fail closed instead of receiving generic fallback parameters.
 /// </summary>
 public static class ForceFieldEngine
 {
     private static readonly ScientificMethodInfo UffMethodInfo = new(
-        "UFF-Inspired Classical Molecular Mechanics Potential (Rappé et al. 1992)",
-        "1992.1",
-        EvidenceLevel.NumericalApproximation,
-        "Organic small molecules containing H, C, N, O, P, S, F, Cl, Br, I.",
+        "UFF-Compatible Organic-Subset Molecular Mechanics (Rappé et al. 1992)",
+        "1992.2",
+        EvidenceLevel.EmpiricalModel,
+        "Covalently bonded organic molecules composed of H, C, N, O, P, S, F, Cl, Br, and I using the explicitly implemented UFF atom types.",
         [
-            "Evaluates UFF bond stretch, valence angle bend, dihedral torsion (3-fold & 2-fold conjugated), out-of-plane inversion, and buffered 12-6 Lennard-Jones nonbonded terms.",
-            "Uses central finite-difference gradients with bounded-memory L-BFGS and an Armijo line search; does not model electrostatic point charges or non-linear Fourier angle potentials."
+            "Evaluates UFF bond stretch, Fourier valence-angle bend, typed dihedral torsion, out-of-plane inversion, and geometric-mean 12-6 Lennard-Jones terms.",
+            "Uses central finite-difference gradients with bounded-memory L-BFGS and an Armijo line search; atom types outside the declared subset are rejected."
         ]
-    );
+    )
+    {
+        ReferenceUris =
+        [
+            "https://doi.org/10.1021/ja00051a040",
+            "https://github.com/rdkit/rdkit/tree/master/Code/ForceField/UFF"
+        ],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "rdkit-uff-fixed-coordinate-gradient-geometry-v2.8",
+            "2.8",
+            24,
+            [
+                new("FixedCoordinateEnergyMaximumAbsoluteError", 0.0001, "kcal/mol"),
+                new("CartesianGradientMaximumAbsoluteError", 0.0005, "kcal/(mol*angstrom)"),
+                new("OptimizedPairwiseDistanceRmsError", 0.002, "angstrom")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json",
+            "0d866e07e7e4ddc6c3fdc6fc28858b65e60c570fcf1b60947645b399d846b4e5",
+            false,
+            false)
+    };
 
-    private record UffAtomParams(double R0, double Theta0Deg, double X, double D, double Chi, double Z);
+    private record UffAtomParams(
+        double R0,
+        double Theta0Deg,
+        double X,
+        double D,
+        double Chi,
+        double Z,
+        double Sp3TorsionBarrier,
+        double Sp2TorsionParameter);
 
     // Rappé et al. (1992) Table 1 Parameters
     private static readonly Dictionary<string, UffAtomParams> UffParams = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["H"] = new(0.354, 180.0, 2.886, 0.044, 4.528, 0.712),
-        ["C_3"] = new(0.757, 109.4712, 3.851, 0.105, 5.343, 1.912),
-        ["C_2"] = new(0.732, 120.0, 3.851, 0.105, 5.343, 1.912),
-        ["C_R"] = new(0.729, 120.0, 3.851, 0.105, 5.343, 1.912),
-        ["C_1"] = new(0.706, 180.0, 3.851, 0.105, 5.343, 1.912),
-        ["N_3"] = new(0.700, 106.7, 3.660, 0.069, 6.899, 2.544),
-        ["N_2"] = new(0.685, 120.0, 3.660, 0.069, 6.899, 2.544),
-        ["N_R"] = new(0.699, 120.0, 3.660, 0.069, 6.899, 2.544),
-        ["N_1"] = new(0.656, 180.0, 3.660, 0.069, 6.899, 2.544),
-        ["O_3"] = new(0.658, 104.51, 3.500, 0.060, 8.741, 2.300),
-        ["O_2"] = new(0.634, 120.0, 3.500, 0.060, 8.741, 2.300),
-        ["O_R"] = new(0.658, 120.0, 3.500, 0.060, 8.741, 2.300),
-        ["F"] = new(0.668, 180.0, 3.364, 0.050, 10.874, 1.960),
-        ["Cl"] = new(1.044, 180.0, 3.947, 0.227, 8.564, 2.668),
-        ["Br"] = new(1.192, 180.0, 4.189, 0.251, 7.790, 3.328),
-        ["I"] = new(1.382, 180.0, 4.542, 0.339, 6.802, 4.280),
-        ["S_3"] = new(1.064, 103.2, 4.035, 0.274, 6.928, 2.766),
-        ["S_2"] = new(0.999, 120.0, 4.035, 0.274, 6.928, 2.766),
-        ["S_R"] = new(1.049, 120.0, 4.035, 0.274, 6.928, 2.766),
-        ["P_3"] = new(1.100, 93.3, 4.147, 0.305, 5.463, 2.895)
+        ["H"] = new(0.354, 180.0, 2.886, 0.044, 4.528, 0.712, 0.0, 0.0),
+        ["C_3"] = new(0.757, 109.47, 3.851, 0.105, 5.343, 1.912, 2.119, 2.0),
+        ["C_2"] = new(0.732, 120.0, 3.851, 0.105, 5.343, 1.912, 0.0, 2.0),
+        ["C_R"] = new(0.729, 120.0, 3.851, 0.105, 5.343, 1.912, 0.0, 2.0),
+        ["C_1"] = new(0.706, 180.0, 3.851, 0.105, 5.343, 1.912, 0.0, 2.0),
+        ["N_3"] = new(0.700, 106.7, 3.660, 0.069, 6.899, 2.544, 0.450, 2.0),
+        ["N_2"] = new(0.685, 111.2, 3.660, 0.069, 6.899, 2.544, 0.0, 2.0),
+        ["N_R"] = new(0.699, 120.0, 3.660, 0.069, 6.899, 2.544, 0.0, 2.0),
+        ["N_1"] = new(0.656, 180.0, 3.660, 0.069, 6.899, 2.544, 0.0, 2.0),
+        ["O_3"] = new(0.658, 104.51, 3.500, 0.060, 8.741, 2.300, 0.018, 2.0),
+        ["O_2"] = new(0.634, 120.0, 3.500, 0.060, 8.741, 2.300, 0.0, 2.0),
+        ["O_R"] = new(0.680, 110.0, 3.500, 0.060, 8.741, 2.300, 0.0, 2.0),
+        ["F"] = new(0.668, 180.0, 3.364, 0.050, 10.874, 1.735, 0.0, 2.0),
+        ["Cl"] = new(1.044, 180.0, 3.947, 0.227, 8.564, 2.348, 0.0, 1.25),
+        ["Br"] = new(1.192, 180.0, 4.189, 0.251, 7.790, 2.519, 0.0, 0.7),
+        ["I"] = new(1.382, 180.0, 4.500, 0.339, 6.822, 2.650, 0.0, 0.2),
+        ["S_3+2"] = new(1.064, 92.1, 4.035, 0.274, 6.928, 2.703, 0.484, 1.25),
+        ["S_3+4"] = new(1.049, 103.2, 4.035, 0.274, 6.928, 2.703, 0.484, 1.25),
+        ["S_3+6"] = new(1.027, 109.47, 4.035, 0.274, 6.928, 2.703, 0.484, 1.25),
+        ["S_2"] = new(0.854, 120.0, 4.035, 0.274, 6.928, 2.703, 0.0, 1.25),
+        ["S_R"] = new(1.077, 92.2, 4.035, 0.274, 6.928, 2.703, 0.0, 1.25),
+        ["P_3+3"] = new(1.101, 93.8, 4.147, 0.305, 5.463, 2.863, 2.4, 1.25),
+        ["P_3+5"] = new(1.056, 109.47, 4.147, 0.305, 5.463, 2.863, 2.4, 1.25)
     };
 
     private readonly record struct BondParam(int Atom1, int Atom2, double R0, double Kr);
-    private readonly record struct AngleParam(int Center, int N1, int N2, double Theta0Rad, double KTheta);
-    private readonly record struct TorsionParam(int J, int K, int N1, int N2, double BarrierPerPair, bool IsSp2);
-    private readonly record struct InversionParam(int Center, int Axis, int N1, int N2, double KInvPerPermutation);
-    private readonly record struct VdwParam(int Atom1, int Atom2, double Xij, double Dij);
+    private readonly record struct AngleParam(
+        int Center,
+        int N1,
+        int N2,
+        double Theta0Rad,
+        double KTheta,
+        int Order,
+        double C0,
+        double C1,
+        double C2);
+    private readonly record struct TorsionParam(
+        int J,
+        int K,
+        int N1,
+        int N2,
+        double BarrierPerPair,
+        int Order,
+        double CosTerm);
+    private readonly record struct InversionParam(
+        int Center,
+        int Axis,
+        int N1,
+        int N2,
+        double KInvPerPermutation,
+        double C0,
+        double C1,
+        double C2);
+    private readonly record struct VdwParam(int Atom1, int Atom2, double Xij, double Dij, double Cutoff);
 
     private sealed class TopologyParams
     {
@@ -136,7 +212,10 @@ public static class ForceFieldEngine
             int j = bond.Atom2Index;
             if (i >= nAtoms || j >= nAtoms) continue;
 
-            var (r0, kr) = GetUffBondParametersFromParams(uffParams[i], uffParams[j], bond.Type);
+            var (r0, kr) = GetUffBondParametersFromParams(
+                uffParams[i],
+                uffParams[j],
+                GetBondOrder(bond));
             bondList.Add(new BondParam(i, j, r0, kr));
         }
 
@@ -149,14 +228,36 @@ public static class ForceFieldEngine
                 .Select(b => b.Atom1Index == c ? b.Atom2Index : b.Atom1Index)
                 .ToList();
 
-            double theta0 = atomTypes[c].IdealAngleDeg * (Math.PI / 180.0);
-            double k_theta = 100.0;
+            double theta0 = uffParams[c].Theta0Deg * (Math.PI / 180.0);
+            int order = IsSp1(atomTypes[c].TypeName) ? 1 : IsSp2(atomTypes[c].TypeName) ? 3 : 0;
+            double c0 = 0.0;
+            double c1 = 0.0;
+            double c2 = 0.0;
+            if (order == 0)
+            {
+                double sinTheta0 = Math.Sin(theta0);
+                double cosTheta0 = Math.Cos(theta0);
+                c2 = 1.0 / (4.0 * Math.Max(sinTheta0 * sinTheta0, 1e-8));
+                c1 = -4.0 * c2 * cosTheta0;
+                c0 = c2 * ((2.0 * cosTheta0 * cosTheta0) + 1.0);
+            }
 
             for (int j = 0; j < neighbors.Count; j++)
             {
                 for (int k = j + 1; k < neighbors.Count; k++)
                 {
-                    angleList.Add(new AngleParam(c, neighbors[j], neighbors[k], theta0, k_theta));
+                    int n1 = neighbors[j];
+                    int n2 = neighbors[k];
+                    var bond1 = molecule.Bonds.First(bond => bond.Connects(c) && bond.Connects(n1));
+                    var bond2 = molecule.Bonds.First(bond => bond.Connects(c) && bond.Connects(n2));
+                    double kTheta = CalculateUffAngleForceConstant(
+                        theta0,
+                        GetBondOrder(bond1),
+                        GetBondOrder(bond2),
+                        uffParams[n1],
+                        uffParams[c],
+                        uffParams[n2]);
+                    angleList.Add(new AngleParam(c, n1, n2, theta0, kTheta, order, c0, c1, c2));
                 }
             }
         }
@@ -184,38 +285,88 @@ public static class ForceFieldEngine
             int nPairs = jNeighbors.Count * kNeighbors.Count;
             if (nPairs == 0) continue;
 
-            var typeJ = atomTypes[j];
-            var typeK = atomTypes[k];
-
-            bool jIsSp2 = typeJ.TypeName is "C_2" or "C_R" or "N_2" or "N_R" or "O_2" or "S_2" or "S_R";
-            bool kIsSp2 = typeK.TypeName is "C_2" or "C_R" or "N_2" or "N_R" or "O_2" or "S_2" or "S_R";
-
-            if (centralBond.Type == BondType.Double || (jIsSp2 && kIsSp2))
+            string typeJ = atomTypes[j].TypeName;
+            string typeK = atomTypes[k].TypeName;
+            bool jIsSp2 = IsSp2(typeJ);
+            bool kIsSp2 = IsSp2(typeK);
+            bool jIsSp3 = IsSp3(typeJ);
+            bool kIsSp3 = IsSp3(typeK);
+            if (!(jIsSp2 || jIsSp3) || !(kIsSp2 || kIsSp3))
             {
-                double vBarrier = centralBond.Type == BondType.Double ? 45.0 : 5.0;
-                double vDouble = vBarrier / nPairs;
-                foreach (var i in jNeighbors)
+                continue;
+            }
+
+            double bondOrder = GetBondOrder(centralBond);
+            double barrier;
+            int torsionOrder;
+            double cosTerm;
+            if (jIsSp3 && kIsSp3)
+            {
+                barrier = Math.Sqrt(uffParams[j].Sp3TorsionBarrier * uffParams[k].Sp3TorsionBarrier);
+                torsionOrder = 3;
+                cosTerm = -1.0;
+                if (bondOrder == 1.0 && IsGroup6(molecule.Atoms[j].Element.AtomicNumber) && IsGroup6(molecule.Atoms[k].Element.AtomicNumber))
                 {
-                    foreach (var l in kNeighbors)
-                    {
-                        if (i != l && i < nAtoms && l < nAtoms)
-                        {
-                            torsionList.Add(new TorsionParam(j, k, i, l, vDouble, true));
-                        }
-                    }
+                    double v2 = molecule.Atoms[j].Element.AtomicNumber == 8 ? 2.0 : 6.8;
+                    double v3 = molecule.Atoms[k].Element.AtomicNumber == 8 ? 2.0 : 6.8;
+                    barrier = Math.Sqrt(v2 * v3);
+                    torsionOrder = 2;
                 }
+            }
+            else if (jIsSp2 && kIsSp2)
+            {
+                barrier = CalculateSp2TorsionBarrier(bondOrder, uffParams[j], uffParams[k]);
+                torsionOrder = 2;
+                cosTerm = 1.0;
             }
             else
             {
-                double vPerPair = 2.5 / nPairs;
-                foreach (var i in jNeighbors)
+                barrier = 1.0;
+                torsionOrder = 6;
+                cosTerm = 1.0;
+                int sp3Atom = jIsSp3 ? j : k;
+                int sp2Atom = jIsSp2 ? j : k;
+                if (bondOrder == 1.0 &&
+                    IsGroup6(molecule.Atoms[sp3Atom].Element.AtomicNumber) &&
+                    !IsGroup6(molecule.Atoms[sp2Atom].Element.AtomicNumber))
                 {
-                    foreach (var l in kNeighbors)
+                    barrier = CalculateSp2TorsionBarrier(bondOrder, uffParams[j], uffParams[k]);
+                    torsionOrder = 2;
+                    cosTerm = -1.0;
+                }
+            }
+
+            foreach (var i in jNeighbors)
+            {
+                foreach (var l in kNeighbors)
+                {
+                    if (i != l && i < nAtoms && l < nAtoms)
                     {
-                        if (i != l && i < nAtoms && l < nAtoms)
+                        double pairBarrier = barrier;
+                        int pairOrder = torsionOrder;
+                        double pairCosTerm = cosTerm;
+
+                        // UFF's mixed sp2/sp3 rule depends on the two terminal atoms of
+                        // each individual torsion, not on any terminal atom around the bond.
+                        if ((jIsSp2 ^ kIsSp2) &&
+                            bondOrder == 1.0 &&
+                            !(IsGroup6(molecule.Atoms[jIsSp3 ? j : k].Element.AtomicNumber) &&
+                              !IsGroup6(molecule.Atoms[jIsSp2 ? j : k].Element.AtomicNumber)) &&
+                            (IsSp2(atomTypes[i].TypeName) || IsSp2(atomTypes[l].TypeName)))
                         {
-                            torsionList.Add(new TorsionParam(j, k, i, l, vPerPair, false));
+                            pairBarrier = 2.0;
+                            pairOrder = 3;
+                            pairCosTerm = -1.0;
                         }
+
+                        torsionList.Add(new TorsionParam(
+                            j,
+                            k,
+                            i,
+                            l,
+                            pairBarrier / nPairs,
+                            pairOrder,
+                            pairCosTerm));
                     }
                 }
             }
@@ -233,17 +384,19 @@ public static class ForceFieldEngine
             if (neighbors.Count == 3)
             {
                 var type = atomTypes[c];
-                if (type.TypeName is "C_2" or "C_R" or "N_2" or "N_R" or "O_2")
+                int atomicNumber = molecule.Atoms[c].Element.AtomicNumber;
+                bool isPlanarSecondRow = (atomicNumber is 6 or 7 or 8) && IsSp2(type.TypeName);
+                bool isSupportedPyramidal = atomicNumber == 15;
+                if (isPlanarSecondRow || isSupportedPyramidal)
                 {
-                    bool isCarbonylCarbon = type.TypeName == "C_2" && molecule.Bonds.Any(bond =>
+                    bool isCarbonylCarbon = atomicNumber == 6 && molecule.Bonds.Any(bond =>
                         bond.Connects(c) &&
                         bond.Type == BondType.Double &&
                         molecule.Atoms[bond.Atom1Index == c ? bond.Atom2Index : bond.Atom1Index].Element.Symbol == "O");
-                    double totalForceConstant = isCarbonylCarbon ? 50.0 : 6.0;
-                    double kInvPerPermutation = totalForceConstant / 3.0;
-                    inversionList.Add(new InversionParam(c, neighbors[0], neighbors[1], neighbors[2], kInvPerPermutation));
-                    inversionList.Add(new InversionParam(c, neighbors[1], neighbors[0], neighbors[2], kInvPerPermutation));
-                    inversionList.Add(new InversionParam(c, neighbors[2], neighbors[0], neighbors[1], kInvPerPermutation));
+                    var coefficients = CalculateInversionCoefficients(atomicNumber, isCarbonylCarbon);
+                    inversionList.Add(new InversionParam(c, neighbors[0], neighbors[1], neighbors[2], coefficients.K, coefficients.C0, coefficients.C1, coefficients.C2));
+                    inversionList.Add(new InversionParam(c, neighbors[1], neighbors[0], neighbors[2], coefficients.K, coefficients.C0, coefficients.C1, coefficients.C2));
+                    inversionList.Add(new InversionParam(c, neighbors[2], neighbors[0], neighbors[1], coefficients.K, coefficients.C0, coefficients.C1, coefficients.C2));
                 }
             }
         }
@@ -275,7 +428,7 @@ public static class ForceFieldEngine
                     var p2 = uffParams[j];
                     double x_ij = Math.Sqrt(p1.X * p2.X);
                     double d_ij = Math.Sqrt(p1.D * p2.D);
-                    vdwList.Add(new VdwParam(i, j, x_ij, d_ij));
+                    vdwList.Add(new VdwParam(i, j, x_ij, d_ij, 10.0 * x_ij));
                 }
             }
         }
@@ -288,6 +441,68 @@ public static class ForceFieldEngine
             Inversions = [.. inversionList],
             Vdws = [.. vdwList]
         };
+    }
+
+    private static bool IsSp1(string atomType) => atomType.EndsWith("_1", StringComparison.Ordinal);
+
+    private static bool IsSp2(string atomType) =>
+        atomType.EndsWith("_2", StringComparison.Ordinal) || atomType.EndsWith("_R", StringComparison.Ordinal);
+
+    private static bool IsSp3(string atomType) => atomType.Contains("_3", StringComparison.Ordinal);
+
+    private static bool IsGroup6(int atomicNumber) => atomicNumber is 8 or 16 or 34 or 52 or 84;
+
+    private static double GetBondOrder(Bond bond) => bond.Type switch
+    {
+        BondType.Triple => 3.0,
+        BondType.Double => 2.0,
+        BondType.Aromatic => 1.5,
+        _ => 1.0
+    };
+
+    private static double CalculateUffAngleForceConstant(
+        double theta0,
+        double bondOrder12,
+        double bondOrder23,
+        UffAtomParams atom1,
+        UffAtomParams center,
+        UffAtomParams atom3)
+    {
+        double r12 = CalculateBondRestLength(atom1, center, bondOrder12);
+        double r23 = CalculateBondRestLength(center, atom3, bondOrder23);
+        double cosTheta0 = Math.Cos(theta0);
+        double r13Squared = (r12 * r12) + (r23 * r23) - (2.0 * r12 * r23 * cosTheta0);
+        double r13 = Math.Sqrt(Math.Max(r13Squared, 1e-16));
+        double beta = (2.0 * 332.06) / (r12 * r23);
+        double preFactor = beta * atom1.Z * atom3.Z / Math.Pow(r13, 5);
+        double rTerm = r12 * r23;
+        double inner = (3.0 * rTerm * (1.0 - (cosTheta0 * cosTheta0))) - (r13Squared * cosTheta0);
+        return preFactor * rTerm * inner;
+    }
+
+    private static double CalculateSp2TorsionBarrier(double bondOrder, UffAtomParams atom2, UffAtomParams atom3) =>
+        5.0 * Math.Sqrt(atom2.Sp2TorsionParameter * atom3.Sp2TorsionParameter) *
+        (1.0 + (4.18 * Math.Log(bondOrder)));
+
+    private static (double K, double C0, double C1, double C2) CalculateInversionCoefficients(
+        int centerAtomicNumber,
+        bool isCarbonylCarbon)
+    {
+        if (centerAtomicNumber is 6 or 7 or 8)
+        {
+            return ((isCarbonylCarbon ? 50.0 : 6.0) / 3.0, 1.0, -1.0, 0.0);
+        }
+
+        double w0 = centerAtomicNumber switch
+        {
+            15 => 84.4339 * Math.PI / 180.0,
+            _ => throw new NotSupportedException($"UFF inversion parameters are unavailable for atomic number {centerAtomicNumber}.")
+        };
+        double c2 = 1.0;
+        double c1 = -4.0 * Math.Cos(w0);
+        double c0 = -((c1 * Math.Cos(w0)) + (c2 * Math.Cos(2.0 * w0)));
+        double forceConstant = 22.0 / (c0 + c1 + c2) / 3.0;
+        return (forceConstant, c0, c1, c2);
     }
 
     /// <summary>
@@ -309,6 +524,9 @@ public static class ForceFieldEngine
         }
 
         int nAtoms = molecule3D.Atoms.Count;
+        var sourceMol = molecule3D.SourceMolecule ?? new Molecule(molecule3D.Name, molecule3D.Atoms.Select(a => a.Atom), Enumerable.Empty<Bond>());
+        var applicability = AssessApplicability(sourceMol);
+        ScientificApplicability.RequireWithinDomain(applicability, UffMethodInfo.Method);
         if (nAtoms <= 1)
         {
             return new EnergyMinimizationResult(
@@ -321,7 +539,10 @@ public static class ForceFieldEngine
                 0.0,
                 molecule3D,
                 UffMethodInfo
-            );
+            )
+            {
+                Applicability = applicability
+            };
         }
 
         if (molecule3D.SourceMolecule != null && !molecule3D.SourceMolecule.HasBondedTopology)
@@ -330,7 +551,6 @@ public static class ForceFieldEngine
                 $"Molecule '{molecule3D.Name}' has no bonded topology. Force field energy minimization requires a bonded molecular structure, not an empirical formula without connectivity.");
         }
 
-        var sourceMol = molecule3D.SourceMolecule ?? new Molecule(molecule3D.Name, molecule3D.Atoms.Select(a => a.Atom), Enumerable.Empty<Bond>());
         var topo = PrecomputeTopology(sourceMol, nAtoms);
 
         var currentPositions = new Vector3D[nAtoms];
@@ -341,7 +561,7 @@ public static class ForceFieldEngine
 
         var reason = MinimizationTerminationReason.MaximumIterationsReached;
         int iterationsPerformed = 0;
-        var gradients = ComputeExactGradientsFast(topo, currentPositions);
+        var gradients = ComputeFiniteDifferenceGradients(topo, currentPositions, 1e-5);
         double maxGrad = MaxAbsComponent(gradients);
 
         // Limited-memory BFGS avoids the pathological slow-down of steepest descent on the
@@ -366,7 +586,7 @@ public static class ForceFieldEngine
                 inverseCurvatureHistory);
             double directionalDerivative = Dot(gradients, direction);
 
-            // Numerical noise or non-smooth soft-core boundaries can invalidate the quasi-Newton
+            // Numerical finite-difference noise or extreme short-range curvature can invalidate the quasi-Newton
             // direction. Restart safely with steepest descent rather than accepting an uphill step.
             if (!double.IsFinite(directionalDerivative) || directionalDerivative >= 0.0)
             {
@@ -406,7 +626,7 @@ public static class ForceFieldEngine
                 break;
             }
 
-            var candidateGradients = ComputeExactGradientsFast(topo, candidatePositions);
+            var candidateGradients = ComputeFiniteDifferenceGradients(topo, candidatePositions, 1e-5);
             var displacement = Difference(candidatePositions, currentPositions);
             var gradientDelta = Difference(candidateGradients, gradients);
             double curvature = Dot(displacement, gradientDelta);
@@ -476,7 +696,10 @@ public static class ForceFieldEngine
             maxGrad,
             minimizedMol,
             UffMethodInfo
-        );
+        )
+        {
+            Applicability = applicability
+        };
     }
 
     private static Vector3D[] ComputeLbfgsDirection(
@@ -571,6 +794,7 @@ public static class ForceFieldEngine
         ArgumentNullException.ThrowIfNull(molecule3D);
         int nAtoms = molecule3D.Atoms.Count;
         var sourceMol = molecule3D.SourceMolecule ?? new Molecule(molecule3D.Name, molecule3D.Atoms.Select(a => a.Atom), Enumerable.Empty<Bond>());
+        ScientificApplicability.RequireWithinDomain(AssessApplicability(sourceMol), UffMethodInfo.Method);
         var topo = PrecomputeTopology(sourceMol, nAtoms);
         var positions = new Vector3D[nAtoms];
         for (int i = 0; i < nAtoms; i++) positions[i] = molecule3D.Atoms[i].Position;
@@ -585,10 +809,81 @@ public static class ForceFieldEngine
         ArgumentNullException.ThrowIfNull(molecule3D);
         int nAtoms = molecule3D.Atoms.Count;
         var sourceMol = molecule3D.SourceMolecule ?? new Molecule(molecule3D.Name, molecule3D.Atoms.Select(a => a.Atom), Enumerable.Empty<Bond>());
+        ScientificApplicability.RequireWithinDomain(AssessApplicability(sourceMol), UffMethodInfo.Method);
         var topo = PrecomputeTopology(sourceMol, nAtoms);
         var positions = new Vector3D[nAtoms];
         for (int i = 0; i < nAtoms; i++) positions[i] = molecule3D.Atoms[i].Position;
         return CalculateEnergyComponentsFast(topo, positions);
+    }
+
+    /// <summary>
+    /// Evaluates the Cartesian derivative of the exact implemented UFF potential using a
+    /// symmetric two-sided finite difference. Coordinates and atom order are not mutated.
+    /// </summary>
+    public static ForceFieldGradientResult CalculateGradient(
+        Molecule3D molecule3D,
+        double finiteDifferenceStepAngstrom = 1e-5)
+    {
+        ArgumentNullException.ThrowIfNull(molecule3D);
+        if (!double.IsFinite(finiteDifferenceStepAngstrom) || finiteDifferenceStepAngstrom <= 0.0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(finiteDifferenceStepAngstrom),
+                finiteDifferenceStepAngstrom,
+                "Finite-difference step must be a finite positive value in angstroms.");
+        }
+
+        int nAtoms = molecule3D.Atoms.Count;
+        var sourceMol = molecule3D.SourceMolecule ?? new Molecule(
+            molecule3D.Name,
+            molecule3D.Atoms.Select(atom => atom.Atom),
+            Enumerable.Empty<Bond>());
+        var applicability = AssessApplicability(sourceMol);
+        ScientificApplicability.RequireWithinDomain(applicability, UffMethodInfo.Method);
+        var topology = PrecomputeTopology(sourceMol, nAtoms);
+        var positions = molecule3D.Atoms.Select(atom => atom.Position).ToArray();
+        var gradient = ComputeFiniteDifferenceGradients(
+            topology,
+            positions,
+            finiteDifferenceStepAngstrom);
+
+        return new ForceFieldGradientResult(
+            gradient,
+            finiteDifferenceStepAngstrom,
+            MaxAbsComponent(gradient),
+            UffMethodInfo)
+        {
+            Applicability = applicability
+        };
+    }
+
+    /// <summary>Evaluates whether a molecular graph can be parameterized by the declared UFF subset.</summary>
+    public static ScientificApplicabilityAssessment AssessApplicability(Molecule molecule)
+    {
+        ArgumentNullException.ThrowIfNull(molecule);
+        var supportedElements = new HashSet<string>(
+            ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+            StringComparer.Ordinal);
+
+        var structural = ScientificApplicability.AssessMolecule(molecule, supportedElements);
+        if (!structural.IsWithinDomain) return structural;
+
+        var reasons = new List<string>(structural.Reasons);
+        for (int atomIndex = 0; atomIndex < molecule.Atoms.Count; atomIndex++)
+        {
+            try
+            {
+                _ = GetUffParams(GetUffAtomType(molecule, atomIndex).TypeName);
+            }
+            catch (NotSupportedException exception)
+            {
+                reasons.Add($"Atom {atomIndex}: {exception.Message}");
+            }
+        }
+
+        return reasons.Count == structural.Reasons.Count
+            ? structural
+            : new ScientificApplicabilityAssessment(ApplicabilityStatus.OutOfDomain, reasons);
     }
 
     private static double CalculateTotalPotentialEnergyFast(TopologyParams topo, Vector3D[] positions) =>
@@ -617,8 +912,27 @@ public static class ForceFieldEngine
         {
             ref readonly var angle = ref angles[a];
             double angleRad = CalculateAngleRad(positions[angle.N1], positions[angle.Center], positions[angle.N2]);
-            double dTheta = angleRad - angle.Theta0Rad;
-            eAngle += 0.5 * angle.KTheta * dTheta * dTheta;
+            double angleTerm;
+            if (angle.Order == 0)
+            {
+                angleTerm = angle.C0 +
+                    (angle.C1 * Math.Cos(angleRad)) +
+                    (angle.C2 * Math.Cos(2.0 * angleRad));
+            }
+            else
+            {
+                // The published UFF linear term is 1 + cos(theta); higher-order
+                // periodic terms use 1 - cos(n*theta), divided by n^2.
+                angleTerm = angle.Order == 1
+                    ? 1.0 + Math.Cos(angleRad)
+                    : (1.0 - Math.Cos(angle.Order * angleRad)) /
+                        (angle.Order * angle.Order);
+                if (angle.Order < 5 && angleRad < Math.PI / 6.0)
+                {
+                    angleTerm += Math.Exp(-20.0 * (angleRad - angle.Theta0Rad + 0.25)) / angle.KTheta;
+                }
+            }
+            eAngle += angle.KTheta * angleTerm;
         }
 
         // 3. UFF Dihedral Torsional Strain
@@ -627,35 +941,24 @@ public static class ForceFieldEngine
         {
             ref readonly var tor = ref torsions[t];
             double phiRad = CalculateDihedralAngleRad(positions[tor.N1], positions[tor.J], positions[tor.K], positions[tor.N2]);
-            if (tor.IsSp2)
-            {
-                eTorsion += 0.5 * tor.BarrierPerPair * (1.0 - Math.Cos(2.0 * phiRad));
-            }
-            else
-            {
-                eTorsion += 0.5 * tor.BarrierPerPair * (1.0 + Math.Cos(3.0 * phiRad));
-            }
+            eTorsion += 0.5 * tor.BarrierPerPair *
+                (1.0 - (tor.CosTerm * Math.Cos(tor.Order * phiRad)));
         }
 
-        // 4. Nonbonded 12-6 Lennard-Jones with soft-core buffering
+        // 4. UFF nonbonded 12-6 Lennard-Jones potential with geometric-mean parameters.
         var vdws = topo.Vdws;
         for (int v = 0; v < vdws.Length; v++)
         {
             ref readonly var vdw = ref vdws[v];
-            double realDist = Distance(positions[vdw.Atom1], positions[vdw.Atom2]);
-            double dist = Math.Max(1.0, realDist);
+            double dist = Distance(positions[vdw.Atom1], positions[vdw.Atom2]);
+            if (dist <= 0.0 || dist > vdw.Cutoff)
+            {
+                continue;
+            }
             double ratio = vdw.Xij / dist;
             double term6 = Math.Pow(ratio, 6);
             double term12 = term6 * term6;
-            double energy = vdw.Dij * (term12 - 2.0 * term6);
-
-            if (realDist < 1.0)
-            {
-                double clashDeficit = 1.0 - realDist;
-                energy += 250.0 * clashDeficit * clashDeficit;
-            }
-
-            eVdw += energy;
+            eVdw += vdw.Dij * (term12 - (2.0 * term6));
         }
 
         // 5. UFF Inversion (out-of-plane): E_inv = (K_inv / 3) * (1 - cos(omega)) (Rappé et al. 1992 §II.C eq 17)
@@ -672,10 +975,12 @@ public static class ForceFieldEngine
             double lenAxis = Math.Sqrt(vAxis.X * vAxis.X + vAxis.Y * vAxis.Y + vAxis.Z * vAxis.Z);
             if (lenAxis > 1e-6)
             {
-                double sinOmega = (vAxis.X * normPlane.X + vAxis.Y * normPlane.Y + vAxis.Z * normPlane.Z) / lenAxis;
-                sinOmega = Math.Clamp(sinOmega, -1.0, 1.0);
-                double cosOmega = Math.Sqrt(Math.Max(0.0, 1.0 - sinOmega * sinOmega));
-                eInversion += item.KInvPerPermutation * (1.0 - cosOmega);
+                double cosY = (vAxis.X * normPlane.X + vAxis.Y * normPlane.Y + vAxis.Z * normPlane.Z) / lenAxis;
+                cosY = Math.Clamp(cosY, -1.0, 1.0);
+                double sinY = Math.Sqrt(Math.Max(0.0, 1.0 - (cosY * cosY)));
+                double cos2W = (2.0 * sinY * sinY) - 1.0;
+                eInversion += item.KInvPerPermutation *
+                    (item.C0 + (item.C1 * sinY) + (item.C2 * cos2W));
             }
         }
 
@@ -697,6 +1002,7 @@ public static class ForceFieldEngine
         bool hasTriple = bonds.Any(b => b.Type == BondType.Triple);
         int doubleCount = bonds.Count(b => b.Type == BondType.Double);
         bool hasDouble = doubleCount > 0;
+        bool isAmideResonanceAtom = IsAmideResonanceAtom(molecule, atomIndex);
 
         switch (symbol)
         {
@@ -704,6 +1010,7 @@ public static class ForceFieldEngine
                 return ("H", 180.0, 0.354);
 
             case "C":
+                if (isAmideResonanceAtom) return ("C_R", 120.0, 0.729);
                 if (hasAromatic) return ("C_R", 120.0, 0.729);
                 if (hasTriple || doubleCount >= 2) return ("C_1", 180.0, 0.706);
                 if (hasDouble) return ("C_2", 120.0, 0.732);
@@ -712,34 +1019,26 @@ public static class ForceFieldEngine
             case "N":
                 if (hasAromatic) return ("N_R", 120.0, 0.699);
                 if (hasTriple) return ("N_1", 180.0, 0.656);
-                if (hasDouble) return ("N_2", 120.0, 0.685);
+                if (hasDouble) return ("N_2", 111.2, 0.685);
 
-                // Planar amide / conjugated / resonant environment detection:
-                // If Nitrogen is connected to a carbon (or S/P) that is double-bonded to an electronegative atom (O, S, N) or in an aromatic ring
-                bool isResonantPlanar = false;
-                foreach (var b in bonds)
+                // Chemy's graph model does not carry a hybridization flag. Mirror
+                // the sanitized-molecule typing used by UFF for conjugated amide N.
+                bool isResonantPlanar = bonds.Any(bond =>
                 {
-                    int neighbor = b.Atom1Index == atomIndex ? b.Atom2Index : b.Atom1Index;
-                    var neighborAtom = molecule.Atoms[neighbor];
-                    if (neighborAtom.Element.Symbol is "C" or "S" or "P")
+                    int neighbor = bond.Atom1Index == atomIndex ? bond.Atom2Index : bond.Atom1Index;
+                    if (molecule.Atoms[neighbor].Element.Symbol is not ("C" or "S" or "P"))
                     {
-                        bool neighborHasDoubleToElectronegative = molecule.Bonds.Any(nb =>
-                            nb.Connects(neighbor) &&
-                            nb.Type == BondType.Double &&
-                            molecule.Atoms[nb.Atom1Index == neighbor ? nb.Atom2Index : nb.Atom1Index].Element.Symbol is "O" or "S" or "N");
-                        bool neighborIsAromatic = molecule.Bonds.Any(nb => nb.Connects(neighbor) && nb.Type == BondType.Aromatic);
-                        if (neighborHasDoubleToElectronegative || neighborIsAromatic)
-                        {
-                            isResonantPlanar = true;
-                            break;
-                        }
+                        return false;
                     }
-                }
 
-                if (isResonantPlanar)
-                {
-                    return ("N_2", 120.0, 0.685); // sp2 planar amide / resonant nitrogen
-                }
+                    return molecule.Bonds.Any(candidate =>
+                        candidate.Connects(neighbor) &&
+                        candidate.Type == BondType.Double &&
+                        molecule.Atoms[candidate.Atom1Index == neighbor
+                            ? candidate.Atom2Index
+                            : candidate.Atom1Index].Element.Symbol is "O" or "S" or "N");
+                });
+                if (isResonantPlanar) return ("N_R", 120.0, 0.699);
 
                 if (coord >= 4)
                 {
@@ -749,22 +1048,25 @@ public static class ForceFieldEngine
                 return ("N_3", 106.70, 0.700); // sp3 pyramidal amine / ammonia
 
             case "O":
-                if (hasAromatic) return ("O_R", 120.0, 0.658);
+                if (isAmideResonanceAtom) return ("O_R", 110.0, 0.680);
+                if (hasAromatic) return ("O_R", 110.0, 0.680);
                 if (hasDouble) return ("O_2", 120.0, 0.634);
                 return ("O_3", 104.51, 0.658);
 
             case "P":
-                if (coord >= 4) return ("P_3", 109.4712, 1.100);
-                return ("P_3", 93.30, 1.100); // sp3 pyramidal phosphine
+                if (coord >= 4) return ("P_3+5", 109.47, 1.056);
+                return ("P_3+3", 93.8, 1.101); // sp3 pyramidal phosphine
 
             case "S":
-                if (hasAromatic) return ("S_R", 120.0, 1.049);
-                if (hasDouble) return ("S_2", 120.0, 0.999);
+                if (hasAromatic) return ("S_R", 92.2, 1.077);
+                if (hasDouble && coord <= 2) return ("S_2", 120.0, 0.854);
                 if (coord == 2 && bonds.All(b => molecule.Atoms[b.Atom1Index == atomIndex ? b.Atom2Index : b.Atom1Index].Element.Symbol == "H"))
                 {
-                    return ("S_3", 92.10, 1.064); // H2S bent
+                    return ("S_3+2", 92.1, 1.064); // H2S bent
                 }
-                return ("S_3", 103.20, 1.064);
+                if (coord >= 6) return ("S_3+6", 109.47, 1.027);
+                if (coord >= 3 || hasDouble) return ("S_3+4", 103.2, 1.049);
+                return ("S_3+2", 92.1, 1.064);
 
             case "F":
                 return ("F", 180.0, 0.668);
@@ -779,18 +1081,71 @@ public static class ForceFieldEngine
                 return ("I", 180.0, 1.382);
 
             default:
-                return (symbol, 109.4712, 0.770);
+                throw new NotSupportedException(
+                    $"UFF atom typing is not implemented for element '{symbol}'. Supported elements are H, C, N, O, P, S, F, Cl, Br, and I.");
         }
     }
 
+    private static bool IsAmideResonanceAtom(Molecule molecule, int atomIndex)
+    {
+        string symbol = molecule.Atoms[atomIndex].Element.Symbol;
+        if (symbol == "N")
+        {
+            return molecule.Bonds.Where(bond => bond.Connects(atomIndex)).Any(bond =>
+            {
+                int carbon = bond.Atom1Index == atomIndex ? bond.Atom2Index : bond.Atom1Index;
+                return bond.Type == BondType.Single &&
+                    molecule.Atoms[carbon].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(candidate =>
+                        candidate.Connects(carbon) &&
+                        candidate.Type == BondType.Double &&
+                        molecule.Atoms[candidate.Atom1Index == carbon
+                            ? candidate.Atom2Index
+                            : candidate.Atom1Index].Element.Symbol == "O");
+            });
+        }
+
+        if (symbol == "C")
+        {
+            bool hasCarbonylOxygen = molecule.Bonds.Any(bond =>
+                bond.Connects(atomIndex) &&
+                bond.Type == BondType.Double &&
+                molecule.Atoms[bond.Atom1Index == atomIndex ? bond.Atom2Index : bond.Atom1Index].Element.Symbol == "O");
+            bool hasAmideNitrogen = molecule.Bonds.Any(bond =>
+                bond.Connects(atomIndex) &&
+                bond.Type == BondType.Single &&
+                molecule.Atoms[bond.Atom1Index == atomIndex ? bond.Atom2Index : bond.Atom1Index].Element.Symbol == "N");
+            return hasCarbonylOxygen && hasAmideNitrogen;
+        }
+
+        if (symbol == "O")
+        {
+            return molecule.Bonds.Where(bond => bond.Connects(atomIndex) && bond.Type == BondType.Double).Any(bond =>
+            {
+                int carbon = bond.Atom1Index == atomIndex ? bond.Atom2Index : bond.Atom1Index;
+                return molecule.Atoms[carbon].Element.Symbol == "C" &&
+                    molecule.Bonds.Any(candidate =>
+                        candidate.Connects(carbon) &&
+                        candidate.Type == BondType.Single &&
+                        molecule.Atoms[candidate.Atom1Index == carbon
+                            ? candidate.Atom2Index
+                            : candidate.Atom1Index].Element.Symbol == "N");
+            });
+        }
+
+        return false;
+    }
+
     /// <summary>
-    /// Computes machine-precision central finite-difference gradients over the exact potential energy function.
+    /// Computes central finite-difference gradients over the exact implemented potential energy function.
     /// </summary>
-    private static Vector3D[] ComputeExactGradientsFast(TopologyParams topo, Vector3D[] positions)
+    private static Vector3D[] ComputeFiniteDifferenceGradients(
+        TopologyParams topo,
+        Vector3D[] positions,
+        double h)
     {
         int nAtoms = positions.Length;
         var grads = new Vector3D[nAtoms];
-        const double h = 1e-5; // Finite difference displacement in Å
 
         for (int i = 0; i < nAtoms; i++)
         {
@@ -824,45 +1179,32 @@ public static class ForceFieldEngine
         return grads;
     }
 
-    private static (double R0, double Kr) GetUffBondParameters(Molecule molecule, int atom1Idx, int atom2Idx, BondType bondType)
+    private static (double R0, double Kr) GetUffBondParametersFromParams(
+        UffAtomParams p1,
+        UffAtomParams p2,
+        double bondOrder)
     {
-        var type1 = GetUffAtomType(molecule, atom1Idx);
-        var type2 = GetUffAtomType(molecule, atom2Idx);
-        var p1 = GetUffParams(type1.TypeName);
-        var p2 = GetUffParams(type2.TypeName);
-        return GetUffBondParametersFromParams(p1, p2, bondType);
+        double r0 = CalculateBondRestLength(p1, p2, bondOrder);
+        double kr = 664.12 * (p1.Z * p2.Z) / (r0 * r0 * r0);
+        return (r0, kr);
     }
 
-    private static (double R0, double Kr) GetUffBondParametersFromParams(UffAtomParams p1, UffAtomParams p2, BondType bondType)
+    private static double CalculateBondRestLength(UffAtomParams p1, UffAtomParams p2, double bondOrder)
     {
-        double bo = bondType switch
-        {
-            BondType.Triple => 3.0,
-            BondType.Double => 2.0,
-            BondType.Aromatic => 1.5,
-            _ => 1.0
-        };
-
         // Rappé eq 2: r_BO = -0.1332 * (r1 + r2) * ln(BO)
-        double r_bo = -0.1332 * (p1.R0 + p2.R0) * Math.Log(bo);
+        double r_bo = -0.1332 * (p1.R0 + p2.R0) * Math.Log(bondOrder);
 
         // Rappé eq 3: Electronegativity correction
         double chiDiff = Math.Sqrt(p1.Chi) - Math.Sqrt(p2.Chi);
         double r_en = (p1.R0 * p2.R0 * chiDiff * chiDiff) / (p1.Chi * p1.R0 + p2.Chi * p2.R0);
 
-        double r0 = p1.R0 + p2.R0 + r_bo - r_en;
-
-        // Rappé eq 6: k_ij = 664.12 * (Z_i * Z_j) / (r_0^3)
-        double kr = 664.12 * (p1.Z * p2.Z) / (r0 * r0 * r0);
-
-        return (r0, kr);
+        return p1.R0 + p2.R0 + r_bo - r_en;
     }
 
     private static UffAtomParams GetUffParams(string typeName)
     {
         if (UffParams.TryGetValue(typeName, out var p)) return p;
-        if (UffParams.TryGetValue($"{typeName}_3", out var p3)) return p3;
-        return new UffAtomParams(0.77, 109.5, 3.85, 0.10, 5.0, 1.9);
+        throw new NotSupportedException($"UFF parameters are unavailable for atom type '{typeName}'.");
     }
 
     private static double Distance(Vector3D a, Vector3D b)

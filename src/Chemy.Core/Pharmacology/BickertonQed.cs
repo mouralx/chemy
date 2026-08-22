@@ -16,7 +16,19 @@ public sealed record QedResult(
     IReadOnlyDictionary<string, double> DescriptorDesirabilities,
     IReadOnlyList<string> StructuralAlertsFound,
     ScientificMethodInfo MethodInfo
-);
+)
+{
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+
+    public ScientificUncertainty Uncertainty { get; init; } = new(
+        0.208,
+        "QED score",
+        1.0,
+        "Maximum observed absolute agreement error across the pinned 48-molecule RDKit benchmark; not a biological-outcome confidence interval.",
+        "chemy-rdkit-descriptor-benchmark-v2.8");
+}
 
 /// <summary>
 /// QED Drug-Likeness Desirability Function based on asymmetric double-sigmoid functions.
@@ -25,6 +37,10 @@ public sealed record QedResult(
 /// </summary>
 public static class BickertonQed
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "P", "S", "F", "Cl", "Br", "I"],
+        StringComparer.Ordinal);
+
     private static readonly ScientificMethodInfo QedMethodInfo = new(
         "QED Drug-Likeness Desirability Function (Empirical Form)",
         "2012.1",
@@ -34,7 +50,23 @@ public static class BickertonQed
             "Calculates weighted geometric mean of 8 asymmetric double-sigmoid desirability functions.",
             "Structural alerts use a core heuristic filter subset."
         ]
-    );
+    )
+    {
+        ReferenceUris = ["https://doi.org/10.1038/nchem.1243"],
+        ValidationEvidence = new ScientificValidationEvidence(
+            "chemy-rdkit-descriptor-benchmark-v2.8",
+            "2.8",
+            48,
+            [
+                new("MAE", 0.0255, "QED score"),
+                new("RMSE", 0.0502, "QED score"),
+                new("MaximumAbsoluteError", 0.2080, "QED score")
+            ],
+            "src/Chemy.Core.Tests/ValidationData/reference_compounds.json",
+            "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5",
+            false,
+            false)
+    };
 
     // Official Nature Chemistry Bickerton et al. (2012) & RDKit QED Parameters (a, b, c, d, e, f, dmax, weight)
     private record AdsParams(double A, double B, double C, double D, double E, double F, double Dmax, double Weight);
@@ -60,6 +92,9 @@ public static class BickertonQed
             throw new InvalidOperationException(
                 $"Molecule '{molecule.Name}' has no bonded topology. QED calculation requires a bonded molecular graph (e.g. from SMILES or Molfile/SDF), not an empirical formula without connectivity.");
         }
+
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, QedMethodInfo.Method);
 
         double mw = molecule.MolecularWeight;
         double logP = WildmanCrippenLogP.Calculate(molecule).CalculatedLogP;
@@ -100,7 +135,10 @@ public static class BickertonQed
         double qed = Math.Exp(weightedLogSum / totalWeight);
         qed = Math.Clamp(qed, 0.0, 1.0);
 
-        return new QedResult(Math.Round(qed, 3), dMap, alerts, QedMethodInfo);
+        return new QedResult(Math.Round(qed, 3), dMap, alerts, QedMethodInfo)
+        {
+            Applicability = applicability
+        };
     }
 
     /// <summary>

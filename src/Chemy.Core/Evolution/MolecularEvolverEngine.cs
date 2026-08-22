@@ -1,5 +1,6 @@
 using Chemy.Core.Graph;
 using Chemy.Core.Pharmacology;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Evolution;
 
@@ -39,7 +40,22 @@ public record EvolutionOptimizationResult(
     double BaselineQed,
     int GenerationsRun,
     IReadOnlyList<EvolvedCandidate> Candidates
-);
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Rule-based bioisosteric graph exploration",
+        "2026.2",
+        EvidenceLevel.Heuristic,
+        "Bonded organic small-molecule graphs accepted by the descriptor subset and the explicitly implemented rewrite rules.",
+        [
+            "Candidate ranking is a deterministic QED/LogP prioritization heuristic, not evidence of potency, selectivity, toxicity, metabolism, or clinical benefit.",
+            "Generated structures require cheminformatics sanitization and expert medicinal-chemistry review before synthesis decisions."
+        ]);
+
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+}
 
 /// <summary>
 /// Autonomous De Novo Bioisosteric Lead Optimization &amp; Evolutionary Exploration Engine.
@@ -58,23 +74,17 @@ public static class MolecularEvolverEngine
     public static EvolutionOptimizationResult EvolveLeadCandidate(string input, int generations = 50)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(input);
+        if (generations < 1 || generations > 100) throw new ArgumentOutOfRangeException(nameof(generations));
 
-        Molecule baseline;
         string smiles = input.Trim();
-
-        // Priority 1: Try parsing as SMILES to preserve full covalent topology and implicit hydrogens
-        if (Molecule.TryParseSmiles(smiles, smiles, out var smilesMol))
+        int hydrogenToken = smiles.IndexOf('H');
+        if (hydrogenToken >= 0 && hydrogenToken + 1 < smiles.Length && char.IsDigit(smiles[hydrogenToken + 1]))
         {
-            baseline = smilesMol;
+            throw new FormatException("Lead evolution requires bonded SMILES; the input appears to be an empirical formula.");
         }
-        // Priority 2: Try parsing as empirical chemical formula
-        else if (Molecule.TryParse(smiles, smiles, out var mol))
+        if (!Molecule.TryParseSmiles(smiles, smiles, out var baseline) || !baseline.HasBondedTopology)
         {
-            baseline = mol;
-        }
-        else
-        {
-            baseline = Molecule.Parse("CH4", "Lead");
+            throw new FormatException("Lead evolution requires a valid bonded SMILES structure; empirical formula and unparseable input are rejected.");
         }
 
         var baselineAdmet = AdmetEngine.Analyze(baseline);
@@ -137,8 +147,10 @@ public static class MolecularEvolverEngine
         // 3. Multi-Generational Evolutionary Exploration Loop
         var currentPopulation = new List<Molecule> { baseline, fluorinatedMol };
 
-        for (int gen = 1; gen <= Math.Clamp(generations, 5, 100); gen++)
+        int generationsRun = 0;
+        for (int gen = 1; gen <= generations; gen++)
         {
+            generationsRun = gen;
             var nextGen = new List<Molecule>();
 
             foreach (var parent in currentPopulation)
@@ -271,8 +283,11 @@ public static class MolecularEvolverEngine
             baseline.ChemicalFormula,
             smiles,
             baselineAdmet.QedDrugLikenessScore,
-            generations,
+            generationsRun,
             ranked
-        );
+        )
+        {
+            Applicability = baselineAdmet.Applicability
+        };
     }
 }

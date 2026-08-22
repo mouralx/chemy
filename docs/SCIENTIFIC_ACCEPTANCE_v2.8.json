@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "1.0",
+  "releaseCandidate": "2.8",
+  "assessmentDate": "2026-08-22",
+  "baseCommit": "3fced36edf4755b176ce7653193a8d0a8eb638d6",
+  "branch": "codex/scientific-v2.8",
+  "scope": "Internal scientific implementation readiness; platform authentication, authorization, deployment, and operational controls are explicitly excluded.",
+  "score": {
+    "internalScientificReadiness": 9.7,
+    "maximumBeforeExternalCertification": 9.7,
+    "reservedForExternalCertification": 0.3
+  },
+  "gates": [
+    {
+      "id": "release-build",
+      "status": "pass",
+      "evidence": "Release build with warnings as errors: 0 warnings, 0 errors"
+    },
+    {
+      "id": "automated-tests",
+      "status": "pass",
+      "evidence": "171 passed, 0 failed, 0 skipped"
+    },
+    {
+      "id": "coverage",
+      "status": "pass",
+      "evidence": "85.47% line (4911/5746), 76.42% branch (2752/3601); required floors 80% and 70%"
+    },
+    {
+      "id": "uff-fixed-coordinate-energy",
+      "status": "pass",
+      "evidence": "24 cases agree with RDKit 2025.09.2 within 0.0001 kcal/mol"
+    },
+    {
+      "id": "uff-gradient",
+      "status": "pass",
+      "evidence": "Finite-difference Cartesian gradients gated against RDKit analytical UFF gradients at maximum component error 5e-4 kcal/(mol*angstrom)"
+    },
+    {
+      "id": "uff-optimized-geometry",
+      "status": "pass",
+      "evidence": "Five optimized cases gated at 1e-3 kcal/mol final-energy error and 0.002 angstrom pairwise-distance RMS error"
+    },
+    {
+      "id": "predictive-applicability",
+      "status": "pass",
+      "evidence": "Unsupported chemistry fails closed; empirical outputs expose per-input applicability and calibration metadata"
+    },
+    {
+      "id": "thermodynamic-boundaries",
+      "status": "pass",
+      "evidence": "NIST Shomate ranges reject extrapolation; standard-state Hess path rejects non-298.15 K and silent isomer/estimate substitution"
+    },
+    {
+      "id": "numerical-diagnostics",
+      "status": "pass",
+      "evidence": "Force-field convergence, weak-acid residuals, and RK4 analytical/conservation residuals are executable"
+    },
+    {
+      "id": "claim-consistency",
+      "status": "pass",
+      "evidence": "scripts/verify_claim_consistency.py and git diff --check pass"
+    }
+  ],
+  "referenceArtifacts": [
+    {
+      "path": "src/Chemy.Core.Tests/ValidationData/rdkit_uff_butane_reference.json",
+      "sha256": "0d866e07e7e4ddc6c3fdc6fc28858b65e60c570fcf1b60947645b399d846b4e5",
+      "independentlyCurated": false,
+      "prospectivelyFrozen": false
+    },
+    {
+      "path": "src/Chemy.Core.Tests/ValidationData/reference_compounds.json",
+      "sha256": "3d579feb7fbe159de194764556f0f31821cd69ffedee90e19a6165889b9452c5",
+      "independentlyCurated": false,
+      "prospectivelyFrozen": false
+    },
+    {
+      "path": "src/Chemy.Core.Tests/ValidationData/experimental_nmr_reference.json",
+      "sha256": "5b4e3b762887563827bacb9e62607e079431cbb6bc6596542b5d1c7b5947b9b0",
+      "independentlyCurated": false,
+      "prospectivelyFrozen": false
+    }
+  ],
+  "certificationBacklog": [
+    "Prospectively freeze an evaluation manifest before any output or threshold is observed.",
+    "Have a separate party independently curate/reproduce the reference datasets and results.",
+    "Obtain identifiable chemistry-domain expert review and sign-off on applicability domains and acceptance thresholds."
+  ],
+  "interpretation": "The 9.7 score is an internal, scope-bounded scientific engineering readiness assessment. It is not regulatory, laboratory, publication, or independent certification."
+}

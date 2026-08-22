@@ -1,5 +1,6 @@
 using System.Text;
 using Chemy.Core.Graph;
+using Chemy.Core.Scientific;
 
 namespace Chemy.Core.Quantum;
 
@@ -72,7 +73,25 @@ public record HuckelResult(
     IReadOnlyList<PiBondOrder> PiBondOrders,
     IReadOnlyList<AtomPiCharge> AtomCharges,
     IReadOnlyList<FukuiIndex> FukuiIndices
-);
+)
+{
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Hückel molecular-orbital model with Jacobi symmetric eigensolver",
+        "2026.2",
+        EvidenceLevel.EmpiricalModel,
+        "Planar conjugated pi systems parameterized for C, N, O, S, F, Cl, and Br using the documented heteroatom constants.",
+        [
+            "The matrix eigensolution is numerical, but Hückel theory and heteroatom parameters are semi-empirical approximations.",
+            "UV-visible wavelength, charge, bond-order, and Fukui outputs are qualitative model estimates, not ab initio predictions."
+        ])
+    {
+        ReferenceUris = ["https://goldbook.iupac.org/terms/view/H02869"]
+    };
+
+    public ScientificApplicabilityAssessment Applicability { get; init; } = new(
+        ApplicabilityStatus.OutOfDomain,
+        ["Applicability was not evaluated."]);
+}
 
 /// <summary>
 /// Exact Hückel Molecular Orbital (HMO) Quantum Engine.
@@ -81,6 +100,10 @@ public record HuckelResult(
 /// </summary>
 public static class HuckelEngine
 {
+    private static readonly IReadOnlySet<string> SupportedElements = new HashSet<string>(
+        ["H", "C", "N", "O", "S", "F", "Cl", "Br"],
+        StringComparer.Ordinal);
+
     // Standard standard semi-empirical resonance integral |β_0| in eV (~2.71 eV = 62.5 kcal/mol)
     public const double DefaultBetaEv = 2.71;
     public const double DefaultBetaKcalPerMol = 62.5;
@@ -92,6 +115,10 @@ public static class HuckelEngine
     public static HuckelResult Analyze(Molecule molecule, double betaEv = DefaultBetaEv)
     {
         ArgumentNullException.ThrowIfNull(molecule);
+        if (!double.IsFinite(betaEv) || betaEv <= 0.0) throw new ArgumentOutOfRangeException(nameof(betaEv));
+
+        var applicability = ScientificApplicability.AssessMolecule(molecule, SupportedElements);
+        ScientificApplicability.RequireWithinDomain(applicability, "Hückel molecular-orbital model");
 
         // 1. Identify conjugated π-system atoms
         var conjAtoms = IdentifyConjugatedAtoms(molecule);
@@ -131,7 +158,10 @@ public static class HuckelEngine
             }
         }
 
-        return SolveHuckel(molecule.Name, H, coreCharges, symbols, conjAtoms.Select(a => a.AtomIndex).ToList(), molecule, betaEv);
+        return SolveHuckel(molecule.Name, H, coreCharges, symbols, conjAtoms.Select(a => a.AtomIndex).ToList(), molecule, betaEv) with
+        {
+            Applicability = applicability
+        };
     }
 
     /// <summary>
@@ -146,18 +176,37 @@ public static class HuckelEngine
     {
         ArgumentNullException.ThrowIfNull(H);
         ArgumentNullException.ThrowIfNull(electronContributions);
+        if (!double.IsFinite(betaEv) || betaEv <= 0.0) throw new ArgumentOutOfRangeException(nameof(betaEv));
 
         int n = electronContributions.Length;
         if (H.GetLength(0) != n || H.GetLength(1) != n)
         {
             throw new ArgumentException("Hamiltonian matrix dimensions must match electron contributions length.");
         }
+        if (n < 2) throw new ArgumentException("Hamiltonian must contain at least two orbitals.", nameof(H));
+        for (int row = 0; row < n; row++)
+        {
+            if (electronContributions[row] < 0) throw new ArgumentOutOfRangeException(nameof(electronContributions));
+            for (int column = 0; column < n; column++)
+            {
+                if (!double.IsFinite(H[row, column])) throw new ArgumentException("Hamiltonian entries must be finite.", nameof(H));
+                if (Math.Abs(H[row, column] - H[column, row]) > 1e-12)
+                {
+                    throw new ArgumentException("Hamiltonian must be symmetric within 1e-12.", nameof(H));
+                }
+            }
+        }
 
         atomLabels ??= Enumerable.Range(1, n).Select(i => $"C{i}").ToArray();
         var coreCharges = electronContributions.Select(e => (double)e).ToArray();
         var atomIndices = Enumerable.Range(0, n).ToList();
 
-        return SolveHuckel(name, H, coreCharges, atomLabels, atomIndices, null, betaEv);
+        return SolveHuckel(name, H, coreCharges, atomLabels, atomIndices, null, betaEv) with
+        {
+            Applicability = new ScientificApplicabilityAssessment(
+                ApplicabilityStatus.InDomain,
+                ["Explicit finite symmetric Hamiltonian passed all matrix-domain checks."])
+        };
     }
 
     private static HuckelResult SolveHuckel(

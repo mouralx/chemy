@@ -43,10 +43,11 @@ public class ThermodynamicsTests
             [new ReactionComponent(Molecule.Parse("CO2", "CarbonDioxide"), 8), new ReactionComponent(Molecule.Parse("H2O", "Water"), 10)]
         );
 
-        var thermo = ThermodynamicsEngine.GetThermodynamics(reaction);
+        var thermo = ThermodynamicsEngine.GetThermodynamics(reaction, allowBensonEstimates: true);
         Assert.NotNull(thermo);
         Assert.True(thermo.IsExothermic);
         Assert.True(thermo.IsSpontaneous);
+        Assert.Equal(Chemy.Core.Scientific.ApplicabilityStatus.Boundary, thermo.Applicability.Status);
     }
 
     [Theory]

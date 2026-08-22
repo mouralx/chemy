@@ -20,7 +20,7 @@ Welcome to the definitive **Chemy API Reference**. This document provides an exh
    - [PubChem Live Cloud Integrator](#pubchemclient)
    - [Kinetics & RK4 Networks](#reactionnetworkengine--kineticsengine)
    - [Stoichiometry & Reaction Balancer](#reaction--stepbystepbalancer)
-   - [Thermodynamics & Benson Additivity](#reactionthermodynamics)
+   - [Standard-State Thermodynamics](#reactionthermodynamics)
    - [Solutions & Electrochemistry](#solutionsengine--electrochemistryengine)
 2. [HTTP REST API Endpoints (`Chemy.Api`)](#2-http-rest-api-endpoints-chemyapi)
    - [Service Health & Observability](#system-health--observability)
@@ -87,10 +87,12 @@ public static class ForceFieldEngine
     public static EnergyMinimizationResult MinimizeEnergy(Molecule3D molecule3D, int maxIterations = 500, double gradientTolerance = 1e-3);
     public static double CalculateTotalEnergy(Molecule3D molecule3D);
     public static ForceFieldEnergyComponents CalculateEnergyComponents(Molecule3D molecule3D);
+    public static ForceFieldGradientResult CalculateGradient(Molecule3D molecule3D, double finiteDifferenceStepAngstrom = 1e-5);
+    public static ScientificApplicabilityAssessment AssessApplicability(Molecule molecule);
 }
 ```
 
-`EnergyMinimizationResult` exposes convergence, termination reason, iterations, final gradient norm, initial/final energies, and the best resulting coordinates. Invalid iteration budgets and tolerances fail with `ArgumentOutOfRangeException`.
+`EnergyMinimizationResult` exposes convergence, termination reason, iterations, final gradient norm, initial/final energies, best coordinates, applicability, and validation provenance. Invalid controls and out-of-domain chemistry fail closed.
 
 ---
 

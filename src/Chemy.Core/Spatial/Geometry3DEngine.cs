@@ -325,7 +325,7 @@ public static class Geometry3DEngine
 
     /// <summary>
     /// Embeds realistic, energy-minimized 3D coordinates for arbitrary branched, cyclic, or polycyclic organic molecules
-    /// using ring-scaffold template embedding, valence-directed tetrahedral branching, and UFF-inspired relaxation.
+    /// using ring-scaffold template embedding, valence-directed tetrahedral branching, and declared-subset UFF relaxation.
     /// </summary>
     private static Molecule3D GenerateMultiCenter3D(Molecule molecule, bool minimizeBonded)
     {

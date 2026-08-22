@@ -1,5 +1,7 @@
 namespace Chemy.Core.Kinetics;
 
+using Chemy.Core.Scientific;
+
 /// <summary>
 /// Encapsulates reaction half-life calculation results.
 /// </summary>
@@ -14,6 +16,13 @@ public record HalfLifeResult(
     double InitialConcentrationMolar
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Integrated rate-law half-life equation",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Irreversible single-reactant reactions of integer order 0, 1, or 2 with constant rate coefficient.",
+        ["Input rate coefficients and reaction order remain experimental/model assumptions."]);
+
     /// <summary>Formats the half-life result as a string.</summary>
     public override string ToString() => $"t_1/2 = {HalfLifeTime:F3} s (Order = {ReactionOrder}, k = {RateConstantK})";
 }
@@ -32,6 +41,13 @@ public record ArrheniusResult(
     double TemperatureKelvin
 )
 {
+    public ScientificMethodInfo MethodInfo { get; init; } = new(
+        "Arrhenius rate equation",
+        "2026.2",
+        EvidenceLevel.ExactEquation,
+        "Single Arrhenius regime with temperature-independent pre-exponential factor and activation energy.",
+        ["Does not model tunnelling, falloff, diffusion limitation, or mechanism changes across temperature."]);
+
     /// <summary>Formats the Arrhenius calculation result as a string.</summary>
     public override string ToString() => $"k = {RateConstantK:E3} (E_a = {ActivationEnergykJPerMol:F1} kJ/mol, T = {TemperatureKelvin:F1} K)";
 }
